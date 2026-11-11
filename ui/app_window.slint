@@ -1,0 +1,27 @@
+// Janela raiz da interface. Compõe barra de status + tela atual.
+// Propriedades marcadas com `in` são preenchidas pelo código Rust (src/).
+
+import { Theme } from "theme.slint";
+import { StatusBar } from "components/status_bar.slint";
+import { HomeScreen } from "screens/home_screen.slint";
+
+export component AppWindow inherits Window {
+    title: "Linux OS";
+    // Resolução de referência para desenvolvimento; no dispositivo (feature kms)
+    // a janela ocupa a tela inteira automaticamente.
+    preferred-width: 1280px;
+    preferred-height: 800px;
+    background: Theme.background;
+
+    // Hora exibida na barra de status (atualizada por src/clock.rs).
+    in property <string> clock-text: "--:--";
+
+    VerticalLayout {
+        StatusBar {
+            clock: root.clock-text;
+        }
+        HomeScreen {
+            vertical-stretch: 1;
+        }
+    }
+}

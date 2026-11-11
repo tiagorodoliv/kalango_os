@@ -1,0 +1,33 @@
+[package]
+name = "linux_os"
+version = "0.1.0"
+edition = "2021"
+description = "Interface gráfica (shell) do sistema operacional proprietário, em Rust + Slint"
+publish = false
+
+[dependencies]
+# Slint: toolkit de UI declarativo, pensado para embarcado.
+# Em desenvolvimento (Mac/Linux desktop) usa o backend padrão (winit, janela comum).
+slint = { version = "1.8", default-features = false, features = [
+    "std",
+    "compat-1-2",
+    "backend-winit",
+    "renderer-femtovg",
+    "renderer-software",
+] }
+
+[build-dependencies]
+# Compila os arquivos .slint em código Rust durante o build.
+slint-build = "1.8"
+
+[features]
+default = []
+# Build para o dispositivo: desenha direto via DRM/KMS + libinput, sem X11/Wayland.
+# Uso: cargo build --release --features kms
+kms = ["slint/backend-linuxkms-noseat"]
+
+[profile.release]
+# Binário menor e mais rápido para o alvo embarcado.
+lto = true
+codegen-units = 1
+strip = true
