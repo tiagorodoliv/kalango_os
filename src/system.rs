@@ -6,6 +6,7 @@
 
 use std::cell::Cell;
 use std::fs;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use slint::{ComponentHandle, Timer, TimerMode};
@@ -56,11 +57,10 @@ fn read_cpu() -> Option<CpuTimes> {
     parse_proc_stat(&fs::read_to_string("/proc/stat").ok()?)
 }
 
-/// Carga da primeira bateria encontrada (0–100); `None` se não houver bateria.
+/// Pasta da primeira bateria em `/sys/class/power_supply` (`None` sem bateria).
 ///
-/// Procura em `/sys/class/power_supply/*` a fonte com `type` = "Battery"
-/// (o nome varia: BAT0, BAT1, battery...).
-fn read_battery() -> Option<u32> {
+/// Procura a fonte com `type` = "Battery" (o nome varia: BAT0, BAT1, battery...).
+pub(crate) fn battery_path() -> Option<PathBuf> {
     fs::read_dir("/sys/class/power_supply")
         .ok()?
         .flatten()
@@ -68,7 +68,12 @@ fn read_battery() -> Option<u32> {
         .find(|path| {
             fs::read_to_string(path.join("type")).is_ok_and(|t| t.trim() == "Battery")
         })
-        .and_then(|path| fs::read_to_string(path.join("capacity")).ok())
+}
+
+/// Carga da primeira bateria encontrada (0–100); `None` se não houver bateria.
+pub(crate) fn read_battery() -> Option<u32> {
+    fs::read_to_string(battery_path()?.join("capacity"))
+        .ok()
         .and_then(|c| c.trim().parse().ok())
 }
 

@@ -3,6 +3,7 @@
 //! A UI declarativa fica em `ui/*.slint` (compilada pelo `build.rs`); este
 //! crate liga a UI aos serviços do sistema:
 //! - [`clock`]: data/hora local em pt-BR;
+//! - [`device`]: rede, som, energia e ficha do sistema nas Configurações;
 //! - [`system`]: uso de CPU e bateria;
 //! - [`apps`]: busca do launcher;
 //! - [`session`]: sessão real (abrir apps, menu e Configurações como janelas
@@ -17,6 +18,7 @@
 pub mod appearance;
 pub mod apps;
 pub mod clock;
+pub mod device;
 pub mod greeter;
 pub mod recent;
 pub mod session;
@@ -59,6 +61,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     let mut timers = vec![clock::start(&ui), system::start(&ui)];
     timers.extend(session::install(&ui, mode));
     timers.extend(appearance::install(&ui));
+    timers.extend(device::install(&ui, mode));
     Ok((ui, timers))
 }
 

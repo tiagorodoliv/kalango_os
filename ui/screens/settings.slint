@@ -1,11 +1,14 @@
-// Configurações: barra lateral de seções + página Aparência funcional.
-// As demais seções mostram só um aviso de "em construção" no protótipo.
-// Tudo que é alterado aqui grava no global `Theme` e muda o sistema ao vivo.
+// Configurações: barra lateral de seções + páginas. A Aparência grava no
+// global `Theme` e muda o sistema ao vivo; as demais páginas
+// (`settings_pages.slint`) mostram e alteram o computador de verdade pelo
+// global `Device` (rede, som, energia...).
 
 import { Theme, ThemeMode } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { SectionLabel, IconButton, Toggle, SliderBar } from "../components/widgets.slint";
-import { KalangoLogo, KalangoIcon } from "../brand.slint";
+import {
+    NetworkPage, BluetoothPage, DisplaysPage, SoundPage, PowerPage, UsersPage, UpdatesPage, AboutPage,
+} from "settings_pages.slint";
 
 /// Seção da barra lateral.
 struct Section {
@@ -294,7 +297,7 @@ export component SettingsScreen inherits Rectangle {
         { name: "Som", icon: Icons.volume },
         { name: "Energia", icon: Icons.battery },
         { name: "Usuários", icon: Icons.user },
-        { name: "Atualizações", icon: Icons.download, badge: 3 },
+        { name: "Atualizações", icon: Icons.download },
         { name: "Sobre o sistema", icon: Icons.info },
     ];
     property <int> current: 2;
@@ -390,30 +393,14 @@ export component SettingsScreen inherits Rectangle {
             y: 0;
         }
 
-        // Sobre o sistema: marca e versão.
-        if root.current == 8: VerticalLayout {
-            x: 0;
-            y: 110px;
-            spacing: 14px;
-            alignment: start;
-            HorizontalLayout {
-                spacing: 18px;
-                alignment: start;
-                KalangoIcon { width: 72px; height: 72px; }
-                KalangoLogo { height: 72px; }
-            }
-            Text { text: "Kalango OS 0.1 — protótipo do shell"; color: Theme.text; font-size: 15px; }
-            Text { text: "Base Debian 13 \"trixie\" · Sessão Wayland · Rust + Slint"; color: Theme.text-muted; font-size: 13.5px; }
-        }
-
-        if root.current != 2 && root.current != 8: Text {
-            x: 0;
-            y: 100px;
-            text: "Esta seção ainda não foi feita no protótipo.";
-            color: Theme.text-muted;
-            font-family: Theme.sans;
-            font-size: 14.5px;
-        }
+        if root.current == 0: NetworkPage { }
+        if root.current == 1: BluetoothPage { }
+        if root.current == 3: DisplaysPage { }
+        if root.current == 4: SoundPage { }
+        if root.current == 5: PowerPage { }
+        if root.current == 6: UsersPage { }
+        if root.current == 7: UpdatesPage { }
+        if root.current == 8: AboutPage { }
     }
 
     IconButton {

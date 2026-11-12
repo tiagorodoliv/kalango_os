@@ -1,0 +1,601 @@
+// Páginas das Configurações com dados reais do sistema (global `Device`,
+// preenchido por `src/device.rs`): Rede e Wi-Fi, Bluetooth, Monitores, Som,
+// Energia, Usuários, Atualizações e Sobre o sistema. A Aparência fica em
+// `settings.slint`.
+//
+// Cada página ocupa a área de conteúdo inteira; o título já é desenhado pela
+// tela das Configurações, então o conteúdo começa em y = 110px.
+
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+import { Shell } from "../globals.slint";
+import { Device, InfoItem, WifiNetwork } from "../device.slint";
+import { SectionLabel, Toggle, SliderBar, Avatar } from "../components/widgets.slint";
+import { KalangoLogo, KalangoIcon } from "../brand.slint";
+
+/// Onde o conteúdo das páginas começa (abaixo do título).
+global Page {
+    out property <length> top: 110px;
+    out property <length> max-width: 721px;
+}
+
+/// Botão com texto. `primary` usa a cor de destaque; `danger`, o vermelho.
+export component PillButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> primary: false;
+    in property <bool> danger: false;
+    in property <bool> enabled: true;
+    callback clicked();
+
+    width: label.preferred-width + 36px;
+    height: 38px;
+    border-radius: Theme.radius-small;
+    opacity: root.enabled ? 1 : 0.5;
+    background: root.primary
+        ? (touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent)
+        : (touch.has-hover ? Theme.tile-hover : Theme.tile);
+    border-width: root.primary ? 0 : 1px;
+    border-color: root.danger ? Theme.danger.with-alpha(0.6) : Theme.border;
+    animate background { duration: Theme.anim; }
+
+    label := Text {
+        text: root.text;
+        color: root.primary ? Theme.on-accent : root.danger ? Theme.danger : Theme.text;
+        font-family: Theme.sans;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Painel de fundo das listas de opções.
+component Panel inherits Rectangle {
+    border-radius: Theme.radius;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.border;
+}
+
+/// Linha de painel: título e descrição à esquerda, controle (filho) à direita.
+component Row inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <bool> divider: true;
+    /// Valor à direita (sem controle filho).
+    in property <string> value;
+    /// Valor em destaque (texto normal e fonte mono).
+    in property <bool> value-strong: false;
+
+    height: 67px;
+
+    if root.divider: Rectangle {
+        y: 0;
+        height: 1px;
+        background: Theme.border;
+    }
+    VerticalLayout {
+        x: 20px;
+        width: parent.width * 0.55;
+        alignment: center;
+        spacing: 3px;
+        Text { text: root.title; color: Theme.text; font-family: Theme.sans; font-size: 14.5px; font-weight: 600; overflow: elide; }
+        if root.subtitle != "": Text { text: root.subtitle; color: Theme.text-muted; font-family: Theme.sans; font-size: 13.5px; overflow: elide; }
+    }
+    if root.value != "": Text {
+        x: root.width - self.width - 20px;
+        width: root.width * 0.4;
+        text: root.value;
+        color: root.value-strong ? Theme.text : Theme.text-muted;
+        font-family: root.value-strong ? Theme.mono : Theme.sans;
+        font-size: 14px;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    @children
+}
+
+/// Aviso de seção sem recurso (ícone + texto).
+component EmptyNotice inherits Rectangle {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> text;
+
+    height: 150px;
+    width: Page.max-width;
+    border-radius: Theme.radius;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.border;
+
+    VerticalLayout {
+        alignment: center;
+        spacing: 10px;
+        Image {
+            source: root.icon;
+            colorize: Theme.text-muted;
+            height: 28px;
+            image-fit: contain;
+        }
+        Text { text: root.title; color: Theme.text; font-family: Theme.sans; font-size: 15px; font-weight: 600; horizontal-alignment: center; }
+        Text { text: root.text; color: Theme.text-muted; font-family: Theme.sans; font-size: 13.5px; horizontal-alignment: center; wrap: word-wrap; }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Rede e Wi-Fi
+// ---------------------------------------------------------------------------
+
+/// Barrinhas de sinal (4 níveis).
+component SignalBars inherits Rectangle {
+    in property <int> signal;
+    width: 22px;
+    height: 16px;
+    for i in 4: Rectangle {
+        x: i * 6px;
+        y: parent.height - self.height;
+        width: 4px;
+        height: 4px + i * 4px;
+        border-radius: 1px;
+        background: root.signal >= 20 + i * 20 ? Theme.accent : Theme.border;
+    }
+}
+
+export component NetworkPage inherits Rectangle {
+    /// Rede escolhida na lista (aguardando a senha).
+    property <string> selected: "";
+    VerticalLayout {
+        x: 0;
+        y: Page.top;
+        width: min(Page.max-width, parent.width);
+        alignment: start;
+        spacing: 16px;
+
+        if !Device.network-available: EmptyNotice {
+            icon: Icons.wifi;
+            title: "Gerenciador de rede indisponível";
+            text: "O NetworkManager não respondeu. Confira se o serviço está rodando.";
+        }
+
+        if Device.network-available: Panel {
+            height: Device.wifi-present ? 2 * 67px : 67px;
+            VerticalLayout {
+                Row {
+                    title: "Conexão";
+                    subtitle: Device.network-status;
+                    divider: false;
+                    PillButton {
+                        x: parent.width - self.width - 20px;
+                        text: "Avançado";
+                        clicked => { Shell.open-app("network"); }
+                    }
+                }
+                if Device.wifi-present: Row {
+                    title: "Wi-Fi";
+                    subtitle: Device.wifi-enabled ? "Ligado" : "Desligado";
+                    Toggle {
+                        x: parent.width - self.width - 20px;
+                        checked <=> Device.wifi-enabled;
+                        toggled(on) => { Device.set-wifi(on); }
+                    }
+                }
+            }
+        }
+
+        if Device.network-available && !Device.wifi-present: Text {
+            text: "Nenhuma placa Wi-Fi encontrada neste computador.";
+            color: Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 13.5px;
+        }
+
+        // --- Lista de redes ---
+        if Device.network-available && Device.wifi-present && Device.wifi-enabled: HorizontalLayout {
+            height: 24px;
+            SectionLabel { text: "REDES DISPONÍVEIS"; vertical-alignment: center; }
+            Rectangle { horizontal-stretch: 1; }
+            PillButton {
+                height: 24px;
+                text: Device.network-busy ? "Aguarde..." : "Atualizar";
+                enabled: !Device.network-busy;
+                clicked => { Device.rescan(); }
+            }
+        }
+
+        if Device.network-available && Device.wifi-present && Device.wifi-enabled: Panel {
+            height: max(1, Device.networks.length) * 52px;
+            if Device.networks.length == 0: Text {
+                text: "Nenhuma rede encontrada";
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+            }
+            for net[i] in Device.networks: Rectangle {
+                y: i * 52px;
+                height: 52px;
+                background: net-touch.has-hover ? Theme.tile : transparent;
+                border-radius: Theme.radius;
+
+                if i > 0: Rectangle { y: 0; height: 1px; background: Theme.border; }
+                SignalBars { x: 20px; signal: net.signal; }
+                Text {
+                    x: 56px;
+                    text: net.ssid;
+                    color: Theme.text;
+                    font-family: Theme.sans;
+                    font-size: 14.5px;
+                    font-weight: net.active ? 600 : 400;
+                    vertical-alignment: center;
+                }
+                HorizontalLayout {
+                    x: parent.width - self.width - 20px;
+                    spacing: 10px;
+                    alignment: end;
+                    if net.active: Text {
+                        text: "Conectada";
+                        color: Theme.accent;
+                        font-family: Theme.sans;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                    }
+                    if net.secure: Image {
+                        source: Icons.lock;
+                        colorize: Theme.text-muted;
+                        width: 15px;
+                        height: 15px;
+                        y: (parent.height - self.height) / 2;
+                    }
+                }
+                net-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        if (!net.active) {
+                            root.selected = net.ssid;
+                            password.text = "";
+                            password.focus();
+                            Device.network-message = "";
+                            if (!net.secure) {
+                                Device.connect-wifi(net.ssid, "");
+                                root.selected = "";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Senha da rede escolhida ---
+        // Sempre existe e nunca fica `visible: false` (fechado, encolhe e
+        // fica transparente): elemento invisível não aceita foco, e o clique
+        // na rede precisa focar o campo de senha.
+        Panel {
+            height: root.selected != "" ? 67px : 0;
+            opacity: root.selected != "" ? 1 : 0;
+            Text {
+                x: 20px;
+                width: 200px;
+                text: "Senha de " + root.selected;
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 14px;
+                font-weight: 600;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            Rectangle {
+                x: 230px;
+                width: parent.width - 230px - 20px - connect-btn.width - 10px - cancel-btn.width - 10px;
+                height: 38px;
+                border-radius: Theme.radius-small;
+                background: Theme.sunken;
+                border-width: 1px;
+                border-color: password.has-focus ? Theme.accent : Theme.border;
+                password := TextInput {
+                    x: 12px;
+                    width: parent.width - 24px;
+                    height: parent.height;
+                    vertical-alignment: center;
+                    input-type: InputType.password;
+                    color: Theme.text;
+                    font-family: Theme.sans;
+                    font-size: 14px;
+                    accepted => { connect-btn.clicked(); }
+                }
+            }
+            connect-btn := PillButton {
+                x: parent.width - self.width - 20px - cancel-btn.width - 10px;
+                text: "Conectar";
+                primary: true;
+                enabled: password.text != "" && !Device.network-busy;
+                clicked => {
+                    Device.connect-wifi(root.selected, password.text);
+                    password.text = "";
+                    root.selected = "";
+                }
+            }
+            cancel-btn := PillButton {
+                x: parent.width - self.width - 20px;
+                text: "Cancelar";
+                clicked => { root.selected = ""; }
+            }
+        }
+
+        if Device.network-message != "": Text {
+            text: Device.network-message;
+            color: Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 13.5px;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Som
+// ---------------------------------------------------------------------------
+
+export component SoundPage inherits Rectangle {
+    VerticalLayout {
+        x: 0;
+        y: Page.top;
+        width: min(Page.max-width, parent.width);
+        alignment: start;
+        spacing: 16px;
+
+        if !Device.sound-available: EmptyNotice {
+            icon: Icons.volume;
+            title: "Nenhuma saída de som";
+            text: "O servidor de som (PipeWire) não encontrou alto-falantes ou fones.";
+        }
+
+        if Device.sound-available: Panel {
+            height: 3 * 67px;
+            VerticalLayout {
+                Row {
+                    title: "Saída";
+                    divider: false;
+                    value: Device.sound-output;
+                }
+                Row {
+                    title: "Volume";
+                    SliderBar {
+                        x: parent.width - self.width - 72px;
+                        width: 240px;
+                        value <=> Device.volume;
+                        changed(v) => { Device.set-volume(v); }
+                    }
+                    Text {
+                        x: parent.width - self.width - 20px;
+                        width: 42px;
+                        text: Device.muted ? "mudo" : round(Device.volume * 100) + "%";
+                        color: Theme.text;
+                        font-family: Theme.mono;
+                        font-size: 13px;
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                    }
+                }
+                Row {
+                    title: "Sem som";
+                    subtitle: "Silencia a saída padrão";
+                    Toggle {
+                        x: parent.width - self.width - 20px;
+                        checked <=> Device.muted;
+                        toggled(on) => { Device.set-muted(on); }
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            PillButton {
+                text: "Mais opções de som";
+                clicked => { Shell.open-app("sound"); }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Energia
+// ---------------------------------------------------------------------------
+
+export component PowerPage inherits Rectangle {
+    VerticalLayout {
+        x: 0;
+        y: Page.top;
+        width: min(Page.max-width, parent.width);
+        alignment: start;
+        spacing: 16px;
+
+        Panel {
+            height: 67px;
+            Row {
+                title: "Bateria";
+                subtitle: Device.battery == "Sem bateria" ? "Computador ligado direto na tomada"
+                    : Device.charging ? "Carregando" : "Usando a bateria";
+                divider: false;
+                value: Device.battery;
+                value-strong: true;
+            }
+        }
+
+        SectionLabel { text: "DESLIGAR"; }
+        HorizontalLayout {
+            alignment: start;
+            spacing: 12px;
+            PillButton {
+                text: "Suspender";
+                clicked => { Device.power-action("suspend"); }
+            }
+            PillButton {
+                text: "Reiniciar";
+                clicked => { Device.power-action("reboot"); }
+            }
+            PillButton {
+                text: "Desligar";
+                danger: true;
+                clicked => { Shell.power-off(); }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Usuários
+// ---------------------------------------------------------------------------
+
+export component UsersPage inherits Rectangle {
+    VerticalLayout {
+        x: 0;
+        y: Page.top;
+        width: min(Page.max-width, parent.width);
+        alignment: start;
+        spacing: 16px;
+
+        Panel {
+            height: 96px;
+            Avatar {
+                x: 20px;
+                width: 56px;
+                height: 56px;
+                letter: Shell.user-initial;
+            }
+            VerticalLayout {
+                x: 96px;
+                alignment: center;
+                spacing: 4px;
+                Text { text: Shell.user-name; color: Theme.text; font-family: Theme.sans; font-size: 17px; font-weight: 600; }
+                Text { text: Device.login + (Device.admin ? " · administrador" : " · usuário padrão"); color: Theme.text-muted; font-family: Theme.mono; font-size: 13px; }
+            }
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            spacing: 12px;
+            PillButton {
+                text: "Alterar senha";
+                clicked => { Device.change-password(); }
+            }
+            PillButton {
+                text: "Sair da sessão";
+                clicked => { Shell.open-app("logout"); }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Atualizações
+// ---------------------------------------------------------------------------
+
+export component UpdatesPage inherits Rectangle {
+    VerticalLayout {
+        x: 0;
+        y: Page.top;
+        width: min(Page.max-width, parent.width);
+        alignment: start;
+        spacing: 16px;
+
+        Panel {
+            height: 67px;
+            Row {
+                title: "Atualizações do sistema";
+                subtitle: "Baixa e instala as versões novas do Kalango OS e dos apps";
+                divider: false;
+                PillButton {
+                    x: parent.width - self.width - 20px;
+                    text: "Procurar agora";
+                    primary: true;
+                    clicked => { Shell.open-app("updates"); }
+                }
+            }
+        }
+        Text {
+            text: "A atualização roda num terminal e pede a sua senha.";
+            color: Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 13.5px;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Bluetooth e Monitores
+// ---------------------------------------------------------------------------
+
+export component BluetoothPage inherits Rectangle {
+    EmptyNotice {
+        x: 0;
+        y: Page.top;
+        icon: Icons.bluetooth;
+        title: Device.bluetooth-present ? "Bluetooth ainda não disponível" : "Nenhum adaptador Bluetooth";
+        text: Device.bluetooth-present
+            ? "O pareamento de dispositivos chega numa próxima versão do Kalango OS."
+            : "Este computador não tem Bluetooth, ou ele está desligado.";
+    }
+}
+
+export component DisplaysPage inherits Rectangle {
+    EmptyNotice {
+        x: 0;
+        y: Page.top;
+        icon: Icons.monitor;
+        title: "Monitores";
+        text: "A tela usa a melhor resolução que o monitor informa. Escolher resolução e escala chega numa próxima versão.";
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Sobre o sistema
+// ---------------------------------------------------------------------------
+
+export component AboutPage inherits Rectangle {
+    VerticalLayout {
+        x: 0;
+        y: Page.top;
+        width: min(Page.max-width, parent.width);
+        alignment: start;
+        spacing: 24px;
+
+        HorizontalLayout {
+            spacing: 18px;
+            alignment: start;
+            height: 72px;
+            KalangoIcon { width: 72px; height: 72px; }
+            KalangoLogo { height: 72px; }
+        }
+
+        Panel {
+            height: Device.about.length * 52px;
+            for item[i] in Device.about: Rectangle {
+                y: i * 52px;
+                height: 52px;
+                if i > 0: Rectangle { y: 0; height: 1px; background: Theme.border; }
+                Text {
+                    x: 20px;
+                    text: item.label;
+                    color: Theme.text-muted;
+                    font-family: Theme.sans;
+                    font-size: 14px;
+                    vertical-alignment: center;
+                }
+                Text {
+                    x: 180px;
+                    width: parent.width - 200px;
+                    text: item.value;
+                    color: Theme.text;
+                    font-family: Theme.sans;
+                    font-size: 14px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+    }
+}

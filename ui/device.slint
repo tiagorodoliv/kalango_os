@@ -1,0 +1,89 @@
+// Estado real do computador mostrado nas Configurações (rede, som, energia,
+// sobre o sistema). Preenchido pelo Rust em `src/device.rs`, que conversa com
+// o NetworkManager (`nmcli`), o PipeWire (`wpctl`) e o systemd.
+//
+// Os valores padrão abaixo são os do protótipo (desenvolvimento e capturas).
+
+/// Uma linha "rótulo: valor" (Sobre o sistema).
+export struct InfoItem {
+    label: string,
+    value: string,
+}
+
+/// Uma rede Wi-Fi encontrada.
+export struct WifiNetwork {
+    ssid: string,
+    /// Força do sinal, 0–100.
+    signal: int,
+    /// Pede senha (WPA/WEP).
+    secure: bool,
+    /// É a rede conectada agora.
+    active: bool,
+}
+
+export global Device {
+    // --- Sobre o sistema ---
+
+    /// Ficha do sistema: versão, base, kernel, processador, memória, disco...
+    in property <[InfoItem]> about: [
+        { label: "Versão", value: "Kalango OS 0.1 (protótipo)" },
+        { label: "Base", value: "Debian 13 \"trixie\"" },
+        { label: "Sessão", value: "Wayland" },
+    ];
+
+    // --- Rede (NetworkManager) ---
+
+    /// O NetworkManager respondeu (`nmcli` existe e o serviço está rodando).
+    in property <bool> network-available: false;
+    /// Resumo da conexão atual ("Conectado por cabo", "Conectado a Casa"...).
+    in property <string> network-status: "Sem informações de rede";
+    /// Existe uma placa Wi-Fi.
+    in property <bool> wifi-present: false;
+    /// Rádio Wi-Fi ligado.
+    in-out property <bool> wifi-enabled: false;
+    /// Redes encontradas, da mais forte para a mais fraca (no máximo 8).
+    in property <[WifiNetwork]> networks;
+    /// Conectando ou procurando redes.
+    in property <bool> network-busy: false;
+    /// Resultado da última ação ("Conectado a Casa", "Senha incorreta"...).
+    in-out property <string> network-message: "";
+
+    /// Liga ou desliga o Wi-Fi.
+    callback set-wifi(bool);
+    /// Procura redes de novo.
+    callback rescan();
+    /// Conecta a uma rede (senha vazia para rede aberta ou já salva).
+    callback connect-wifi(string /* ssid */, string /* senha */);
+
+    // --- Som (PipeWire/WirePlumber) ---
+
+    /// O `wpctl` respondeu e há uma saída de som.
+    in property <bool> sound-available: false;
+    /// Nome da saída padrão ("Alto-falantes internos"...).
+    in property <string> sound-output: "";
+    /// Volume da saída padrão, 0.0–1.0.
+    in-out property <float> volume: 0.5;
+    /// Saída sem som.
+    in-out property <bool> muted: false;
+
+    callback set-volume(float);
+    callback set-muted(bool);
+
+    // --- Energia e usuário ---
+
+    /// Carga da bateria ("78%") ou "Sem bateria".
+    in property <string> battery: "Sem bateria";
+    /// Carregando (ligado na tomada).
+    in property <bool> charging: false;
+    /// Login do usuário (`$USER`).
+    in property <string> login: "user";
+    /// O usuário pode administrar o sistema (grupo `sudo`).
+    in property <bool> admin: true;
+    /// Existe um adaptador Bluetooth.
+    in property <bool> bluetooth-present: false;
+
+    /// "suspend" ou "reboot" (desligar usa `Shell.power-off`).
+    callback power-action(string);
+    /// Abre a troca de senha (`passwd` num terminal).
+    callback change-password();
+}
