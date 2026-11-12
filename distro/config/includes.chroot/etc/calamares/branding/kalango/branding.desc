@@ -1,0 +1,35 @@
+# Marca do Kalango OS no instalador (Calamares).
+# Cores de ui/theme.slint: fundo #07090d, painel #0d1218, destaque ciano #3dd6f5.
+---
+componentName:   kalango
+welcomeStyleCalamares: true
+welcomeExpandingLogo: true
+windowExpanding: normal
+windowSize: 900px,620px
+windowPlacement: center
+strings:
+    productName:         Kalango OS
+    shortProductName:    Kalango
+    version:             0.1
+    shortVersion:        0.1
+    versionedName:       Kalango OS 0.1
+    shortVersionedName:  Kalango 0.1
+    bootloaderEntryName: Kalango OS
+    productUrl:          ""
+    supportUrl:          ""
+    knownIssuesUrl:      ""
+    releaseNotesUrl:     ""
+    donateUrl:           ""
+sidebar: widget
+navigation: widget
+images:
+    productLogo:         "kalango-icon.png"
+    productIcon:         "kalango-icon.png"
+    productWelcome:      "kalango-logo.png"
+slideshow:               "show.qml"
+style:
+   SidebarBackground:        "#0d1218"
+   SidebarText:              "#e6edf3"
+   SidebarTextCurrent:       "#07090d"
+   SidebarBackgroundCurrent: "#3dd6f5"
+slideshowAPI: 2

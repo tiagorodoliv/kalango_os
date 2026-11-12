@@ -34,6 +34,16 @@ xdg-user-dirs
 # Bloqueio de tela (Super+L): protocolo ext-session-lock do Wayland
 swaylock
 
+# Loja (GNOME Software via PackageKit) e Agenda
+gnome-software
+gnome-calendar
+# Abrir arquivos recentes no app padrão (xdg-open)
+xdg-utils
+
+# Instalador (só usado na ISO live; removido do sistema instalado)
+calamares
+calamares-settings-debian
+
 # Rede e som (Wi-Fi da barra abre o nmtui; volume abre o pavucontrol)
 network-manager
 pipewire-audio

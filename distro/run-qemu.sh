@@ -1,15 +1,20 @@
 #!/bin/sh
 # Testa a ISO do Kalango OS no QEMU (com KVM).
 #
-# Uso:  distro/run-qemu.sh [--uefi] [--gl] [caminho.iso]
-#   --uefi  dá boot por UEFI (OVMF) em vez de BIOS.
-#   --gl    GPU com aceleração 3D (virgl) numa janela SDL. Mais rápido, mas
-#           depende do driver de vídeo do host.
+# Uso:  distro/run-qemu.sh [--uefi] [--gl] [--disco | --so-disco] [caminho.iso]
+#   --uefi      dá boot por UEFI (OVMF) em vez de BIOS.
+#   --gl        GPU com aceleração 3D (virgl) numa janela SDL. Mais rápido, mas
+#               depende do driver de vídeo do host.
+#   --disco     liga também um disco virtual de 20 GB (distro/out/disco-teste.qcow2,
+#               criado na primeira vez) para testar o instalador.
+#   --so-disco  dá boot pelo disco virtual, sem a ISO (sistema já instalado).
 # Sem caminho, usa a ISO mais recente em distro/out/.
 set -eu
 
 DISTRO=$(cd "$(dirname "$0")" && pwd)
 FIRMWARE=""
+DISCO=""
+ISO_ARGS="yes"
 # Padrão: janela GTK sem OpenGL. É o caminho mais testado do QEMU. Com
 # "gtk,gl=on" num desktop Wayland (GNOME) o mouse sai invertido e a imagem
 # fica estranha. Sem 3D o sistema desenha na CPU (llvmpipe), o que basta
@@ -25,11 +30,22 @@ while [ $# -gt 0 ]; do
 		VIDEO="-device virtio-vga-gl,xres=1440,yres=900 -display sdl,gl=on"
 		shift
 		;;
+	--disco | --so-disco)
+		IMG="$DISTRO/out/disco-teste.qcow2"
+		mkdir -p "$DISTRO/out"
+		[ -f "$IMG" ] || qemu-img create -f qcow2 "$IMG" 20G >/dev/null
+		DISCO="-drive file=$IMG,if=virtio,format=qcow2"
+		[ "$1" = "--so-disco" ] && ISO_ARGS=""
+		shift
+		;;
 	*) break ;;
 	esac
 done
-ISO="${1:-$(ls -t "$DISTRO"/out/*.iso 2>/dev/null | head -n 1)}"
-[ -n "$ISO" ] || { echo "Nenhuma ISO em $DISTRO/out. Rode distro/build.sh antes." >&2; exit 1; }
+if [ -n "$ISO_ARGS" ]; then
+	ISO="${1:-$(ls -t "$DISTRO"/out/*.iso 2>/dev/null | head -n 1)}"
+	[ -n "$ISO" ] || { echo "Nenhuma ISO em $DISTRO/out. Rode distro/build.sh antes." >&2; exit 1; }
+	ISO_ARGS="-cdrom $ISO -boot order=dc"
+fi
 
 # xres/yres: 1440x900, a resolução de referência do layout.
 # zoom-to-fit=off: a janela do QEMU mostra a tela 1:1, sem esticar.
@@ -42,4 +58,4 @@ exec qemu-system-x86_64 \
 	$VIDEO \
 	-device qemu-xhci -device usb-tablet \
 	-nic user,model=virtio-net-pci \
-	-cdrom "$ISO" -boot d
+	$DISCO $ISO_ARGS

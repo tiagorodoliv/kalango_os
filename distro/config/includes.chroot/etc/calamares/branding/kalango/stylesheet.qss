@@ -1,0 +1,72 @@
+/* Tema escuro do Kalango OS no instalador (cores de ui/theme.slint). */
+QWidget {
+    background-color: #0d1218;
+    color: #e6edf3;
+}
+QLabel, QRadioButton, QCheckBox, QGroupBox {
+    background: transparent;
+}
+QAbstractScrollArea, QListView, QTreeView, QTextEdit, QTextBrowser,
+QLineEdit, QComboBox, QSpinBox {
+    background-color: #131920;
+    color: #e6edf3;
+    border: 1px solid #1e2a33;
+    border-radius: 6px;
+    selection-background-color: #3dd6f5;
+    selection-color: #07090d;
+}
+/* Caixas e botões de opção (o indicador padrão some no fundo escuro). */
+QCheckBox::indicator, QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+    background-color: #131920;
+    border: 1px solid #8b98a5;
+}
+QCheckBox::indicator { border-radius: 4px; }
+QRadioButton::indicator { border-radius: 8px; }
+QCheckBox::indicator:checked, QRadioButton::indicator:checked {
+    background-color: #3dd6f5;
+    border-color: #3dd6f5;
+}
+QLineEdit:focus, QComboBox:focus {
+    border: 1px solid #3dd6f5;
+}
+QComboBox QAbstractItemView {
+    background-color: #131920;
+    selection-background-color: #3dd6f5;
+    selection-color: #07090d;
+}
+QPushButton {
+    background-color: #131920;
+    color: #e6edf3;
+    border: 1px solid #1e2a33;
+    border-radius: 6px;
+    padding: 6px 18px;
+}
+QPushButton:hover {
+    background-color: #1a222b;
+}
+QPushButton:disabled {
+    color: #5b6773;
+}
+/* Botões "Próximo" e "Instalar" em destaque. */
+QPushButton#view-button-next, QPushButton:default {
+    background-color: #3dd6f5;
+    color: #07090d;
+    border: none;
+    font-weight: bold;
+}
+QPushButton#view-button-next:disabled {
+    background-color: #1e2a33;
+    color: #5b6773;
+}
+QProgressBar {
+    background-color: #131920;
+    border: 1px solid #1e2a33;
+    border-radius: 6px;
+    text-align: center;
+}
+QProgressBar::chunk {
+    background-color: #3dd6f5;
+    border-radius: 6px;
+}

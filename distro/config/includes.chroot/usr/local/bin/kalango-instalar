@@ -1,0 +1,14 @@
+#!/bin/sh
+# Abre o instalador do Kalango OS (Calamares) na ISO live.
+#
+# O Calamares precisa de root. O wrapper do Debian usa pkexec, mas a sessão
+# labwc não tem agente do polkit; na live o usuário tem sudo sem senha, então
+# usamos sudo e passamos o necessário para ele abrir na sessão Wayland.
+set -u
+# O /etc/fstab que o live-build deixa atrapalha o particionamento (mesmo
+# cuidado do calamares-install-debian).
+sudo mv /etc/fstab /etc/fstab.orig.calamares 2>/dev/null
+sudo env WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}" \
+	XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" QT_QPA_PLATFORM=wayland \
+	XKB_DEFAULT_LAYOUT=br LANG="${LANG:-pt_BR.UTF-8}" calamares
+sudo mv /etc/fstab.orig.calamares /etc/fstab 2>/dev/null
