@@ -1,0 +1,4 @@
+# GRUB para boot por BIOS (legado), no repositório da ISO para o instalador.
+# Lista separada de kalango.list.binary: grub-pc conflita com grub-efi-amd64
+# e o live-build baixa cada lista com um "apt-get install" só.
+grub-pc

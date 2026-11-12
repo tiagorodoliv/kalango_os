@@ -2,7 +2,9 @@
 # O instalador (Calamares, helper bootloader-config do Debian) instala o GRUB
 # no disco com "apt-get install" a partir da mídia, então o GRUB das duas
 # formas de boot e o necessário para disco criptografado precisam estar aqui.
-grub-pc
+#
+# O live-build baixa cada lista com um "apt-get install" só, e grub-pc conflita
+# com grub-efi-amd64: o GRUB de BIOS fica em kalango-bios.list.binary.
 grub-efi
 grub-efi-amd64
 cryptsetup
