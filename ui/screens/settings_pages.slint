@@ -1,15 +1,16 @@
 // Páginas das Configurações com dados reais do sistema (global `Device`,
-// preenchido por `src/device.rs`): Rede e Wi-Fi, Bluetooth, Monitores, Som,
-// Energia, Usuários, Atualizações e Sobre o sistema. A Aparência fica em
-// `settings.slint`.
+// preenchido por `src/device.rs` e `src/displays.rs`): Rede e Wi-Fi,
+// Bluetooth, Monitores, Som, Energia, Usuários, Atualizações e Sobre o
+// sistema. Também a Barra de tarefas (global `Theme`, gravada com a
+// aparência). A Aparência fica em `settings.slint`.
 //
 // Cada página ocupa a área de conteúdo inteira; o título já é desenhado pela
 // tela das Configurações, então o conteúdo começa em y = 110px.
 
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
-import { Shell } from "../globals.slint";
-import { Device, InfoItem, WifiNetwork } from "../device.slint";
+import { Shell, Apps } from "../globals.slint";
+import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution } from "../device.slint";
 import { SectionLabel, Toggle, SliderBar, Avatar } from "../components/widgets.slint";
 import { KalangoLogo, KalangoIcon } from "../brand.slint";
 
@@ -98,6 +99,123 @@ component Row inherits Rectangle {
         overflow: elide;
     }
     @children
+}
+
+/// Lista suspensa: mostra a opção escolhida e abre a lista ao clicar.
+component Dropdown inherits Rectangle {
+    in property <[string]> options;
+    in property <int> selected;
+    in property <bool> enabled: true;
+    callback chosen(int);
+
+    width: 250px;
+    height: 38px;
+    border-radius: Theme.radius-small;
+    background: touch.has-hover && root.enabled ? Theme.tile-hover : Theme.tile;
+    border-width: 1px;
+    border-color: Theme.border;
+    opacity: root.enabled ? 1 : 0.5;
+
+    Text {
+        x: 14px;
+        width: parent.width - 44px;
+        text: root.selected >= 0 && root.selected < root.options.length ? root.options[root.selected] : "";
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 14px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    Image {
+        x: parent.width - 30px;
+        source: Icons.chevron-down;
+        colorize: Theme.text-muted;
+        width: 16px;
+        height: 16px;
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { popup.show(); }
+    }
+
+    popup := PopupWindow {
+        x: 0;
+        y: root.height + 4px;
+        width: root.width;
+        height: min(root.options.length * 34px + 10px, 290px);
+        Rectangle {
+            border-radius: Theme.radius-small;
+            background: Theme.panel-solid;
+            border-width: 1px;
+            border-color: Theme.border;
+            drop-shadow-blur: 18px;
+            drop-shadow-color: #00000080;
+            Flickable {
+                x: 5px;
+                y: 5px;
+                width: parent.width - 10px;
+                height: parent.height - 10px;
+                content-height: root.options.length * 34px;
+                for opt[i] in root.options: Rectangle {
+                    y: i * 34px;
+                    height: 34px;
+                    border-radius: 6px;
+                    background: i == root.selected ? Theme.accent-soft : item-touch.has-hover ? Theme.tile : transparent;
+                    Text {
+                        x: 10px;
+                        width: parent.width - 20px;
+                        text: opt;
+                        color: i == root.selected ? Theme.accent : Theme.text;
+                        font-family: Theme.sans;
+                        font-size: 14px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                    item-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.chosen(i); }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Seletor de uma opção entre poucas, lado a lado (ex.: tamanho da dock).
+component Segmented inherits Rectangle {
+    in property <[string]> options;
+    in property <int> selected;
+    callback chosen(int);
+
+    width: row.preferred-width;
+    height: 36px;
+    border-radius: Theme.radius-small;
+    background: Theme.sunken;
+    border-width: 1px;
+    border-color: Theme.border;
+
+    row := HorizontalLayout {
+        padding: 3px;
+        spacing: 3px;
+        for opt[i] in root.options: Rectangle {
+            width: 82px;
+            border-radius: 6px;
+            background: i == root.selected ? Theme.accent : seg-touch.has-hover ? Theme.tile-hover : transparent;
+            animate background { duration: Theme.anim; }
+            Text {
+                text: opt;
+                color: i == root.selected ? Theme.on-accent : Theme.text;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+                font-weight: i == root.selected ? 600 : 400;
+            }
+            seg-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.chosen(i); }
+            }
+        }
+    }
 }
 
 /// Aviso de seção sem recurso (ícone + texto).
@@ -541,13 +659,306 @@ export component BluetoothPage inherits Rectangle {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Monitores
+// ---------------------------------------------------------------------------
+
 export component DisplaysPage inherits Rectangle {
-    EmptyNotice {
+    /// Monitor escolhido (quando há mais de um).
+    property <int> sel: 0;
+    property <DisplayOutput> out: Device.displays.length > 0
+        ? Device.displays[min(root.sel, Device.displays.length - 1)] : {};
+
+    // Escolhas ainda não aplicadas (-1 = mantém a atual).
+    property <int> edit-res: -1;
+    property <int> edit-rate: -1;
+    property <int> edit-scale: -1;
+    property <int> edit-rot: -1;
+    property <int> edit-on: -1;
+
+    // Valores exibidos: a escolha ou o atual.
+    property <int> res: root.edit-res >= 0 ? root.edit-res : root.out.resolution;
+    // Outra resolução começa pela maior taxa.
+    property <int> rate: root.edit-rate >= 0 ? root.edit-rate : root.edit-res >= 0 ? 0 : root.out.rate;
+    property <int> scale: root.edit-scale >= 0 ? root.edit-scale : root.out.scale;
+    property <int> rot: root.edit-rot >= 0 ? root.edit-rot : root.out.rotation;
+    property <bool> on: root.edit-on >= 0 ? root.edit-on == 1 : root.out.enabled;
+    property <DisplayResolution> mode: root.res < root.out.resolutions.length ? root.out.resolutions[root.res] : {};
+
+    /// A escala deixa ao menos 1024×600 pontos para o shell (igual a
+    /// `scale_fits` no Rust; em pé, largura e altura trocam).
+    property <float> scale-value: Device.display-scale-values[root.scale];
+    property <bool> fits: root.scale == 0 || (
+        (Math.mod(root.rot, 2) == 1 ? root.mode.height : root.mode.width) / root.scale-value >= 1024
+        && (Math.mod(root.rot, 2) == 1 ? root.mode.width : root.mode.height) / root.scale-value >= 600);
+    property <bool> changed: root.edit-res >= 0 || root.edit-rate >= 0 || root.edit-scale >= 0
+        || root.edit-rot >= 0 || root.edit-on >= 0;
+
+    function reset() {
+        root.edit-res = -1;
+        root.edit-rate = -1;
+        root.edit-scale = -1;
+        root.edit-rot = -1;
+        root.edit-on = -1;
+    }
+
+    if !Device.displays-available: EmptyNotice {
         x: 0;
         y: Page.top;
         icon: Icons.monitor;
         title: "Monitores";
-        text: "A tela usa a melhor resolução que o monitor informa. Escolher resolução e escala chega numa próxima versão.";
+        text: Shell.native
+            ? "Não foi possível ler os monitores (o wlr-randr não respondeu)."
+            : "Ajustar resolução, escala e rotação funciona na sessão do Kalango OS.";
+    }
+
+    if Device.displays-available: VerticalLayout {
+        x: 0;
+        y: Page.top;
+        width: min(Page.max-width, parent.width);
+        alignment: start;
+        spacing: 16px;
+
+        // Vários monitores: um botão para cada.
+        if Device.displays.length > 1: HorizontalLayout {
+            alignment: start;
+            spacing: 8px;
+            for d[i] in Device.displays: PillButton {
+                text: d.name;
+                primary: i == root.sel;
+                clicked => {
+                    root.sel = i;
+                    root.reset();
+                }
+            }
+        }
+
+        Panel {
+            height: 5 * 67px;
+            VerticalLayout {
+                Row {
+                    title: "Monitor";
+                    subtitle: root.out.label;
+                    divider: false;
+                    if Device.displays.length > 1: Toggle {
+                        x: parent.width - self.width - 20px;
+                        checked: root.on;
+                        toggled(v) => { root.edit-on = v ? 1 : 0; }
+                    }
+                }
+                Row {
+                    title: "Resolução";
+                    Dropdown {
+                        x: parent.width - self.width - 20px;
+                        options: root.out.resolution-labels;
+                        selected: root.res;
+                        enabled: root.on;
+                        chosen(i) => {
+                            root.edit-res = i;
+                            root.edit-rate = -1;
+                        }
+                    }
+                }
+                Row {
+                    title: "Taxa de atualização";
+                    Dropdown {
+                        x: parent.width - self.width - 20px;
+                        options: root.mode.rates;
+                        selected: root.rate;
+                        enabled: root.on;
+                        chosen(i) => { root.edit-rate = i; }
+                    }
+                }
+                Row {
+                    title: "Escala";
+                    subtitle: root.fits ? "Aumenta textos e janelas" : "Grande demais para esta resolução";
+                    Dropdown {
+                        x: parent.width - self.width - 20px;
+                        options: Device.display-scales;
+                        selected: root.scale;
+                        enabled: root.on;
+                        chosen(i) => { root.edit-scale = i; }
+                    }
+                }
+                Row {
+                    title: "Rotação";
+                    Dropdown {
+                        x: parent.width - self.width - 20px;
+                        options: Device.display-rotations;
+                        selected: root.rot;
+                        enabled: root.on;
+                        chosen(i) => { root.edit-rot = i; }
+                    }
+                }
+            }
+        }
+
+        // Confirmação: volta sozinho se ninguém clicar em "Manter".
+        if Device.display-confirm: Panel {
+            height: 67px;
+            border-color: Theme.accent.with-alpha(0.6);
+            Row {
+                divider: false;
+                title: "Manter esta configuração?";
+                subtitle: "Voltando à anterior em " + Device.display-countdown + " s";
+                HorizontalLayout {
+                    x: parent.width - self.width - 20px;
+                    width: self.preferred-width;
+                    alignment: end;
+                    spacing: 10px;
+                    PillButton {
+                        y: (67px - self.height) / 2;
+                        text: "Voltar";
+                        clicked => { Device.revert-display(); }
+                    }
+                    PillButton {
+                        y: (67px - self.height) / 2;
+                        text: "Manter";
+                        primary: true;
+                        clicked => { Device.keep-display(); }
+                    }
+                }
+            }
+        }
+
+        if !Device.display-confirm: HorizontalLayout {
+            alignment: start;
+            spacing: 10px;
+            PillButton {
+                text: "Aplicar";
+                primary: true;
+                enabled: root.changed && root.fits;
+                clicked => {
+                    Device.apply-display(root.sel, root.res, root.rate, root.scale, root.rot, root.on);
+                    root.reset();
+                }
+            }
+            if root.changed: PillButton {
+                text: "Desfazer";
+                clicked => { root.reset(); }
+            }
+        }
+
+        if Device.display-message != "": Text {
+            text: Device.display-message;
+            color: Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 13.5px;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Barra de tarefas (barra superior e dock)
+// ---------------------------------------------------------------------------
+
+export component TaskbarPage inherits Rectangle {
+    VerticalLayout {
+        x: 0;
+        y: Page.top;
+        width: min(Page.max-width, parent.width);
+        alignment: start;
+        spacing: 12px;
+
+        SectionLabel { text: "BARRA SUPERIOR"; }
+        Panel {
+            height: 4 * 67px;
+            VerticalLayout {
+                Row {
+                    title: "Data";
+                    subtitle: "O dia antes da hora (" + Shell.bar-day + ")";
+                    divider: false;
+                    Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-date; }
+                }
+                Row {
+                    title: "Segundos";
+                    subtitle: "Relógio com segundos (" + Shell.bar-time + ":" + Shell.bar-seconds + ")";
+                    Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-seconds; }
+                }
+                Row {
+                    title: "Uso de CPU";
+                    subtitle: "Quanto do processador está em uso";
+                    Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-cpu; }
+                }
+                Row {
+                    title: "Bateria";
+                    subtitle: "Carga em porcentagem (só em computadores com bateria)";
+                    Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-battery; }
+                }
+            }
+        }
+
+        SectionLabel { text: "DOCK"; }
+        Panel {
+            height: 2 * 67px;
+            VerticalLayout {
+                Row {
+                    title: "Sempre visível";
+                    subtitle: "Desligado: aparece com o mouse na borda de baixo";
+                    divider: false;
+                    Toggle { x: parent.width - self.width - 20px; checked <=> Theme.dock-always-visible; }
+                }
+                Row {
+                    title: "Tamanho";
+                    Segmented {
+                        x: parent.width - self.width - 20px;
+                        options: ["Pequena", "Média", "Grande"];
+                        selected: Theme.dock-size;
+                        chosen(i) => { Theme.dock-size = i; }
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            SectionLabel { text: "APPS NA DOCK"; }
+            Text {
+                horizontal-alignment: right;
+                text: "Clique para pôr ou tirar · nesta ordem";
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 12.5px;
+            }
+        }
+        // Grade 6×2 dos apps fixados; Configurações fica sempre na dock.
+        Rectangle {
+            height: 2 * 44px + 8px;
+            for app[i] in Apps.pinned: Rectangle {
+                property <bool> fixed: app.id == "settings";
+                property <bool> on: self.fixed || Shell.dock-has(Theme.dock-apps, app.id);
+                x: Math.mod(i, 6) * (parent.width + 8px) / 6;
+                y: floor(i / 6) * (44px + 8px);
+                width: (parent.width + 8px) / 6 - 8px;
+                height: 44px;
+                border-radius: Theme.radius-small;
+                background: self.on ? Theme.accent-soft : chip-touch.has-hover ? Theme.tile-hover : Theme.tile;
+                border-width: 1px;
+                border-color: self.on ? Theme.accent.with-alpha(0.55) : Theme.border;
+                opacity: self.fixed ? 0.6 : 1;
+                Image {
+                    x: 10px;
+                    source: app.icon;
+                    colorize: app.id == "files" ? Theme.accent : app.tint;
+                    width: 17px;
+                    height: 17px;
+                }
+                Text {
+                    x: 34px;
+                    width: parent.width - 40px;
+                    text: app.name;
+                    color: Theme.text;
+                    font-family: Theme.sans;
+                    font-size: 12.5px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                chip-touch := TouchArea {
+                    enabled: !parent.fixed;
+                    mouse-cursor: pointer;
+                    clicked => { Theme.dock-apps = Shell.dock-toggle(Theme.dock-apps, app.id); }
+                }
+            }
+        }
     }
 }
 

@@ -4,12 +4,14 @@
 //! crate liga a UI aos serviços do sistema:
 //! - [`clock`]: data/hora local em pt-BR;
 //! - [`device`]: rede, som, energia e ficha do sistema nas Configurações;
+//! - [`displays`]: monitores (resolução, escala, rotação) pelo `wlr-randr`;
 //! - [`system`]: uso de CPU e bateria;
 //! - [`apps`]: busca do launcher e a lista "Todos os apps";
 //! - [`desktop`]: apps instalados, lidos dos arquivos `.desktop`;
 //! - [`session`]: sessão real (abrir apps, menu e Configurações como janelas
 //!   próprias, desligar);
 //! - [`appearance`]: aparência salva em disco e compartilhada entre processos;
+//! - [`labwc`]: ajustes do compositor feitos pelo shell (margem da dock);
 //! - [`greeter`]: tela de login de verdade, como greeter do greetd;
 //! - [`recent`]: arquivos recentes de verdade no menu de apps.
 //!
@@ -21,7 +23,9 @@ pub mod apps;
 pub mod clock;
 pub mod desktop;
 pub mod device;
+pub mod displays;
 pub mod greeter;
+pub mod labwc;
 pub mod recent;
 pub mod session;
 pub mod system;
@@ -62,8 +66,9 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     apps::install(&ui, mode == Mode::Launcher && session::is_native());
     let mut timers = vec![clock::start(&ui), system::start(&ui)];
     timers.extend(session::install(&ui, mode));
-    timers.extend(appearance::install(&ui));
+    timers.extend(appearance::install(&ui, mode));
     timers.extend(device::install(&ui, mode));
+    displays::install(&ui, mode);
     Ok((ui, timers))
 }
 

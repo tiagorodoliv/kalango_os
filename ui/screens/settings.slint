@@ -8,6 +8,7 @@ import { Icons } from "../icons.slint";
 import { SectionLabel, IconButton, Toggle, SliderBar } from "../components/widgets.slint";
 import {
     NetworkPage, BluetoothPage, DisplaysPage, SoundPage, PowerPage, UsersPage, UpdatesPage, AboutPage,
+    TaskbarPage,
 } from "settings_pages.slint";
 
 /// Seção da barra lateral.
@@ -268,7 +269,7 @@ component AppearancePage inherits Rectangle {
             }
             OptionRow {
                 title: "Dock sempre visível";
-                subtitle: "Desligado: a dock some quando uma janela encosta nela";
+                subtitle: "Desligado: aparece com o mouse na borda de baixo";
                 Toggle {
                     x: parent.width - self.width - 20px;
                     checked <=> Theme.dock-always-visible;
@@ -293,6 +294,7 @@ export component SettingsScreen inherits Rectangle {
         { name: "Rede e Wi-Fi", icon: Icons.wifi },
         { name: "Bluetooth", icon: Icons.bluetooth },
         { name: "Aparência", icon: Icons.contrast },
+        { name: "Barra de tarefas", icon: Icons.dock },
         { name: "Monitores", icon: Icons.monitor },
         { name: "Som", icon: Icons.volume },
         { name: "Energia", icon: Icons.battery },
@@ -395,12 +397,13 @@ export component SettingsScreen inherits Rectangle {
 
         if root.current == 0: NetworkPage { }
         if root.current == 1: BluetoothPage { }
-        if root.current == 3: DisplaysPage { }
-        if root.current == 4: SoundPage { }
-        if root.current == 5: PowerPage { }
-        if root.current == 6: UsersPage { }
-        if root.current == 7: UpdatesPage { }
-        if root.current == 8: AboutPage { }
+        if root.current == 3: TaskbarPage { }
+        if root.current == 4: DisplaysPage { }
+        if root.current == 5: SoundPage { }
+        if root.current == 6: PowerPage { }
+        if root.current == 7: UsersPage { }
+        if root.current == 8: UpdatesPage { }
+        if root.current == 9: AboutPage { }
     }
 
     IconButton {

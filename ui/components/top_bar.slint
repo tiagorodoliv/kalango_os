@@ -102,7 +102,9 @@ export component TopBar inherits Rectangle {
 
     // --- Centro: data e hora ---
     Text {
-        text: root.message != "" ? root.message : Shell.bar-date;
+        text: root.message != "" ? root.message
+            : (Theme.bar-show-date ? Shell.bar-day + " " : "") + Shell.bar-time
+              + (Theme.bar-show-seconds ? ":" + Shell.bar-seconds : "");
         color: root.message != "" ? Theme.accent : Theme.text;
         font-family: Theme.mono;
         font-size: 13px;
@@ -121,7 +123,7 @@ export component TopBar inherits Rectangle {
         spacing: 14px;
         alignment: end;
 
-        Text {
+        if Theme.bar-show-cpu: Text {
             text: "CPU " + Shell.cpu;
             vertical-alignment: center;
             color: Theme.text-muted;
@@ -140,7 +142,8 @@ export component TopBar inherits Rectangle {
             clickable: root.status-clickable;
             clicked => { root.sound-clicked(); }
         }
-        HorizontalLayout {
+        // Sem bateria (desktop, VM) o Rust manda "--": o indicador some.
+        if Theme.bar-show-battery && Shell.battery != "--": HorizontalLayout {
             spacing: 4px;
             BarIcon { icon: Icons.battery; size: 17px; }
             Text {

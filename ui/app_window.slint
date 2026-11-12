@@ -31,10 +31,10 @@ import { TerminalWindow } from "apps/terminal.slint";
 import { LoginScreen } from "screens/login.slint";
 import { Launcher } from "screens/launcher.slint";
 import { SettingsScreen } from "screens/settings.slint";
-import { Device, InfoItem, WifiNetwork } from "device.slint";
+import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution } from "device.slint";
 
 // Reexportados para o Rust enxergar os globais e tipos.
-export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry, Device, InfoItem, WifiNetwork }
+export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry, Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution }
 
 /// Telas de nível superior.
 export enum Screen { login, desktop, settings }

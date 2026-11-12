@@ -21,6 +21,34 @@ export struct WifiNetwork {
     active: bool,
 }
 
+/// Uma resolução de um monitor, com as taxas de atualização disponíveis.
+export struct DisplayResolution {
+    /// "1920 × 1080" (com "(recomendada)" na preferida do monitor).
+    label: string,
+    width: int,
+    height: int,
+    /// "60 Hz", "59,94 Hz"... da maior para a menor.
+    rates: [string],
+}
+
+/// Um monitor (saída de vídeo) e a configuração atual dele.
+export struct DisplayOutput {
+    /// Conector ("HDMI-A-1").
+    name: string,
+    /// Nome para exibir ("Dell Inc. DELL P2419H (HDMI-A-1)").
+    label: string,
+    enabled: bool,
+    resolutions: [DisplayResolution],
+    /// Os rótulos de `resolutions` (para a lista suspensa).
+    resolution-labels: [string],
+    /// Índices atuais em `resolutions`, em `resolutions[i].rates`, em
+    /// `Device.display-scales` e em `Device.display-rotations`.
+    resolution: int,
+    rate: int,
+    scale: int,
+    rotation: int,
+}
+
 export global Device {
     // --- Sobre o sistema ---
 
@@ -86,4 +114,27 @@ export global Device {
     callback power-action(string);
     /// Abre a troca de senha (`passwd` num terminal).
     callback change-password();
+
+    // --- Monitores (wlr-randr, `src/displays.rs`) ---
+
+    /// O `wlr-randr` respondeu e há pelo menos um monitor.
+    in property <bool> displays-available: false;
+    in property <[DisplayOutput]> displays: [];
+    /// Escalas oferecidas (mesma ordem de `SCALES` no Rust).
+    out property <[string]> display-scales: ["100%", "125%", "150%", "175%", "200%"];
+    out property <[float]> display-scale-values: [1.0, 1.25, 1.5, 1.75, 2.0];
+    /// Rotações (mesma ordem de `TRANSFORMS` no Rust).
+    out property <[string]> display-rotations: ["Normal", "90° (em pé)", "180° (de ponta-cabeça)", "270° (em pé)"];
+    /// Uma mudança foi aplicada e espera "Manter" (senão volta sozinha).
+    in property <bool> display-confirm: false;
+    /// Segundos até voltar à configuração anterior.
+    in property <int> display-countdown: 0;
+    /// Resultado da última ação ("Configuração do monitor salva.").
+    in property <string> display-message: "";
+    /// Aplica no monitor `índice`: resolução, taxa, escala, rotação e ligado.
+    callback apply-display(int, int, int, int, int, bool);
+    /// Confirma a mudança aplicada (grava em monitores.conf).
+    callback keep-display();
+    /// Volta à configuração anterior.
+    callback revert-display();
 }

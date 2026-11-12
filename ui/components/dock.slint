@@ -4,7 +4,8 @@ import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { Apps, AppEntry, Shell } from "../globals.slint";
 
-/// Um item da dock (tile 52×52 com ícone colorido).
+/// Um item da dock (tile quadrado com ícone colorido; o lado vem de
+/// `Theme.dock-item`, ajustável em Configurações → Barra de tarefas).
 component DockItem inherits Rectangle {
     in property <AppEntry> app;
     /// App com janela aberta: ponto embaixo.
@@ -13,17 +14,17 @@ component DockItem inherits Rectangle {
     in property <bool> active: false;
     callback clicked();
 
-    width: 52px;
-    height: 52px;
-    border-radius: 11px;
+    width: Theme.dock-item;
+    height: Theme.dock-item;
+    border-radius: Theme.dock-item * 0.21;
     background: touch.has-hover ? Theme.tile-hover : Theme.tile;
     animate background { duration: Theme.anim; }
 
     Image {
         source: root.app.icon;
         colorize: root.app.id == "files" ? Theme.accent : root.app.tint;
-        width: 24px;
-        height: 24px;
+        width: Theme.dock-icon;
+        height: Theme.dock-icon;
     }
 
     // Indicador: traço quando ativo, ponto quando só aberto.
@@ -78,7 +79,7 @@ export component Dock inherits Rectangle {
             width: 9px;
             Rectangle {
                 width: 1px;
-                height: 32px;
+                height: Theme.dock-item * 0.62;
                 background: Theme.border;
             }
         }

@@ -45,6 +45,32 @@ pub fn matches(name: &str, extra: &str, query: &str) -> bool {
     q.is_empty() || normalize(name).contains(&q) || normalize(extra).contains(&q)
 }
 
+/// Ids da lista da dock (`Theme.dock-apps`, separados por vírgula), sem
+/// vazios nem repetidos, na ordem da lista.
+pub fn dock_ids(list: &str) -> Vec<&str> {
+    let mut ids: Vec<&str> = Vec::new();
+    for id in list.split(',').map(str::trim) {
+        if !id.is_empty() && !ids.contains(&id) {
+            ids.push(id);
+        }
+    }
+    ids
+}
+
+/// Liga ou desliga um app na lista da dock: acrescenta no fim ou tira.
+/// O último app não sai (a dock nunca fica vazia).
+pub fn dock_toggle(list: &str, id: &str) -> String {
+    let mut ids = dock_ids(list);
+    if let Some(pos) = ids.iter().position(|i| *i == id) {
+        if ids.len() > 1 {
+            ids.remove(pos);
+        }
+    } else {
+        ids.push(id);
+    }
+    ids.join(",")
+}
+
 /// Programas dos apps fixados: os `.desktop` desses programas não se repetem
 /// nos resultados da busca (ex.: "Thunar" já aparece como "Arquivos").
 fn pinned_programs(ids: impl Iterator<Item = String>) -> HashSet<String> {
@@ -89,6 +115,24 @@ fn to_entry(app: &DesktopApp, icon: Option<&PathBuf>) -> AppEntry {
 /// Liga o callback `Shell.filter-apps` e, no menu da sessão real, preenche
 /// `Apps.all` com os apps instalados.
 pub fn install(ui: &AppWindow, load_installed: bool) {
+    let shell = ui.global::<Shell>();
+    shell.on_dock_has(|list, id| dock_ids(&list).contains(&id.as_str()));
+    shell.on_dock_toggle(|list, id| dock_toggle(&list, &id).into());
+    let weak = ui.as_weak();
+    shell.on_dock_entries(move |list| {
+        let Some(ui) = weak.upgrade() else {
+            return ModelRc::default();
+        };
+        let pinned = ui.global::<Apps>().get_pinned();
+        // Configurações fica fora: a dock a mostra sempre, depois do separador.
+        let entries: Vec<AppEntry> = dock_ids(&list)
+            .into_iter()
+            .filter(|id| *id != "settings")
+            .filter_map(|id| pinned.iter().find(|a| a.id == id))
+            .collect();
+        ModelRc::from(Rc::new(VecModel::from(entries)))
+    });
+
     let weak = ui.as_weak();
     ui.global::<Shell>().on_filter_apps(move |query| {
         let Some(ui) = weak.upgrade() else {
@@ -163,6 +207,15 @@ mod tests {
         assert!(!matches("Loja", "store", "terminal"));
         assert!(!matches("GIMP", " Editor de Imagens gimp", "edição"));
         assert!(matches("GIMP", " Editor de Imagens gimp", "editor"));
+    }
+
+    #[test]
+    fn lista_da_dock() {
+        assert_eq!(dock_ids(" files,terminal,,files ,store"), ["files", "terminal", "store"]);
+        assert_eq!(dock_toggle("files,terminal", "music"), "files,terminal,music");
+        assert_eq!(dock_toggle("files,terminal,music", "terminal"), "files,music");
+        // O último app fica.
+        assert_eq!(dock_toggle("files", "files"), "files");
     }
 
     #[test]

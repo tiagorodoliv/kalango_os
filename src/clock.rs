@@ -1,9 +1,10 @@
 //! Relógio do sistema: hora local formatada em pt-BR.
 //!
-//! Preenche três textos do global `Shell` a cada segundo:
-//! - `time`: "19:38" (tela de login);
+//! Preenche os textos do global `Shell` a cada segundo:
+//! - `time`: "19:38" (tela de login e barra superior);
 //! - `long-date`: "quarta-feira, 11 de novembro" (tela de login);
-//! - `bar-date`: "qua 11 nov 19:38" (barra superior).
+//! - `bar-day`: "qua 11 nov" e `bar-seconds`: "05" (barra superior, que monta
+//!   "qua 11 nov 19:38" conforme as opções da Barra de tarefas).
 //!
 //! Os nomes de dias e meses ficam em tabelas próprias em vez de depender do
 //! locale do sistema: no dispositivo o locale pode nem estar instalado.
@@ -39,8 +40,10 @@ pub struct ClockTexts {
     pub time: String,
     /// "quarta-feira, 11 de novembro"
     pub long_date: String,
-    /// "qua 11 nov 19:38"
-    pub bar_date: String,
+    /// "qua 11 nov"
+    pub bar_day: String,
+    /// "05"
+    pub seconds: String,
 }
 
 /// Formata um instante nos três textos usados pela UI.
@@ -55,7 +58,8 @@ pub fn format<Tz: TimeZone>(now: &DateTime<Tz>) -> ClockTexts {
 
     ClockTexts {
         long_date: format!("{weekday}, {} de {month}", now.day()),
-        bar_date: format!("{} {} {} {time}", short(weekday), now.day(), short(month)),
+        bar_day: format!("{} {} {}", short(weekday), now.day(), short(month)),
+        seconds: format!("{:02}", now.second()),
         time,
     }
 }
@@ -79,9 +83,11 @@ fn update(weak: &slint::Weak<AppWindow>) {
     let Some(ui) = weak.upgrade() else { return };
     let texts = format(&Local::now());
     let shell = ui.global::<Shell>();
+    shell.set_bar_time(texts.time.clone().into());
     shell.set_time(texts.time.into());
     shell.set_long_date(texts.long_date.into());
-    shell.set_bar_date(texts.bar_date.into());
+    shell.set_bar_day(texts.bar_day.into());
+    shell.set_bar_seconds(texts.seconds.into());
 }
 
 #[cfg(test)]
@@ -98,7 +104,8 @@ mod tests {
             ClockTexts {
                 time: "19:38".into(),
                 long_date: "quarta-feira, 11 de novembro".into(),
-                bar_date: "qua 11 nov 19:38".into(),
+                bar_day: "qua 11 nov".into(),
+                seconds: "00".into(),
             }
         );
     }
@@ -106,6 +113,7 @@ mod tests {
     #[test]
     fn abrevia_com_acento_sem_quebrar_utf8() {
         let t = Utc.with_ymd_and_hms(2026, 3, 7, 8, 5, 0).unwrap(); // sábado
-        assert_eq!(format(&t).bar_date, "sáb 7 mar 08:05");
+        assert_eq!(format(&t).bar_day, "sáb 7 mar");
+        assert_eq!(format(&t).time, "08:05");
     }
 }

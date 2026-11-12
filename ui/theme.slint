@@ -31,6 +31,23 @@ export global Theme {
     in-out property <bool> reduce-motion: false;
 
     // ---------------------------------------------------------------
+    // Barra de tarefas (Configurações → Barra de tarefas)
+    // ---------------------------------------------------------------
+    /// Barra superior: mostrar o dia ("qui 12 nov") antes da hora.
+    in-out property <bool> bar-show-date: true;
+    /// Barra superior: mostrar os segundos na hora.
+    in-out property <bool> bar-show-seconds: false;
+    /// Barra superior: mostrar o uso de CPU.
+    in-out property <bool> bar-show-cpu: true;
+    /// Barra superior: mostrar a carga da bateria (só aparece se houver bateria).
+    in-out property <bool> bar-show-battery: true;
+    /// Tamanho da dock: 0 = pequena, 1 = média (padrão), 2 = grande.
+    in-out property <int> dock-size: 1;
+    /// Ids dos apps da dock, separados por vírgula, na ordem exibida
+    /// (Configurações fica sempre no fim, depois do separador).
+    in-out property <string> dock-apps: "files,terminal,browser,code,store";
+
+    // ---------------------------------------------------------------
     // Paleta
     // ---------------------------------------------------------------
 
@@ -84,6 +101,10 @@ export global Theme {
     out property <length> bar-height: 35px;
     out property <length> radius: 12px;
     out property <length> radius-small: 8px;
+    /// Lado do botão de app da dock, conforme `dock-size`.
+    out property <length> dock-item: dock-size == 0 ? 44px : dock-size == 2 ? 60px : 52px;
+    /// Lado do ícone dentro do botão da dock.
+    out property <length> dock-icon: dock-size == 0 ? 20px : dock-size == 2 ? 28px : 24px;
 
     /// Duração padrão das transições; zero quando "Reduzir animações" está ligado.
     out property <duration> anim: reduce-motion ? 0ms : 180ms;

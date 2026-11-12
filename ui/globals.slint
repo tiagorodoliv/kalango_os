@@ -6,6 +6,7 @@
 //   desligar).
 
 import { Icons } from "icons.slint";
+import { Theme } from "theme.slint";
 
 /// Um app do catálogo.
 export struct AppEntry {
@@ -59,8 +60,9 @@ export global Apps {
     /// (`src/desktop.rs`). Protótipo: os próprios fixados.
     in-out property <[AppEntry]> all: pinned;
 
-    /// Apps da dock (antes do separador; Configurações vem depois dele).
-    out property <[AppEntry]> dock: [pinned[0], pinned[1], pinned[2], pinned[3], pinned[4]];
+    /// Apps da dock (antes do separador; Configurações vem depois dele),
+    /// escolhidos em Configurações → Barra de tarefas (`Theme.dock-apps`).
+    out property <[AppEntry]> dock: Shell.dock-entries(Theme.dock-apps);
 
     /// Protótipo: os dois arquivos do layout. Sessão real: o Rust preenche com
     /// os recentes de verdade (`src/recent.rs`) e o atalho do instalador.
@@ -77,8 +79,12 @@ export global Shell {
     in property <string> time: "--:--";
     /// Data por extenso, "quarta-feira, 11 de novembro" (tela de login).
     in property <string> long-date: "";
-    /// Data/hora curta da barra superior, "qua 11 nov 19:38".
-    in property <string> bar-date: "";
+    /// Dia da barra superior, "qua 11 nov".
+    in property <string> bar-day: "";
+    /// Hora da barra superior, "19:38".
+    in property <string> bar-time: "--:--";
+    /// Segundos da hora atual, "05" (opção "Mostrar segundos").
+    in property <string> bar-seconds: "00";
     /// Uso de CPU, "12%" ou "--" fora do Linux.
     in property <string> cpu: "--";
     /// Carga da bateria, "78%" ou "--" sem bateria.
@@ -112,6 +118,13 @@ export global Shell {
 
     /// Filtra o catálogo pela busca (sem diferenciar maiúsculas nem acentos).
     pure callback filter-apps(string) -> [AppEntry];
+    /// Apps do catálogo com os ids da lista (`Theme.dock-apps`), na mesma ordem.
+    pure callback dock-entries(string) -> [AppEntry];
+    /// A lista de ids (`Theme.dock-apps`) contém o app?
+    pure callback dock-has(string /* lista */, string /* id */) -> bool;
+    /// Lista com o app acrescentado no fim (ou tirado, se já estava).
+    /// A dock nunca fica vazia: o último app não sai.
+    pure callback dock-toggle(string /* lista */, string /* id */) -> string;
     /// Valida a senha. Protótipo: aceita qualquer senha não vazia
     /// (no sistema real: PAM via greetd).
     callback try-login(string) -> bool;

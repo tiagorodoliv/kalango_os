@@ -22,6 +22,8 @@ libfontconfig1
 
 # Apps reais abertos pela dock e pelo menu (ver src/session.rs)
 thunar
+# Miniaturas de fotos e vídeos no Thunar
+tumbler
 foot
 firefox-esr
 firefox-esr-l10n-pt-br
@@ -49,6 +51,9 @@ network-manager
 pipewire-audio
 wireplumber
 pavucontrol
+
+# Monitores (Configurações → Monitores): resolução, escala e rotação
+wlr-randr
 
 # Idioma e fontes (as fontes do shell já vão embutidas no binário)
 locales
