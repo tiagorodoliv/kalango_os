@@ -1,0 +1,299 @@
+/*
+ * Tema GTK 3 do Kalango OS (Thunar, Mousepad, Ristretto, Parole, pavucontrol,
+ * Calamares não: ele é Qt).
+ *
+ * Parte do Adwaita escuro embutido no GTK e troca as cores pelas do shell
+ * (ui/theme.slint): fundo #07090d, painel #0d1218, tile #131920, borda
+ * #1e2a33, texto #e6edf3, texto secundário #8b98a5.
+ *
+ * A cor de destaque é a cor nomeada @kalango_accent. O kalango-shell grava
+ * ~/.config/gtk-3.0/gtk.css redefinindo essa cor quando o usuário escolhe
+ * outro destaque em Configurações → Aparência (vale para apps abertos depois).
+ */
+@import url("resource:///org/gtk/libgtk/theme/Adwaita/gtk-contained-dark.css");
+
+/* --- Paleta ------------------------------------------------------------ */
+@define-color kalango_accent #3dd6f5;
+@define-color kalango_on_accent #07090d;
+@define-color kalango_bg #07090d;
+@define-color kalango_panel #0d1218;
+@define-color kalango_view #0a0f14;
+@define-color kalango_tile #131920;
+@define-color kalango_tile_hover #1a222b;
+@define-color kalango_sunken #070b0f;
+@define-color kalango_border #1e2a33;
+@define-color kalango_text #e6edf3;
+@define-color kalango_muted #8b98a5;
+@define-color kalango_danger #f07178;
+
+/* Cores nomeadas que apps GTK leem direto (Mousepad, plugins, CSS de apps). */
+@define-color theme_bg_color @kalango_panel;
+@define-color theme_fg_color @kalango_text;
+@define-color theme_base_color @kalango_view;
+@define-color theme_text_color @kalango_text;
+@define-color theme_selected_bg_color @kalango_accent;
+@define-color theme_selected_fg_color @kalango_on_accent;
+@define-color insensitive_bg_color @kalango_panel;
+@define-color insensitive_fg_color @kalango_muted;
+@define-color borders @kalango_border;
+@define-color unfocused_borders @kalango_border;
+@define-color accent_color @kalango_accent;
+@define-color accent_bg_color @kalango_accent;
+@define-color warning_color #e8b04b;
+@define-color error_color @kalango_danger;
+@define-color success_color #5fd38d;
+
+/* --- Janelas e áreas ---------------------------------------------------- */
+window, .background, dialog, messagedialog .dialog-action-box {
+  background-color: @kalango_panel;
+  color: @kalango_text;
+}
+
+.view, iconview, treeview.view, textview text, .thunar .standard-view,
+scrolledwindow viewport, list, list row {
+  background-color: @kalango_view;
+  color: @kalango_text;
+}
+
+/* Barra lateral (Locais, Favoritos, Dispositivos). */
+.sidebar, placessidebar, placessidebar list, placessidebar row,
+.thunar .sidebar, .shortcuts-pane, stacksidebar list {
+  background-color: @kalango_bg;
+  color: @kalango_text;
+  border-color: @kalango_border;
+}
+placessidebar row:hover, .sidebar row:hover {
+  background-color: @kalango_tile;
+}
+placessidebar row:selected, .sidebar row:selected,
+placessidebar row:selected:hover {
+  background-color: alpha(@kalango_accent, 0.14);
+  color: @kalango_text;
+  box-shadow: inset 3px 0 @kalango_accent;
+}
+placessidebar row:selected image, .sidebar row:selected image {
+  color: @kalango_accent;
+}
+
+/* Seleção em listas e grades de ícones. */
+.view:selected, .view:selected:focus, iconview:selected, treeview.view:selected,
+row:selected, flowboxchild:selected, textview text selection,
+entry selection, label selection {
+  background-color: alpha(@kalango_accent, 0.28);
+  color: @kalango_text;
+}
+iconview:selected:focus, treeview.view:selected:focus, .view:selected:focus {
+  background-color: alpha(@kalango_accent, 0.34);
+}
+.view:hover, iconview:hover {
+  background-color: alpha(@kalango_text, 0.05);
+}
+.rubberband, rubberband, treeview.view rubberband {
+  border: 1px solid @kalango_accent;
+  background-color: alpha(@kalango_accent, 0.15);
+}
+
+/* Cabeçalho das colunas (modo lista). */
+treeview.view header button, columnview header button {
+  background: @kalango_panel;
+  color: @kalango_muted;
+  border-color: @kalango_border;
+  box-shadow: none;
+}
+
+/* --- Barras: título, menu, ferramentas, status ------------------------- */
+headerbar, .titlebar {
+  background: @kalango_panel;
+  border-bottom: 1px solid @kalango_border;
+  box-shadow: none;
+  color: @kalango_text;
+}
+headerbar:backdrop, .titlebar:backdrop {
+  background: @kalango_bg;
+}
+menubar, .menubar, toolbar, .toolbar, .primary-toolbar, .inline-toolbar,
+searchbar, .search-bar, actionbar, statusbar {
+  background: @kalango_panel;
+  border-color: @kalango_border;
+  color: @kalango_text;
+  box-shadow: none;
+}
+statusbar {
+  color: @kalango_muted;
+  border-top: 1px solid @kalango_border;
+}
+menubar > menuitem:hover {
+  background-color: @kalango_tile_hover;
+  color: @kalango_accent;
+  box-shadow: none;
+}
+
+/* --- Botões ------------------------------------------------------------- */
+button {
+  background-image: none;
+  background-color: @kalango_tile;
+  border: 1px solid @kalango_border;
+  border-radius: 8px;
+  box-shadow: none;
+  text-shadow: none;
+  color: @kalango_text;
+}
+button:hover {
+  background-color: @kalango_tile_hover;
+}
+button:active, button:checked {
+  background-color: alpha(@kalango_accent, 0.18);
+  border-color: alpha(@kalango_accent, 0.55);
+  color: @kalango_text;
+}
+button:disabled {
+  background-color: @kalango_panel;
+  color: @kalango_muted;
+}
+button.flat, toolbar button, headerbar button.flat, .path-bar button,
+.thunar .location-button {
+  background-color: transparent;
+  border-color: transparent;
+}
+button.flat:hover, toolbar button:hover, .path-bar button:hover {
+  background-color: @kalango_tile_hover;
+}
+button.suggested-action, button.default:focus {
+  background-color: @kalango_accent;
+  border-color: @kalango_accent;
+  color: @kalango_on_accent;
+}
+button.suggested-action:hover {
+  background-color: shade(@kalango_accent, 1.08);
+}
+button.destructive-action {
+  background-color: alpha(@kalango_danger, 0.16);
+  border-color: alpha(@kalango_danger, 0.6);
+  color: @kalango_danger;
+}
+
+/* Caminho em botões (Thunar: ~/Projetos), a pasta atual em destaque. */
+.path-bar button:checked, .thunar .location-button:checked,
+.path-bar button.current-dir {
+  background-color: alpha(@kalango_accent, 0.14);
+  border-color: alpha(@kalango_accent, 0.45);
+  color: @kalango_accent;
+}
+
+/* --- Campos de texto ---------------------------------------------------- */
+entry, spinbutton:not(.vertical), .location-entry {
+  background-color: @kalango_sunken;
+  border: 1px solid @kalango_border;
+  border-radius: 8px;
+  box-shadow: none;
+  color: @kalango_text;
+  caret-color: @kalango_accent;
+}
+entry:focus, spinbutton:focus:not(.vertical) {
+  border-color: @kalango_accent;
+  box-shadow: 0 0 0 1px alpha(@kalango_accent, 0.35);
+}
+entry image {
+  color: @kalango_muted;
+}
+
+/* --- Menus, popovers, dicas ------------------------------------------------ */
+menu, .menu, .context-menu, popover, popover.background, .csd menu {
+  background-color: @kalango_panel;
+  border: 1px solid @kalango_border;
+  color: @kalango_text;
+}
+menu menuitem, .menu menuitem {
+  padding: 6px 12px;
+}
+menu menuitem:hover, .menu menuitem:hover, modelbutton.flat:hover,
+popover modelbutton:hover {
+  background-color: @kalango_tile_hover;
+  color: @kalango_accent;
+}
+menu separator, popover separator, separator {
+  background-color: @kalango_border;
+}
+tooltip, tooltip.background {
+  background-color: @kalango_bg;
+  border: 1px solid @kalango_border;
+  border-radius: 6px;
+  color: @kalango_text;
+}
+
+/* --- Abas ----------------------------------------------------------------- */
+notebook > header {
+  background-color: @kalango_bg;
+  border-color: @kalango_border;
+}
+notebook > header tab {
+  color: @kalango_muted;
+}
+notebook > header tab:checked {
+  color: @kalango_text;
+  box-shadow: inset 0 -2px @kalango_accent;
+}
+notebook > stack:not(:only-child) {
+  background-color: @kalango_view;
+}
+
+/* --- Controles ------------------------------------------------------------- */
+switch:checked, checkbutton check:checked, check:checked, radio:checked,
+checkbutton radio:checked {
+  background-color: @kalango_accent;
+  border-color: @kalango_accent;
+  color: @kalango_on_accent;
+}
+switch {
+  background-color: #2a323b;
+  border-color: @kalango_border;
+}
+switch slider {
+  background-color: @kalango_text;
+  border-color: transparent;
+}
+scale highlight, progressbar progress, levelbar block.filled,
+levelbar block.high, levelbar block.full {
+  background-color: @kalango_accent;
+  border-color: @kalango_accent;
+}
+scale trough, progressbar trough, levelbar trough {
+  background-color: #2a323b;
+  border-color: transparent;
+}
+scale slider {
+  background-color: @kalango_text;
+  border-color: @kalango_border;
+}
+
+/* Barras de rolagem finas e discretas. */
+scrollbar {
+  background-color: transparent;
+  border-color: transparent;
+}
+scrollbar slider {
+  background-color: alpha(@kalango_muted, 0.45);
+  border: none;
+  border-radius: 8px;
+  min-width: 6px;
+  min-height: 6px;
+}
+scrollbar slider:hover {
+  background-color: alpha(@kalango_muted, 0.7);
+}
+scrollbar slider:active {
+  background-color: @kalango_accent;
+}
+
+/* Links. */
+*:link, button.link, button.link:link {
+  color: @kalango_accent;
+}
+*:visited {
+  color: shade(@kalango_accent, 0.85);
+}
+
+/* Contorno do foco por teclado. */
+*:focus {
+  outline-color: alpha(@kalango_accent, 0.6);
+}

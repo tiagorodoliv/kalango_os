@@ -1,7 +1,8 @@
-# Padrões do Kalango OS para apps GNOME/libadwaita (Loja, Agenda): tema escuro
+# Padrões do Kalango OS: tema GTK 3 "Kalango" e, nos apps libadwaita (Loja,
+# Agenda), o tema escuro
 # e fonte Inter. Compilado pelo hook 0100-kalango-schemas.hook.chroot.
 [org.gnome.desktop.interface]
 color-scheme='prefer-dark'
-gtk-theme='Adwaita-dark'
+gtk-theme='Kalango'
 font-name='Inter 10'
 monospace-font-name='JetBrains Mono 10'
