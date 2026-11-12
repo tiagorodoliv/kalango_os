@@ -12,18 +12,38 @@ Interface gráfica (shell) do sistema operacional proprietário, em **Rust + [Sl
 ## Estrutura
 
 ```
-Cargo.toml           dependências e feature `kms` (build do dispositivo)
-build.rs             compila ui/*.slint em código Rust
+Cargo.toml             dependências e feature `kms` (build do dispositivo)
+build.rs               compila ui/app_window.slint em código Rust
 src/
-  main.rs            ponto de entrada: cria a janela e liga os serviços
-  clock.rs           relógio da barra de status
+  main.rs              ponto de entrada (só chama linux_os::run)
+  lib.rs               monta a janela e liga os serviços
+  clock.rs             data/hora local em pt-BR
+  system.rs            CPU (/proc/stat) e bateria (/sys/class/power_supply)
+  apps.rs              busca do launcher (ignora acentos e maiúsculas)
+examples/
+  snapshot.rs          gera PNG de cada tela em target/snapshots/
 ui/
-  app_window.slint   janela raiz
-  theme.slint        cores, espaçamentos e fontes (tokens do layout)
-  components/        componentes reutilizáveis (barra de status, botões...)
-  screens/           telas (home, configurações...)
-assets/              ícones, imagens e fontes
+  app_window.slint     janela raiz e navegação entre telas
+  theme.slint          tema reativo (destaque, modo, transparência, toggles)
+  globals.slint        catálogo de apps e dados do sistema
+  icons.slint          ícones SVG de ui/icons/
+  components/          marca, botões, toggle, slider, barra, dock, fundo, moldura de janela
+  screens/             login, launcher (menu de apps), configurações
+  apps/                mocks das janelas Arquivos e Terminal
+  fonts/               Inter e JetBrains Mono (licença OFL, embutidas no binário)
+assets/                layouts de referência, logo e wallpapers
 ```
+
+## Como rodar
+
+```sh
+~/.cargo/bin/cargo run                       # abre o protótipo numa janela
+~/.cargo/bin/cargo run --example snapshot    # gera as capturas das telas
+~/.cargo/bin/cargo test                      # testes de relógio, CPU e busca
+```
+
+Qualquer senha não vazia entra. Atalhos: **Super** (no macOS, **⌃ Control**) abre/fecha o menu de apps;
+**Esc** fecha o menu ou as Configurações.
 
 ## Pré-requisitos
 

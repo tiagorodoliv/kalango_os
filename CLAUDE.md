@@ -41,7 +41,10 @@ texto `#e6edf3`, texto secundário `#8b98a5`, perigo (power) `#f07178`, linhas d
 grade de fundo sutil (~48px).
 **Cores de destaque (ordem):** ciano `#3dd6f5`, roxo `#a78bfa`, azul `#7ea6f7`, verde `#5fd38d`, âmbar `#e8b04b`, rosa `#f28b95`.
 **Fontes:** sans tipo Inter para UI; mono tipo JetBrains Mono para relógio, barra, rótulos de seção (MAIÚSCULAS espaçadas) e terminal.
-**Marca (ícone da barra):** "bonequinho" de calango em traço: cabeça losango, braços e pernas angulados, rabo curvo.
+**Marca:** usar os arquivos reais da marca em `ui/brand/` (global `Brand` em `ui/brand.slint`), nunca desenho próprio.
+Ícone (barra, terminal, janela): `kalango-icon.png`, o "g"-calango no quadrado azul, recortado de `assets/layout/logotipo.png`.
+Logotipo: `kalango-logo.png` (letras brancas) e `kalango-logo-claro.png` (letras azul-marinho, tema claro).
+O SVG de `assets/logo` é rastreado de bitmap e fica granulado em tamanho pequeno; só trocar para vetor se vier um desenhado à mão.
 
 1. **Tela de login:** relógio grande mono (~108px) "19:38" + "quarta-feira, 11 de novembro" no topo; card central
    ~380×320 (avatar círculo com "U" e borda destaque, "Usuário", campo "Senha" com botão seta em destaque,
