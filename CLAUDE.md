@@ -25,13 +25,23 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     "Outro usuário" deixa digitar o login. Sem `$GREETD_SOCK` qualquer senha entra (dev).
 - **Modo real × protótipo:** `KALANGO_SESSION=1` (em `etc/xdg/labwc/environment`) liga `Shell.native`: dock/menu
   abrem apps instalados (`session::command_for`: thunar, foot, firefox-esr, mousepad, ristretto, htop, nmtui,
-  pavucontrol, parole), avisos vão para o centro da barra (o rodapé pode estar atrás de um app), power faz
+  pavucontrol, parole, gnome-software = Loja, gnome-calendar = Agenda), avisos vão para o centro da barra (o rodapé pode estar atrás de um app), power faz
   `systemctl poweroff`, a área de trabalho começa direto (sem login falso) e o nome vem do GECOS de `$USER`.
   Rodapé do menu: cadeado = `swaylock` (ext-session-lock, seguro), sair = `labwc --exit` (volta ao greeter).
+  RECENTES do menu = `~/.local/share/recently-used.xbel` (`src/recent.rs`), abertos com `xdg-open`; na ISO live
+  (`/run/live/medium` existe) o 1º item é "Instalar Kalango OS" (app `installer`).
   Sem a variável (dev no host, `examples/snapshot.rs`) continua o protótipo com as janelas de demonstração.
-  Loja e Agenda ainda não têm app ("Este app ainda não está disponível").
-- Próximos passos da arquitetura: layer-shell para barra/dock/menu; Loja e Agenda; recentes reais no menu;
-  instalador (hoje só ISO live).
+- **Instalador: Calamares** com a sequência do `calamares-settings-debian` e, por cima (`etc/calamares/`): marca
+  `branding/kalango` (logo, slides, `stylesheet.qss` escuro), `locale.conf` (São Paulo/pt-BR), `packages.conf`
+  (remove também o calamares) e `shellprocess@kalango` (tira o `[initial_session]` do greetd e o
+  `kalango-instalar`; **não usar `$` nos comandos**, o Calamares trata `$nome` como variável).
+  `kalango-instalar` abre o Calamares com `sudo env WAYLAND_DISPLAY=... calamares` (a sessão não tem agente do
+  polkit para o pkexec). O GRUB vai por apt a partir da mídia: `package-lists/kalango.list.binary` põe grub-pc,
+  grub-efi e cryptsetup no repositório da ISO. Testado em VM: instala, dá boot pelo disco e entra no greeter.
+- Identidade: `/usr/lib/os-release` = "Kalango OS" (`ID=kalango`, `ID_LIKE=debian`, protegido de atualização do
+  base-files pelo hook `0050`), `etc/default/grub.d/kalango.cfg` (`GRUB_DISTRIBUTOR`).
+- Próximos passos da arquitetura: layer-shell para barra/dock/menu; contraste das legendas de partição do
+  Calamares no tema escuro (desenhadas pela paleta Qt, não pelo qss).
 
 ## Ambiente
 
@@ -69,7 +79,11 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   Para depurar, Ctrl+Alt+F2 dá console com login automático (usuário `user`, senha `live`);
   `journalctl -t kalango-shell` tem a saída do shell. O greetd está no VT7.
 - Tema escuro dos apps: `etc/gtk-3.0/settings.ini`, `etc/gtk-4.0/settings.ini`, `etc/xdg/labwc/themerc-override`,
-  `etc/xdg/foot/foot.ini` (mesmas cores de `ui/theme.slint`).
+  `etc/xdg/foot/foot.ini` (mesmas cores de `ui/theme.slint`); libadwaita (Loja, Agenda) só lê a preferência pelo
+  portal, que a sessão não tem: `ADW_DEBUG_COLOR_SCHEME=prefer-dark` no `environment` do labwc (+ override de
+  GSettings `90_kalango.gschema.override`, compilado pelo hook `0100`).
+- `run-qemu.sh --disco` liga um disco de 20 GB (`distro/out/disco-teste.qcow2`) para testar o instalador;
+  `--so-disco` dá boot pelo disco sem a ISO.
 - `auto/config` usa `noeject` (desligar não para pedindo para remover a mídia).
 - `distro/auto/config`: trixie amd64, main+contrib+non-free-firmware, pt_BR, teclado br, usuário live `user`.
 - Pacotes em `distro/config/package-lists/kalango.list.chroot`; configs de sistema em `distro/config/includes.chroot/`.

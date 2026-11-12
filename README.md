@@ -23,6 +23,7 @@ src/
   session.rs           sessão real: abrir apps, menu e Configurações como janelas próprias, desligar
   appearance.rs        aparência salva em ~/.config/kalango e compartilhada entre os processos
   greeter.rs           tela de login de verdade (greeter do greetd, senha conferida no PAM)
+  recent.rs            arquivos recentes de verdade no menu de apps
 examples/
   snapshot.rs          gera PNG de cada tela em target/snapshots/
 ui/
@@ -67,10 +68,14 @@ distro/build.sh          # pede sudo; a primeira vez cria o chroot de build (~1 
 distro/run-qemu.sh       # testa a ISO gerada em distro/out/ no QEMU
 ```
 
-`distro/run-qemu.sh --gl` usa aceleração 3D (janela SDL); `--uefi` dá boot por UEFI.
+`distro/run-qemu.sh --gl` usa aceleração 3D (janela SDL); `--uefi` dá boot por UEFI; `--disco` liga um disco
+virtual para testar o instalador e `--so-disco` dá boot pelo sistema instalado, sem a ISO.
+
+Para instalar: menu de apps → RECENTES → **Instalar Kalango OS** (Calamares, com a marca do Kalango).
 
 A ISO entra direto na sessão: greetd → labwc → `kalango-shell`. Logs do shell: `journalctl -t kalango-shell`.
-Na ISO a dock e o menu abrem os apps de verdade (Thunar, foot, Firefox, Mousepad, Ristretto, Parole, htop) e o
+Na ISO a dock e o menu abrem os apps de verdade (Thunar, foot, Firefox, Mousepad, Ristretto, Parole, htop,
+GNOME Software como Loja, GNOME Agenda) e o
 Wi-Fi e o volume da barra abrem `nmtui` e `pavucontrol`. Atalhos: **Super** abre/fecha o menu, **Super+Enter**
 terminal, **Super+E** arquivos, **Super+B** navegador, **Super+L** bloqueia, **Alt+Tab** troca de janela,
 **Alt+F4** fecha. Sair da sessão (rodapé do menu) leva à tela de login do Kalango: usuário `user`, senha `live`.
