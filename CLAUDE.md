@@ -18,6 +18,14 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     Super+Espaço abre; rodar de novo fecha (pidfile em `$XDG_RUNTIME_DIR`).
   - `kalango-shell --settings`: Configurações em janela comum. A aparência é salva em
     `~/.config/kalango/aparencia.conf` e os outros processos aplicam em <1 s (`src/appearance.rs`).
+    As outras páginas mexem no sistema de verdade (`src/device.rs` + global `Device` em `ui/device.slint`,
+    páginas em `ui/screens/settings_pages.slint`): Rede e Wi-Fi pelo `nmcli` (lista, liga/desliga, conecta com
+    senha), Som pelo `wpctl` (volume/mudo), Energia (bateria, suspender/reiniciar), Usuários (`passwd` no foot),
+    Atualizações e Sobre o sistema (os-release, kernel, CPU, memória, disco). Bluetooth e Monitores só têm aviso.
+    O `nmcli` roda com `LC_ALL=C` (os estados viriam traduzidos). Antes de conectar com senha, o perfil antigo
+    da rede é apagado: um perfil de tentativa com senha errada faz o `nmcli` falhar com "key-mgmt missing".
+    Campo que precisa de `focus()` não pode estar sob `visible: false` nem num `if` recém-criado (o foco se
+    perde no winit); o painel da senha do Wi-Fi encolhe para altura 0 com `opacity: 0`.
   - `kalango-shell --greeter`: tela de login de verdade (`src/greeter.rs`). O greetd roda `kalango-greeter`
     (labwc com config própria em `/etc/kalango/greeter`, sem atalhos) como `_greetd`; a senha vai pelo IPC do
     greetd (JSON com tamanho u32 nativo, socket `$GREETD_SOCK`) para o PAM e, se conferir, o greeter sai e o
@@ -69,6 +77,8 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   toolchain do host (binário em `target/release/kalango_os`), passar para a VM por `-virtfs` (9p) e, dentro dela,
   copiar binário/configs, `rm /run/greetd.run` (o greetd só faz autologin uma vez por boot) e
   `systemctl restart greetd`. A VM live tem rede e sudo sem senha (dá para `apt install`).
+  Wi-Fi de teste na VM: `modprobe mac80211_hwsim radios=3`, `nmcli dev set wlan1 managed no` (idem wlan2),
+  `hostapd` em wlan1 (WPA2) e wlan2 (aberta) e `dnsmasq` como DHCP; o wlan0 fica para o NetworkManager.
 - Menu de boot com timeout de 5 s: `distro/config/bootloaders/{isolinux/isolinux.cfg,grub-pc/config.cfg}`
   (o padrão do live-build é esperar o Enter para sempre).
 - Atalhos (labwc, além dos padrão): Super = menu, Super+Enter = foot, Super+E = thunar, Super+B = firefox,

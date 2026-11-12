@@ -24,12 +24,14 @@ src/
   appearance.rs        aparência salva em ~/.config/kalango e compartilhada entre os processos
   greeter.rs           tela de login de verdade (greeter do greetd, senha conferida no PAM)
   recent.rs            arquivos recentes de verdade no menu de apps
+  device.rs            Configurações reais: Wi-Fi (nmcli), som (wpctl), energia e ficha do sistema
 examples/
   snapshot.rs          gera PNG de cada tela em target/snapshots/
 ui/
   app_window.slint     janela raiz e navegação entre telas
   theme.slint          tema reativo (destaque, modo, transparência, toggles)
   globals.slint        catálogo de apps e dados do sistema
+  device.slint         global `Device`: rede, som, energia e ficha do sistema (preenchido por device.rs)
   icons.slint          ícones SVG de ui/icons/
   components/          marca, botões, toggle, slider, barra, dock, fundo, moldura de janela
   screens/             login, launcher (menu de apps), configurações
