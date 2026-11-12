@@ -1,5 +1,5 @@
 [package]
-name = "linux_os"
+name = "kalango_os"
 version = "0.1.0"
 edition = "2021"
 description = "Interface gráfica (shell) do sistema operacional proprietário, em Rust + Slint"

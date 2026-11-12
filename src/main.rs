@@ -5,5 +5,5 @@
 //! (ex.: sem permissão em /dev/dri ao rodar com a feature `kms`).
 
 fn main() -> Result<(), slint::PlatformError> {
-    linux_os::run()
+    kalango_os::run()
 }

@@ -10,7 +10,7 @@
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-use linux_os::{Screen, Theme};
+use kalango_os::{Screen, Theme};
 use slint::platform::software_renderer::{MinimalSoftwareWindow, RepaintBufferType};
 use slint::platform::{Platform, WindowAdapter};
 use slint::{ComponentHandle, PhysicalSize, Rgb8Pixel};
@@ -71,7 +71,7 @@ fn main() {
     slint::platform::set_platform(Box::new(SnapshotPlatform { window: window.clone() }))
         .expect("plataforma já definida");
 
-    let (ui, _timers) = linux_os::build().expect("criar UI");
+    let (ui, _timers) = kalango_os::build().expect("criar UI");
     ui.show().expect("mostrar UI");
 
     ui.set_screen(Screen::Login);
@@ -90,7 +90,7 @@ fn main() {
     // Variações de tema para conferir a troca ao vivo.
     let theme = ui.global::<Theme>();
     theme.set_accent_index(1);
-    theme.set_mode(linux_os::ThemeMode::Light);
+    theme.set_mode(kalango_os::ThemeMode::Light);
     save(&window, &out.join("config_claro_roxo.png"));
     ui.set_screen(Screen::Desktop);
     save(&window, &out.join("desktop_claro_roxo.png"));
