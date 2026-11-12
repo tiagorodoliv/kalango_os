@@ -1,0 +1,86 @@
+// Dock inferior centralizada: apps da dock | Configurações.
+
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+import { Apps, AppEntry } from "../globals.slint";
+
+/// Um item da dock (tile 52×52 com ícone colorido).
+component DockItem inherits Rectangle {
+    in property <AppEntry> app;
+    /// App com janela aberta: ponto embaixo.
+    in property <bool> running: false;
+    /// App em foco: traço de destaque embaixo (mais forte que `running`).
+    in property <bool> active: false;
+    callback clicked();
+
+    width: 52px;
+    height: 52px;
+    border-radius: 11px;
+    background: touch.has-hover ? Theme.tile-hover : Theme.tile;
+    animate background { duration: Theme.anim; }
+
+    Image {
+        source: root.app.icon;
+        colorize: root.app.id == "files" ? Theme.accent : root.app.tint;
+        width: 24px;
+        height: 24px;
+    }
+
+    // Indicador: traço quando ativo, ponto quando só aberto.
+    if root.active || root.running: Rectangle {
+        y: parent.height - 6px;
+        width: root.active ? 14px : 4px;
+        height: root.active ? 3px : 4px;
+        border-radius: 2px;
+        background: root.active ? Theme.accent : Theme.text;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component Dock inherits Rectangle {
+    /// Ids de apps com janela aberta e do app em foco.
+    in property <bool> files-open;
+    in property <bool> terminal-open;
+    in property <string> focused-app;
+    callback launch(string);
+
+    width: row.preferred-width;
+    height: row.preferred-height;
+    border-radius: 14px;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.border;
+    drop-shadow-blur: 24px;
+    drop-shadow-color: #00000070;
+
+    row := HorizontalLayout {
+        padding: 9px;
+        spacing: 8px;
+
+        for app in Apps.dock: DockItem {
+            app: app;
+            running: (app.id == "files" && root.files-open) || (app.id == "terminal" && root.terminal-open);
+            active: app.id == root.focused-app && self.running;
+            clicked => { root.launch(app.id); }
+        }
+
+        // Separador antes de Configurações
+        Rectangle {
+            width: 9px;
+            Rectangle {
+                width: 1px;
+                height: 32px;
+                background: Theme.border;
+            }
+        }
+
+        DockItem {
+            app: Apps.pinned[5];
+            clicked => { root.launch("settings"); }
+        }
+    }
+}

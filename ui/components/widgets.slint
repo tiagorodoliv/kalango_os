@@ -1,0 +1,190 @@
+// Componentes básicos reutilizados em todas as telas: botões,
+// toggle, slider, rótulo de seção e avatar.
+
+import { Theme } from "../theme.slint";
+
+/// Botão quadrado com ícone (barra, rodapés, fechar...).
+export component IconButton inherits Rectangle {
+    in property <image> icon;
+    in property <color> icon-color: Theme.text;
+    in property <length> icon-size: 18px;
+    /// Sem fundo: só mostra o tile ao passar o mouse.
+    in property <bool> flat: false;
+    callback clicked();
+
+    width: 44px;
+    height: 44px;
+    border-radius: Theme.radius-small;
+    background: touch.has-hover ? Theme.tile-hover : root.flat ? transparent : Theme.tile;
+    border-width: root.flat ? 0 : 1px;
+    border-color: Theme.border;
+    animate background { duration: Theme.anim; }
+
+    Image {
+        source: root.icon;
+        colorize: root.icon-color;
+        width: root.icon-size;
+        height: root.icon-size;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Interruptor liga/desliga no estilo do layout (48×28).
+export component Toggle inherits Rectangle {
+    in-out property <bool> checked;
+    callback toggled(bool);
+
+    width: 48px;
+    height: 28px;
+    border-radius: self.height / 2;
+    background: root.checked ? Theme.accent : (Theme.is-light ? #cfd6dd : #2a323b);
+    animate background { duration: Theme.anim; }
+
+    knob := Rectangle {
+        width: 20px;
+        height: 20px;
+        y: 4px;
+        x: root.checked ? root.width - self.width - 4px : 4px;
+        border-radius: self.height / 2;
+        // Ligado: bolinha escura sobre o destaque (como no layout).
+        background: root.checked ? Theme.on-accent : #c9d1d9;
+        animate x { duration: Theme.anim; easing: ease-out; }
+    }
+
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
+}
+
+/// Slider horizontal de 0.0 a 1.0 com trilho preenchido pelo destaque.
+export component SliderBar inherits Rectangle {
+    in-out property <float> value: 0.5;
+    callback changed(float);
+
+    width: 180px;
+    height: 24px;
+
+    // Trilho
+    Rectangle {
+        y: (parent.height - self.height) / 2;
+        height: 6px;
+        border-radius: 3px;
+        background: Theme.is-light ? #cfd6dd : #2a323b;
+    }
+
+    // Parte preenchida
+    Rectangle {
+        x: 0;
+        y: (parent.height - self.height) / 2;
+        width: root.width * root.value;
+        height: 6px;
+        border-radius: 3px;
+        background: Theme.accent;
+    }
+
+    // Puxador
+    Rectangle {
+        width: 22px;
+        height: 22px;
+        x: root.width * root.value - self.width / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: self.height / 2;
+        background: #eef2f5;
+        drop-shadow-blur: 4px;
+        drop-shadow-color: #00000060;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        // Clique ou arraste em qualquer ponto do trilho define o valor.
+        pointer-event(e) => {
+            if (e.kind == PointerEventKind.down) {
+                root.set-from(self.mouse-x);
+            }
+        }
+        moved => {
+            if (self.pressed) {
+                root.set-from(self.mouse-x);
+            }
+        }
+    }
+
+    /// Converte a posição do mouse em valor, limitado a [0, 1].
+    function set-from(x: length) {
+        root.value = clamp(x / root.width, 0, 1);
+        root.changed(root.value);
+    }
+}
+
+/// Rótulo de seção em MAIÚSCULAS espaçadas e fonte mono ("FIXADOS", "TEMA"...).
+export component SectionLabel inherits Text {
+    color: Theme.text-muted;
+    font-family: Theme.mono;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+}
+
+/// Avatar circular com a inicial do usuário.
+export component Avatar inherits Rectangle {
+    in property <string> letter: "U";
+    /// Preenchido (rodapé do launcher) ou contornado (tela de login).
+    in property <bool> filled: true;
+
+    width: 34px;
+    height: 34px;
+    border-radius: self.width / 2;
+    background: root.filled ? Theme.accent : Theme.accent.with-alpha(0.12);
+    border-width: root.filled ? 0 : 2px;
+    border-color: Theme.accent;
+
+    Text {
+        text: root.letter;
+        color: root.filled ? Theme.on-accent : Theme.accent;
+        font-family: Theme.sans;
+        font-size: root.height * 0.45;
+        font-weight: root.filled ? 700 : 600;
+    }
+}
+
+/// Link de texto sublinhado na cor de destaque.
+///
+/// O `Text` do Slint não tem sublinhado, então o traço é um retângulo de 1px.
+export component LinkText inherits Rectangle {
+    in property <string> text;
+    in property <length> font-size: 13px;
+    callback clicked();
+
+    width: label.preferred-width;
+    height: label.preferred-height + 2px;
+
+    label := Text {
+        x: 0;
+        y: 0;
+        text: root.text;
+        color: Theme.accent;
+        font-family: Theme.sans;
+        font-size: root.font-size;
+    }
+
+    Rectangle {
+        x: 0;
+        y: label.preferred-height;
+        width: label.preferred-width;
+        height: 1px;
+        background: Theme.accent;
+    }
+
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}

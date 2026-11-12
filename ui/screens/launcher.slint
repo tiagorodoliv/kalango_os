@@ -1,0 +1,251 @@
+// Menu de apps (launcher): card central com busca, apps fixados, recentes
+// e rodapé do usuário. Abre com Super (⌃ Control no macOS) ou pela pílula.
+
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+import { Apps, AppEntry, Shell } from "../globals.slint";
+import { SectionLabel, Avatar, IconButton, LinkText } from "../components/widgets.slint";
+
+/// Tile de app da grade (108×101).
+component AppTile inherits Rectangle {
+    in property <AppEntry> app;
+    callback clicked();
+
+    width: 108px;
+    height: 101px;
+    border-radius: 10px;
+    background: touch.has-hover ? Theme.tile-hover : Theme.tile;
+    border-width: 1px;
+    border-color: Theme.border;
+    animate background { duration: Theme.anim; }
+
+    // Quadradinho do ícone: o Terminal tem fundo preto, os demais a cor do app.
+    Rectangle {
+        y: 15px;
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        background: root.app.id == "terminal" ? #05080b : root.app.tint.with-alpha(0.16);
+        Image {
+            source: root.app.icon;
+            colorize: root.app.id == "files" ? Theme.accent : root.app.tint;
+            width: 22px;
+            height: 22px;
+        }
+    }
+
+    Text {
+        y: 73px;
+        text: root.app.name;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 13.5px;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component Launcher inherits Rectangle {
+    callback launch(string);
+    callback close();
+    callback lock();
+
+    /// Texto digitado na busca.
+    property <string> query: search.text;
+    /// Apps exibidos: todos sem busca, ou o resultado do filtro (feito no Rust).
+    property <[AppEntry]> shown: root.query == "" ? Apps.pinned : Shell.filter-apps(root.query);
+
+    /// Limpa a busca e foca o campo (chamado ao abrir).
+    public function reset() {
+        search.text = "";
+        search.focus();
+    }
+
+    // Escurece o fundo; clicar fora do card fecha.
+    Rectangle {
+        background: Theme.background.with-alpha(0.55);
+        TouchArea { clicked => { root.close(); } }
+    }
+
+    card := Rectangle {
+        width: 759px;
+        height: 569px;
+        // 121px na tela de referência, menos a barra superior (35px).
+        y: 86px;
+        border-radius: 18px;
+        background: Theme.panel;
+        border-width: 1px;
+        border-color: Theme.border;
+        drop-shadow-blur: 50px;
+        drop-shadow-color: #000000a0;
+
+        // Bloqueia cliques no card para não fechar o launcher.
+        TouchArea { }
+
+        // --- Busca ---
+        Rectangle {
+            x: 29px;
+            y: 29px;
+            width: parent.width - 58px;
+            height: 54px;
+            border-radius: 10px;
+            background: Theme.sunken;
+            border-width: 1.5px;
+            border-color: Theme.accent;
+            drop-shadow-blur: 12px;
+            drop-shadow-color: Theme.accent.with-alpha(0.18);
+
+            Image {
+                x: 20px;
+                source: Icons.search;
+                colorize: Theme.accent;
+                width: 19px;
+                height: 19px;
+            }
+
+            if search.text == "": Text {
+                x: 53px;
+                text: "Buscar apps, arquivos, comandos...";
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 17px;
+                vertical-alignment: center;
+            }
+
+            search := TextInput {
+                x: 53px;
+                width: parent.width - 53px - 80px;
+                height: parent.height;
+                vertical-alignment: center;
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 17px;
+                selection-background-color: Theme.accent.with-alpha(0.4);
+                // Enter abre o primeiro resultado.
+                accepted => {
+                    if (root.shown.length > 0) {
+                        root.launch(root.shown[0].id);
+                    }
+                }
+            }
+
+            // Etiqueta do atalho
+            Rectangle {
+                x: parent.width - self.width - 18px;
+                width: super-label.preferred-width + 16px;
+                height: 22px;
+                border-radius: 5px;
+                background: Theme.tile;
+                super-label := Text {
+                    text: "Super";
+                    color: Theme.text-muted;
+                    font-family: Theme.mono;
+                    font-size: 11px;
+                }
+            }
+        }
+
+        // --- Fixados (ou resultados da busca) ---
+        SectionLabel {
+            x: 29px;
+            y: 112px;
+            text: root.query == "" ? "FIXADOS" : "RESULTADOS";
+        }
+        if root.query == "": LinkText {
+            x: parent.width - self.width - 29px;
+            y: 110px;
+            text: "Todos os apps";
+        }
+
+        // Grade 6 colunas; posição calculada pelo índice.
+        for app[i] in root.shown: AppTile {
+            x: 29px + Math.mod(i, 6) * (108px + 11px);
+            y: 140px + floor(i / 6) * (101px + 11px);
+            app: app;
+            clicked => { root.launch(app.id); }
+        }
+
+        if root.shown.length == 0: Text {
+            y: 180px;
+            text: "Nenhum app encontrado para \"" + root.query + "\"";
+            color: Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 14px;
+        }
+
+        // --- Recentes (só sem busca) ---
+        if root.query == "": SectionLabel {
+            x: 29px;
+            y: 381px;
+            text: "RECENTES";
+        }
+        for r[i] in root.query == "" ? Apps.recents : []: Rectangle {
+            x: 29px + i * (346px + 9px);
+            y: 406px;
+            width: 346px;
+            height: 50px;
+            border-radius: 8px;
+            background: recent-touch.has-hover ? Theme.tile-hover : Theme.tile;
+
+            Image {
+                x: 14px;
+                source: r.icon;
+                colorize: r.tint;
+                width: 19px;
+                height: 19px;
+            }
+            VerticalLayout {
+                x: 44px;
+                alignment: center;
+                spacing: 1px;
+                Text { text: r.name; color: Theme.text; font-family: Theme.sans; font-size: 13.5px; }
+                Text { text: r.path; color: Theme.text-muted; font-family: Theme.mono; font-size: 12px; }
+            }
+            recent-touch := TouchArea { mouse-cursor: pointer; }
+        }
+
+        // --- Rodapé ---
+        Rectangle {
+            x: 29px;
+            y: 480px;
+            width: parent.width - 58px;
+            height: 1px;
+            background: Theme.border;
+        }
+        HorizontalLayout {
+            x: 29px;
+            y: 503px;
+            height: 44px;
+            spacing: 12px;
+            Rectangle {
+                width: 34px;
+                Avatar { width: 34px; height: 34px; }
+            }
+            Text {
+                text: Shell.user-name;
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 15px;
+                vertical-alignment: center;
+            }
+        }
+        HorizontalLayout {
+            x: parent.width - self.preferred-width - 29px;
+            y: 503px;
+            height: 44px;
+            spacing: 10px;
+            IconButton {
+                icon: Icons.lock;
+                clicked => { root.lock(); }
+            }
+            IconButton {
+                icon: Icons.power;
+                icon-color: Theme.danger;
+                clicked => { Shell.power-off(); }
+            }
+        }
+    }
+}

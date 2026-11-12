@@ -1,0 +1,428 @@
+// Configurações: barra lateral de seções + página Aparência funcional.
+// As demais seções mostram só um aviso de "em construção" no protótipo.
+// Tudo que é alterado aqui grava no global `Theme` e muda o sistema ao vivo.
+
+import { Theme, ThemeMode } from "../theme.slint";
+import { Icons } from "../icons.slint";
+import { SectionLabel, IconButton, Toggle, SliderBar } from "../components/widgets.slint";
+import { KalangoLogo, KalangoIcon } from "../brand.slint";
+
+/// Seção da barra lateral.
+struct Section {
+    name: string,
+    icon: image,
+    /// Número no selo âmbar (0 = sem selo).
+    badge: int,
+}
+
+/// Item clicável da barra lateral.
+component SidebarItem inherits Rectangle {
+    in property <Section> section;
+    in property <bool> selected;
+    callback clicked();
+
+    height: 42px;
+    border-radius: Theme.radius-small;
+    background: root.selected ? Theme.accent-soft : touch.has-hover ? Theme.tile : transparent;
+    border-width: root.selected ? 1px : 0;
+    border-color: Theme.accent.with-alpha(0.45);
+
+    Image {
+        x: 14px;
+        source: root.section.icon;
+        colorize: Theme.text;
+        width: 18px;
+        height: 18px;
+    }
+    Text {
+        x: 44px;
+        text: root.section.name;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 14.5px;
+        font-weight: root.selected ? 600 : 400;
+        vertical-alignment: center;
+    }
+    if root.section.badge > 0: Rectangle {
+        x: parent.width - self.width - 12px;
+        width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        background: Theme.warning;
+        Text {
+            text: root.section.badge;
+            color: Theme.on-accent;
+            font-family: Theme.sans;
+            font-size: 12px;
+            font-weight: 700;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Card de prévia de tema (220×158) com miniatura de janela, destaque e dock.
+component ThemeCard inherits Rectangle {
+    in property <string> label;
+    in property <ThemeMode> mode;
+    /// Cores da miniatura (fixas por modo, independem do tema atual).
+    in property <color> preview-bg;
+    in property <color> preview-window;
+    in property <color> preview-dock;
+    in property <color> preview-accent;
+    callback clicked();
+
+    property <bool> selected: Theme.mode == root.mode;
+
+    width: 220px;
+    height: 158px;
+    border-radius: Theme.radius;
+    background: Theme.tile;
+    border-width: root.selected ? 1.5px : 1px;
+    border-color: root.selected ? Theme.accent : Theme.border;
+    drop-shadow-blur: root.selected ? 14px : 0;
+    drop-shadow-color: Theme.accent.with-alpha(0.25);
+
+    Rectangle {
+        x: 10px;
+        y: 10px;
+        width: parent.width - 20px;
+        height: 110px;
+        border-radius: Theme.radius-small;
+        background: root.preview-bg;
+
+        Rectangle {
+            x: 14px;
+            y: 14px;
+            width: 112px;
+            height: 65px;
+            border-radius: 4px;
+            background: root.preview-window;
+            border-width: 1px;
+            border-color: root.preview-dock;
+        }
+        Rectangle {
+            x: parent.width - 44px;
+            y: 22px;
+            width: 30px;
+            height: 30px;
+            border-radius: 15px;
+            background: root.preview-accent;
+        }
+        Rectangle {
+            y: parent.height - 18px;
+            width: 60px;
+            height: 9px;
+            border-radius: 4.5px;
+            background: root.preview-dock;
+        }
+    }
+
+    Text {
+        x: 10px;
+        y: 128px;
+        text: root.label;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 14.5px;
+        font-weight: 600;
+    }
+
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Linha do painel de opções: título + descrição à esquerda, controle à direita.
+component OptionRow inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    /// Desenha a linha divisória no topo (todas menos a primeira).
+    in property <bool> divider: true;
+
+    height: 67px;
+
+    if root.divider: Rectangle {
+        y: 0;
+        height: 1px;
+        background: Theme.border;
+    }
+    VerticalLayout {
+        x: 20px;
+        alignment: center;
+        spacing: 3px;
+        Text { text: root.title; color: Theme.text; font-family: Theme.sans; font-size: 14.5px; font-weight: 600; }
+        Text { text: root.subtitle; color: Theme.text-muted; font-family: Theme.sans; font-size: 13.5px; }
+    }
+    // Controle (Toggle/Slider) vem como filho e se alinha pela direita.
+    @children
+}
+
+/// Página Aparência.
+component AppearancePage inherits Rectangle {
+    // --- Tema ---
+    SectionLabel { x: 0; y: 113px; text: "TEMA"; }
+    HorizontalLayout {
+        x: 0;
+        y: 135px;
+        spacing: 17px;
+        ThemeCard {
+            label: "Escuro (vidro)";
+            mode: ThemeMode.glass;
+            preview-bg: #07090d;
+            preview-window: #17222b;
+            preview-dock: #2a3540;
+            preview-accent: Theme.accents[Theme.accent-index];
+            clicked => { Theme.mode = ThemeMode.glass; }
+        }
+        ThemeCard {
+            label: "Escuro sólido (OLED)";
+            mode: ThemeMode.oled;
+            preview-bg: #000000;
+            preview-window: #0e0e0e;
+            preview-dock: #262626;
+            preview-accent: Theme.accents[Theme.accent-index];
+            clicked => { Theme.mode = ThemeMode.oled; }
+        }
+        ThemeCard {
+            label: "Claro";
+            mode: ThemeMode.light;
+            preview-bg: #eef1f4;
+            preview-window: #ffffff;
+            preview-dock: #d4dbe2;
+            preview-accent: Theme.accents[Theme.accent-index].darker(0.45);
+            clicked => { Theme.mode = ThemeMode.light; }
+        }
+    }
+
+    // --- Cor de destaque ---
+    SectionLabel { x: 0; y: 333px; text: "COR DE DESTAQUE"; }
+    for c[i] in Theme.accents: Rectangle {
+        x: i * (44px + 14px);
+        y: 355px;
+        width: 44px;
+        height: 44px;
+        border-radius: 22px;
+        // Selecionado: anel claro com uma folga até o círculo de cor.
+        border-width: Theme.accent-index == i ? 2px : 0;
+        border-color: Theme.text;
+
+        Rectangle {
+            width: Theme.accent-index == i ? 34px : 44px;
+            height: self.width;
+            border-radius: self.width / 2;
+            background: c;
+            animate width { duration: Theme.anim; }
+        }
+        TouchArea {
+            mouse-cursor: pointer;
+            clicked => { Theme.accent-index = i; }
+        }
+    }
+
+    // --- Painel de opções ---
+    Rectangle {
+        x: 0;
+        y: 432px;
+        width: min(721px, parent.width);
+        height: 4 * 67px;
+        border-radius: Theme.radius;
+        background: Theme.panel;
+        border-width: 1px;
+        border-color: Theme.border;
+
+        VerticalLayout {
+            OptionRow {
+                title: "Transparência das janelas";
+                subtitle: "Quanto do fundo aparece através do vidro";
+                divider: false;
+                SliderBar {
+                    x: parent.width - self.width - 72px;
+                    value <=> Theme.transparency;
+                }
+                Text {
+                    x: parent.width - self.width - 20px;
+                    width: 42px;
+                    text: round(Theme.transparency * 100) + "%";
+                    color: Theme.text;
+                    font-family: Theme.mono;
+                    font-size: 13px;
+                    horizontal-alignment: right;
+                    vertical-alignment: center;
+                }
+            }
+            OptionRow {
+                title: "Desfoque do fundo";
+                subtitle: "Desligar economiza GPU em hardware mais antigo";
+                Toggle {
+                    x: parent.width - self.width - 20px;
+                    checked <=> Theme.blur;
+                }
+            }
+            OptionRow {
+                title: "Dock sempre visível";
+                subtitle: "Desligado: a dock some quando uma janela encosta nela";
+                Toggle {
+                    x: parent.width - self.width - 20px;
+                    checked <=> Theme.dock-always-visible;
+                }
+            }
+            OptionRow {
+                title: "Reduzir animações";
+                subtitle: "Transições instantâneas";
+                Toggle {
+                    x: parent.width - self.width - 20px;
+                    checked <=> Theme.reduce-motion;
+                }
+            }
+        }
+    }
+}
+
+export component SettingsScreen inherits Rectangle {
+    callback close();
+
+    property <[Section]> sections: [
+        { name: "Rede e Wi-Fi", icon: Icons.wifi },
+        { name: "Bluetooth", icon: Icons.bluetooth },
+        { name: "Aparência", icon: Icons.contrast },
+        { name: "Monitores", icon: Icons.monitor },
+        { name: "Som", icon: Icons.volume },
+        { name: "Energia", icon: Icons.battery },
+        { name: "Usuários", icon: Icons.user },
+        { name: "Atualizações", icon: Icons.download, badge: 3 },
+        { name: "Sobre o sistema", icon: Icons.info },
+    ];
+    property <int> current: 2;
+
+    // --- Barra lateral ---
+    Rectangle {
+        x: 0;
+        width: 280px;
+        background: Theme.panel;
+
+        Rectangle {
+            x: parent.width - 1px;
+            width: 1px;
+            background: Theme.border;
+        }
+
+        Text {
+            x: 24px;
+            y: 22px;
+            text: "Configurações";
+            color: Theme.text;
+            font-family: Theme.sans;
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        // Busca (visual)
+        Rectangle {
+            x: 14px;
+            y: 65px;
+            width: parent.width - 28px;
+            height: 42px;
+            border-radius: Theme.radius-small;
+            background: Theme.tile;
+            border-width: 1px;
+            border-color: Theme.border;
+            Image {
+                x: 14px;
+                source: Icons.search;
+                colorize: Theme.text-muted;
+                width: 16px;
+                height: 16px;
+            }
+            if sidebar-search.text == "": Text {
+                x: 39px;
+                text: "Buscar";
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 14.5px;
+                vertical-alignment: center;
+            }
+            sidebar-search := TextInput {
+                x: 39px;
+                width: parent.width - 50px;
+                height: parent.height;
+                vertical-alignment: center;
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 14.5px;
+            }
+        }
+
+        VerticalLayout {
+            x: 14px;
+            y: 120px;
+            width: parent.width - 28px;
+            alignment: start;
+            for s[i] in root.sections: SidebarItem {
+                section: s;
+                selected: root.current == i;
+                clicked => { root.current = i; }
+            }
+        }
+    }
+
+    // --- Conteúdo ---
+    Rectangle {
+        x: 280px + 48px;
+        width: root.width - 280px - 96px;
+
+        Text {
+            y: 34px;
+            x: 0;
+            text: root.sections[root.current].name;
+            color: Theme.text;
+            font-family: Theme.sans;
+            font-size: 30px;
+            font-weight: 600;
+        }
+
+        if root.current == 2: AppearancePage {
+            x: 0;
+            y: 0;
+        }
+
+        // Sobre o sistema: marca e versão.
+        if root.current == 8: VerticalLayout {
+            x: 0;
+            y: 110px;
+            spacing: 14px;
+            alignment: start;
+            HorizontalLayout {
+                spacing: 18px;
+                alignment: start;
+                KalangoIcon { width: 72px; height: 72px; }
+                KalangoLogo { height: 72px; }
+            }
+            Text { text: "Kalango OS 0.1 — protótipo do shell"; color: Theme.text; font-size: 15px; }
+            Text { text: "Base Debian 13 \"trixie\" · Sessão Wayland · Rust + Slint"; color: Theme.text-muted; font-size: 13.5px; }
+        }
+
+        if root.current != 2 && root.current != 8: Text {
+            x: 0;
+            y: 100px;
+            text: "Esta seção ainda não foi feita no protótipo.";
+            color: Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 14.5px;
+        }
+    }
+
+    IconButton {
+        x: root.width - self.width - 34px;
+        y: 37px;
+        width: 36px;
+        height: 36px;
+        icon: Icons.x;
+        icon-size: 16px;
+        clicked => { root.close(); }
+    }
+}

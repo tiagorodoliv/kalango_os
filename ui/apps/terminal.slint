@@ -1,0 +1,110 @@
+// Mock do app Terminal com a saída do fastfetch exibindo a marca do Kalango.
+
+import { Theme } from "../theme.slint";
+import { AppFrame, FrameButtons } from "../components/app_frame.slint";
+import { KalangoIcon } from "../brand.slint";
+
+/// Linha "Rótulo: valor" do fastfetch (rótulo em destaque).
+component InfoLine inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> value;
+    spacing: 0;
+    alignment: start;
+    Text { text: root.label + ": "; color: Theme.accent; font-family: Theme.mono; font-size: 13px; }
+    Text { text: root.value; color: Theme.text; font-family: Theme.mono; font-size: 13px; }
+}
+
+/// Prompt "usuario@kalango ~ $ " em verde.
+component Prompt inherits Text {
+    text: "usuario@kalango ~ $ ";
+    color: Theme.success;
+    font-family: Theme.mono;
+    font-size: 13px;
+}
+
+export component TerminalWindow inherits AppFrame {
+    title-height: 41px;
+    buttons: FrameButtons.colored;
+
+    Text {
+        x: 15px;
+        y: 0;
+        height: 41px;
+        text: "terminal — ~";
+        color: Theme.text;
+        font-family: Theme.mono;
+        font-size: 13px;
+        font-weight: 700;
+        vertical-alignment: center;
+    }
+
+    // Corpo mais escuro, com brilho do destaque no canto.
+    Rectangle {
+        x: 0;
+        y: 41px;
+        width: root.width;
+        height: root.height - 41px;
+        background: Theme.is-light ? #f6f8fa : #05080bd9;
+
+        Rectangle {
+            x: parent.width * 0.45;
+            width: parent.width * 0.6;
+            height: parent.height;
+            background: @radial-gradient(circle, Theme.accent.with-alpha(0.08) 0%, transparent 60%);
+        }
+
+        // "Logo" do fastfetch: o ícone do Kalango.
+        KalangoIcon {
+            x: 34px;
+            y: 40px;
+            width: 104px;
+            height: 104px;
+        }
+
+        VerticalLayout {
+            x: 169px;
+            y: 22px;
+            spacing: 5px;
+            alignment: start;
+
+            HorizontalLayout {
+                alignment: start;
+                Prompt { }
+                Text { text: "fastfetch"; color: Theme.text; font-family: Theme.mono; font-size: 13px; }
+            }
+            Text { text: "usuario@kalango"; color: Theme.accent; font-family: Theme.mono; font-size: 13px; font-weight: 700; }
+            Text { text: "---------------"; color: Theme.text-muted; font-family: Theme.mono; font-size: 13px; }
+            InfoLine { label: "SO"; value: "Kalango OS 0.1"; }
+            InfoLine { label: "Kernel"; value: "Linux 6.12"; }
+            InfoLine { label: "Base"; value: "Debian 13 \"trixie\""; }
+            InfoLine { label: "Sessão"; value: "Wayland"; }
+            InfoLine { label: "Shell"; value: "Kalango Shell"; }
+            InfoLine { label: "Terminal"; value: "kalango-term"; }
+
+            // Paleta de cores do terminal
+            HorizontalLayout {
+                padding-top: 6px;
+                padding-bottom: 6px;
+                spacing: 4px;
+                alignment: start;
+                for c in [#f07178, #5fd38d, #e8b04b, #7ea6f7, #a78bfa, #3dd6f5]: Rectangle {
+                    width: 22px;
+                    height: 12px;
+                    background: c;
+                }
+            }
+
+            HorizontalLayout {
+                alignment: start;
+                Prompt { }
+                // Cursor piscando (parado quando "Reduzir animações" está ligado).
+                Rectangle {
+                    width: 8px;
+                    height: 16px;
+                    background: Theme.accent;
+                    opacity: Theme.reduce-motion || Math.mod(animation-tick() / 1ms, 1000) < 550 ? 1 : 0;
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,194 @@
+// Mock do app Arquivos (janela da área de trabalho no layout).
+// Só visual: a navegação lateral troca o item selecionado, nada mais.
+
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+import { AppFrame, FrameButtons } from "../components/app_frame.slint";
+import { SectionLabel } from "../components/widgets.slint";
+
+/// Pasta preenchida (o ícone de traço fica fraco demais neste tamanho).
+component FolderGlyph inherits Path {
+    width: 52px;
+    height: 44px;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 52;
+    viewbox-height: 44;
+    fill: Theme.accent.darker(0.35);
+    commands: "M4 2 L19 2 L24 7 L48 7 Q52 7 52 11 L52 40 Q52 44 48 44 L4 44 Q0 44 0 40 L0 6 Q0 2 4 2 Z";
+}
+
+/// Documento preenchido com linhas (README.md).
+component DocGlyph inherits Rectangle {
+    width: 52px;
+    height: 70px;
+    Path {
+        width: 52px;
+        height: 70px;
+        viewbox-x: 0;
+        viewbox-y: 0;
+        viewbox-width: 52;
+        viewbox-height: 70;
+        fill: Theme.is-light ? #c3ccd5 : #2b333c;
+        commands: "M4 0 L38 0 L52 14 L52 66 Q52 70 48 70 L4 70 Q0 70 0 66 L0 4 Q0 0 4 0 Z";
+    }
+    for w[i] in [24px, 24px, 16px]: Rectangle {
+        x: 13px;
+        y: 34px + i * 8px;
+        width: w;
+        height: 2.5px;
+        border-radius: 1px;
+        background: Theme.text-muted;
+    }
+}
+
+/// Item da barra lateral.
+component SideItem inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected;
+    callback clicked();
+
+    height: 32px;
+    border-radius: 7px;
+    background: root.selected ? Theme.accent-soft : touch.has-hover ? Theme.tile : transparent;
+
+    Text {
+        x: 14px;
+        text: root.label;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 14px;
+        font-weight: root.selected ? 600 : 400;
+        vertical-alignment: center;
+    }
+    touch := TouchArea { clicked => { root.clicked(); } }
+}
+
+/// Botão voltar/avançar da barra de título.
+component NavButton inherits Rectangle {
+    in property <image> icon;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: touch.has-hover ? Theme.tile-hover : Theme.tile;
+    Image { source: root.icon; colorize: Theme.text; width: 16px; height: 16px; }
+    touch := TouchArea { }
+}
+
+export component FilesWindow inherits AppFrame {
+    property <string> place: "Projetos";
+
+    title-height: 45px;
+    buttons: FrameButtons.neutral;
+
+    // --- Barra de título: navegação + caminho ---
+    HorizontalLayout {
+        x: 14px;
+        y: 0;
+        width: root.width - 14px - 74px;
+        height: 45px;
+        spacing: 7px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+
+        NavButton { icon: Icons.chevron-left; }
+        NavButton { icon: Icons.chevron-right; }
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 6px;
+            background: Theme.sunken;
+            Text {
+                x: 10px;
+                text: root.place == "Pasta pessoal" ? "~" : "~/" + root.place;
+                color: Theme.text;
+                font-family: Theme.mono;
+                font-size: 13px;
+                vertical-alignment: center;
+            }
+        }
+    }
+
+    // --- Barra lateral ---
+    Rectangle {
+        x: 0;
+        y: 45px;
+        width: 190px;
+        height: root.height - 45px;
+
+        Rectangle {
+            x: parent.width - 1px;
+            width: 1px;
+            background: Theme.border;
+        }
+
+        VerticalLayout {
+            padding: 10px;
+            padding-top: 20px;
+            spacing: 0;
+            alignment: start;
+
+            SectionLabel { text: "LOCAIS"; height: 26px; vertical-alignment: top; }
+            for p in ["Pasta pessoal", "Documentos", "Downloads", "Imagens", "Projetos"]: SideItem {
+                label: p;
+                selected: root.place == p;
+                clicked => { root.place = p; }
+            }
+            Rectangle { height: 14px; }
+            SectionLabel { text: "DISPOSITIVOS"; height: 26px; vertical-alignment: top; }
+            for p in ["Sistema", "Pendrive"]: SideItem {
+                label: p;
+                selected: root.place == p;
+                clicked => { root.place = p; }
+            }
+        }
+    }
+
+    // --- Conteúdo: só "Projetos" tem itens no mock ---
+    if root.place == "Projetos": HorizontalLayout {
+        x: 190px + 24px;
+        y: 45px + 22px;
+        height: 110px;
+        spacing: 0;
+        alignment: start;
+
+        for name in ["firmware", "web", "app", "distro"]: VerticalLayout {
+            width: 109px;
+            spacing: 8px;
+            alignment: start;
+            Rectangle { height: 70px; FolderGlyph { y: 18px; } }
+            Text {
+                text: name;
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 14px;
+                horizontal-alignment: center;
+            }
+        }
+        VerticalLayout {
+            width: 109px;
+            spacing: 8px;
+            alignment: start;
+            Rectangle { height: 70px; DocGlyph { } }
+            Text {
+                text: "README.md";
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 14px;
+                horizontal-alignment: center;
+            }
+        }
+    }
+
+    if root.place != "Projetos": Text {
+        x: 190px;
+        y: 45px;
+        width: root.width - 190px;
+        height: root.height - 45px;
+        text: "Pasta vazia";
+        color: Theme.text-muted;
+        font-family: Theme.sans;
+        font-size: 14px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}

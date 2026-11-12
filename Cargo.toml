@@ -16,6 +16,13 @@ slint = { version = "1.8", default-features = false, features = [
     "renderer-software",
 ] }
 
+# Data/hora local (fuso do sistema) para o relógio da barra e do login.
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+[dev-dependencies]
+# Só para examples/snapshot.rs (gera PNG das telas para comparar com o layout).
+png = "0.18"
+
 [build-dependencies]
 # Compila os arquivos .slint em código Rust durante o build.
 slint-build = "1.8"

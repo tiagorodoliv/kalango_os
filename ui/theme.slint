@@ -1,20 +1,90 @@
-// Tokens de design (cores, tamanhos, fontes) usados por toda a interface.
-// Centralizar aqui permite aplicar o layout recebido trocando só estes valores.
+// Tokens de design do Kalango OS (cores, fontes, tamanhos e animação).
+//
+// Tudo aqui é reativo: a tela Configurações → Aparência altera `accent-index`,
+// `mode`, `transparency` e os toggles, e todas as cores derivadas são
+// recalculadas na hora — o sistema inteiro muda ao vivo, sem reiniciar.
+
+/// Modos de tema oferecidos na tela Aparência.
+export enum ThemeMode {
+    /// Escuro com painéis translúcidos ("vidro"). Padrão.
+    glass,
+    /// Escuro sólido, preto puro: economiza energia em telas OLED.
+    oled,
+    /// Claro.
+    light,
+}
 
 export global Theme {
-    // Cores
-    out property <color> background: #0f1115;
-    out property <color> surface: #1a1d24;
-    out property <color> primary: #4f8cff;
-    out property <color> text: #e8eaed;
-    out property <color> text-muted: #9aa0a6;
+    // ---------------------------------------------------------------
+    // Preferências do usuário (alteradas pela tela Aparência)
+    // ---------------------------------------------------------------
 
-    // Espaçamentos e tamanhos
-    out property <length> spacing: 12px;
+    /// Índice em `accents` da cor de destaque escolhida.
+    in-out property <int> accent-index: 0;
+    in-out property <ThemeMode> mode: ThemeMode.glass;
+    /// Transparência das janelas no modo vidro, de 0.0 a 1.0.
+    in-out property <float> transparency: 0.6;
+    /// Desfoque do fundo. Guardado, mas sem efeito visual no protótipo:
+    /// desfoque real depende do compositor Wayland (ainda não escolhido).
+    in-out property <bool> blur: true;
+    in-out property <bool> dock-always-visible: true;
+    in-out property <bool> reduce-motion: false;
+
+    // ---------------------------------------------------------------
+    // Paleta
+    // ---------------------------------------------------------------
+
+    /// As 6 cores de destaque, na mesma ordem dos wallpapers
+    /// (ciano, roxo, azul, verde, âmbar, rosa).
+    out property <[color]> accents: [#3dd6f5, #a78bfa, #7ea6f7, #5fd38d, #e8b04b, #f28b95];
+    out property <[string]> accent-names: ["Ciano", "Roxo", "Azul", "Verde", "Âmbar", "Rosa"];
+
+    out property <bool> is-light: mode == ThemeMode.light;
+    out property <bool> is-oled: mode == ThemeMode.oled;
+
+    /// Destaque efetivo. No tema claro escurece para manter contraste no fundo branco.
+    out property <color> accent: is-light ? accents[accent-index].darker(0.45) : accents[accent-index];
+    /// Texto/ícone desenhado sobre um preenchimento de destaque.
+    out property <color> on-accent: #07090d;
+    /// Destaque suave para fundos de item selecionado.
+    out property <color> accent-soft: accent.with-alpha(0.14);
+    /// Linhas de circuito do fundo.
+    out property <color> circuit: accent.with-alpha(is-light ? 0.30 : 0.35);
+
+    out property <color> background: is-light ? #eef1f4 : is-oled ? #000000 : #07090d;
+    out property <color> grid: is-light ? #0000000a : #ffffff07;
+    /// Cor sólida de painel/janela antes da transparência.
+    out property <color> panel-solid: is-light ? #ffffff : is-oled ? #050505 : #0d1218;
+    /// Painel efetivo: só o modo vidro deixa o fundo aparecer.
+    out property <color> panel: mode == ThemeMode.glass ? panel-solid.with-alpha(1.0 - transparency * 0.15) : panel-solid;
+    /// Barra superior.
+    out property <color> bar: is-light ? #f7f9fb : is-oled ? #000000 : #07090de6;
+    out property <color> tile: is-light ? #e9edf1 : is-oled ? #111111 : #131920;
+    out property <color> tile-hover: is-light ? #dde3e9 : is-oled ? #1c1c1c : #1a222b;
+    /// Fundo de campos de texto e áreas "afundadas" (terminal, caminho).
+    out property <color> sunken: is-light ? #f3f5f8 : is-oled ? #000000 : #070b0f;
+    out property <color> border: is-light ? #d4dbe2 : is-oled ? #1f1f1f : #1e2a33;
+    out property <color> text: is-light ? #12181f : #e6edf3;
+    out property <color> text-muted: is-light ? #5b6773 : #8b98a5;
+    out property <color> danger: #f07178;
+    out property <color> warning: #e8b04b;
+    out property <color> success: #5fd38d;
+
+    // ---------------------------------------------------------------
+    // Tipografia (fontes embutidas em ui/fonts, importadas em app_window.slint)
+    // ---------------------------------------------------------------
+
+    out property <string> sans: "Inter";
+    out property <string> mono: "JetBrains Mono";
+
+    // ---------------------------------------------------------------
+    // Medidas (px lógicos, referência 1440×900)
+    // ---------------------------------------------------------------
+
+    out property <length> bar-height: 35px;
     out property <length> radius: 12px;
-    out property <length> status-bar-height: 40px;
+    out property <length> radius-small: 8px;
 
-    // Tipografia
-    out property <length> font-size: 16px;
-    out property <length> font-size-title: 28px;
+    /// Duração padrão das transições; zero quando "Reduzir animações" está ligado.
+    out property <duration> anim: reduce-motion ? 0ms : 180ms;
 }

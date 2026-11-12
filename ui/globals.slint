@@ -1,0 +1,79 @@
+// Dados globais compartilhados entre UI e Rust.
+//
+// - `Apps`: catálogo dos apps fixados (fonte única para launcher e dock).
+// - `Shell`: estado do sistema preenchido pelo Rust (relógio, CPU, bateria)
+//   e callbacks que a UI chama no Rust (busca, login, desligar).
+
+import { Icons } from "icons.slint";
+
+/// Um app do catálogo.
+export struct AppEntry {
+    /// Identificador estável usado para abrir o app (ex.: "files").
+    id: string,
+    /// Nome exibido em pt-BR.
+    name: string,
+    icon: image,
+    /// Cor do ícone; o fundo do quadradinho usa a mesma cor com alfa baixo.
+    tint: color,
+}
+
+/// Um arquivo recente mostrado no launcher.
+export struct RecentEntry {
+    name: string,
+    path: string,
+    icon: image,
+    tint: color,
+}
+
+export global Apps {
+    /// Os 12 apps fixados do launcher (grade 6×2), na ordem do layout.
+    out property <[AppEntry]> pinned: [
+        { id: "files", name: "Arquivos", icon: Icons.folder, tint: #3dd6f5 },
+        { id: "terminal", name: "Terminal", icon: Icons.terminal, tint: #3dd6f5 },
+        { id: "browser", name: "Navegador", icon: Icons.globe, tint: #7ea6f7 },
+        { id: "code", name: "Código", icon: Icons.code, tint: #a78bfa },
+        { id: "store", name: "Loja", icon: Icons.bag, tint: #e8b04b },
+        { id: "settings", name: "Configurações", icon: Icons.settings, tint: #9aa5b1 },
+        { id: "images", name: "Imagens", icon: Icons.image, tint: #f28b95 },
+        { id: "music", name: "Música", icon: Icons.music, tint: #5fd38d },
+        { id: "documents", name: "Documentos", icon: Icons.file-text, tint: #7ea6f7 },
+        { id: "calendar", name: "Agenda", icon: Icons.calendar, tint: #e8b04b },
+        { id: "monitor", name: "Monitor", icon: Icons.activity, tint: #3dd6f5 },
+        { id: "updates", name: "Atualizações", icon: Icons.download, tint: #9aa5b1 },
+    ];
+
+    /// Apps da dock (antes do separador; Configurações vem depois dele).
+    out property <[AppEntry]> dock: [pinned[0], pinned[1], pinned[2], pinned[3], pinned[4]];
+
+    out property <[RecentEntry]> recents: [
+        { name: "README.md", path: "~/Projetos/distro", icon: Icons.file, tint: #7ea6f7 },
+        { name: "main.cpp", path: "~/Projetos/firmware", icon: Icons.code, tint: #a78bfa },
+    ];
+}
+
+export global Shell {
+    // --- Preenchido pelo Rust (src/clock.rs e src/system.rs) ---
+
+    /// Hora "19:38" (tela de login).
+    in property <string> time: "--:--";
+    /// Data por extenso, "quarta-feira, 11 de novembro" (tela de login).
+    in property <string> long-date: "";
+    /// Data/hora curta da barra superior, "qua 11 nov 19:38".
+    in property <string> bar-date: "";
+    /// Uso de CPU, "12%" ou "--" fora do Linux.
+    in property <string> cpu: "--";
+    /// Carga da bateria, "78%" ou "--" sem bateria.
+    in property <string> battery: "--";
+    /// Nome exibido do usuário.
+    in property <string> user-name: "Usuário";
+
+    // --- Implementado no Rust ---
+
+    /// Filtra o catálogo pela busca (sem diferenciar maiúsculas nem acentos).
+    pure callback filter-apps(string) -> [AppEntry];
+    /// Valida a senha. Protótipo: aceita qualquer senha não vazia
+    /// (no sistema real: PAM via greetd).
+    callback try-login(string) -> bool;
+    /// Desliga. Protótipo: encerra o programa (no sistema real: logind).
+    callback power-off();
+}

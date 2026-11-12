@@ -1,0 +1,105 @@
+// Fundo das telas: cor base + grade sutil de 48px + linhas de circuito.
+//
+// As linhas foram traçadas sobre as telas de referência em um viewbox de
+// 2000×1250 (proporção 16:10 do layout), então escalam junto com a janela.
+
+import { Theme } from "../theme.slint";
+import { Brand } from "../brand.slint";
+
+/// Qual desenho de circuito mostrar.
+export enum BackdropVariant {
+    /// Tela de login: circuitos simétricos e hexágono central.
+    login,
+    /// Área de trabalho e launcher.
+    desktop,
+    /// Configurações: só um brilho difuso, sem circuitos.
+    plain,
+}
+
+/// Path no viewbox 2000×1250 com o traço padrão dos circuitos.
+/// Cada nó (círculo vazado de raio 10) é feito com dois arcos "A".
+component CircuitLines inherits Path {
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 2000;
+    viewbox-height: 1250;
+    fill: transparent;
+    stroke: Theme.circuit;
+    stroke-width: 1.5px;
+}
+
+export component Backdrop inherits Rectangle {
+    in property <BackdropVariant> variant: BackdropVariant.desktop;
+    /// Mostra o "bonequinho" grande dentro do hexágono (tela do launcher).
+    in property <bool> show-mark: false;
+
+    background: Theme.background;
+    clip: true;
+
+    // Grade de 48px
+    for i in 64: Rectangle {
+        x: i * 48px;
+        y: 0;
+        width: 1px;
+        height: root.height;
+        background: Theme.grid;
+    }
+    for i in 40: Rectangle {
+        x: 0;
+        y: i * 48px;
+        width: root.width;
+        height: 1px;
+        background: Theme.grid;
+    }
+
+    // Brilho difuso na cor de destaque (centro no login, à direita nas demais).
+    Rectangle {
+        x: root.variant == BackdropVariant.login ? root.width * 0.2 : root.width * 0.55;
+        y: root.variant == BackdropVariant.login ? root.height * 0.25 : root.height * 0.1;
+        width: root.width * 0.6;
+        height: root.height * 0.7;
+        background: @radial-gradient(circle, Theme.accent.with-alpha(Theme.is-light ? 0.10 : 0.07) 0%, transparent 65%);
+    }
+
+    if root.variant == BackdropVariant.login: CircuitLines {
+        width: root.width;
+        height: root.height;
+        commands: "M0 527 L195 527 L277 444 L490 444 M510 444 A10 10 0 1 0 490 444 A10 10 0 1 0 510 444 "
+            + "M0 721 L361 721 L444 805 L657 805 M677 805 A10 10 0 1 0 657 805 A10 10 0 1 0 677 805 "
+            + "M0 1055 L407 1055 M427 1055 A10 10 0 1 0 407 1055 A10 10 0 1 0 427 1055 "
+            + "M2000 527 L1805 527 L1722 444 L1510 444 M1510 444 A10 10 0 1 0 1490 444 A10 10 0 1 0 1510 444 "
+            + "M2000 721 L1638 721 L1555 805 L1343 805 M1343 805 A10 10 0 1 0 1323 805 A10 10 0 1 0 1343 805 "
+            + "M2000 1055 L1593 1055 M1593 1055 A10 10 0 1 0 1573 1055 A10 10 0 1 0 1593 1055 "
+            + "M1000 458 L1397 687 L1397 1147 L1000 1376 L603 1147 L603 687 Z";
+    }
+
+    if root.variant == BackdropVariant.desktop: CircuitLines {
+        width: root.width;
+        height: root.height;
+        commands: "M0 222 L250 222 L332 305 L480 305 "
+            + "M2000 277 L1680 277 L1598 360 L1371 360 M1371 360 A10 10 0 1 0 1351 360 A10 10 0 1 0 1371 360 "
+            + "M1570 333 L1845 492 L1845 812 L1570 971 L1295 812 L1295 492 Z "
+            + "M2000 471 L1875 471 M2000 888 L1875 888 "
+            + "M0 1138 L305 1138 L388 1055 L629 1055 M649 1055 A10 10 0 1 0 629 1055 A10 10 0 1 0 649 1055 "
+            + "M820 1125 L833 1111 L1045 1111 M1065 1111 A10 10 0 1 0 1045 1111 A10 10 0 1 0 1065 1111 "
+            + "M2000 1069 L1805 1069 L1722 1152 L1398 1152 M1398 1152 A10 10 0 1 0 1378 1152 A10 10 0 1 0 1398 1152 "
+            + "M777 1225 L777 1250";
+    }
+
+    // Hexágono interno + ícone grande atrás do launcher (lado direito do layout).
+    if root.show-mark && root.variant == BackdropVariant.desktop: CircuitLines {
+        width: root.width;
+        height: root.height;
+        stroke-width: 1.5px;
+        commands: "M1570 416 L1773 533 L1773 771 L1570 888 L1367 771 L1367 533 Z";
+    }
+    // Ícone do Kalango esmaecido dentro do hexágono.
+    if root.show-mark && root.variant == BackdropVariant.desktop: Image {
+        source: Brand.icon;
+        width: root.width * 0.12;
+        height: self.width;
+        x: root.width * (1570 / 2000) - self.width / 2;
+        y: root.height * (652 / 1250) - self.height / 2;
+        opacity: 0.35;
+    }
+}

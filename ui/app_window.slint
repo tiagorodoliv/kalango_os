@@ -1,27 +1,248 @@
-// Janela raiz da interface. Compõe barra de status + tela atual.
-// Propriedades marcadas com `in` são preenchidas pelo código Rust (src/).
+// Janela raiz do protótipo do Kalango OS.
+//
+// Fluxo navegável: login → área de trabalho (janelas Arquivos/Terminal,
+// dock, barra) → menu de apps (overlay) → Configurações → Aparência.
+// O estado de navegação mora aqui; tema e dados do sistema ficam nos
+// globais `Theme` e `Shell`, que o Rust também acessa.
 
-import { Theme } from "theme.slint";
-import { StatusBar } from "components/status_bar.slint";
-import { HomeScreen } from "screens/home_screen.slint";
+// Fontes embutidas no binário: o visual não depende do que está instalado.
+import "fonts/Inter-Regular.ttf";
+import "fonts/Inter-Medium.ttf";
+import "fonts/Inter-SemiBold.ttf";
+import "fonts/Inter-Bold.ttf";
+import "fonts/JetBrainsMono-Regular.ttf";
+import "fonts/JetBrainsMono-Medium.ttf";
+import "fonts/JetBrainsMono-Bold.ttf";
+
+import { Theme, ThemeMode } from "theme.slint";
+import { Apps, AppEntry, Shell } from "globals.slint";
+import { Backdrop, BackdropVariant } from "components/backdrop.slint";
+import { TopBar } from "components/top_bar.slint";
+import { Dock } from "components/dock.slint";
+import { FilesWindow } from "apps/files.slint";
+import { TerminalWindow } from "apps/terminal.slint";
+import { LoginScreen } from "screens/login.slint";
+import { Launcher } from "screens/launcher.slint";
+import { SettingsScreen } from "screens/settings.slint";
+
+// Reexportados para o Rust enxergar os globais e tipos.
+export { Theme, ThemeMode, Shell, Apps, AppEntry }
+
+/// Telas de nível superior.
+export enum Screen { login, desktop, settings }
 
 export component AppWindow inherits Window {
-    title: "Linux OS";
-    // Resolução de referência para desenvolvimento; no dispositivo (feature kms)
+    title: "Kalango OS";
+    icon: @image-url("brand/kalango-icon.png");
+    // Referência do layout em px lógicos; no dispositivo (feature kms)
     // a janela ocupa a tela inteira automaticamente.
-    preferred-width: 1280px;
-    preferred-height: 800px;
+    preferred-width: 1440px;
+    preferred-height: 900px;
+    min-width: 1100px;
+    min-height: 720px;
     background: Theme.background;
+    default-font-family: Theme.sans;
 
-    // Hora exibida na barra de status (atualizada por src/clock.rs).
-    in property <string> clock-text: "--:--";
+    in-out property <Screen> screen: Screen.login;
+    in-out property <bool> launcher-open: false;
+    property <bool> files-open: true;
+    property <bool> terminal-open: true;
+    /// App com a janela em primeiro plano ("files" ou "terminal").
+    property <string> focused-app: "terminal";
+    /// Aviso temporário no rodapé (ex.: app ainda não existe no protótipo).
+    property <string> toast;
 
-    VerticalLayout {
-        StatusBar {
-            clock: root.clock-text;
+    /// Abre um app pelo id do catálogo.
+    function launch(id: string) {
+        root.launcher-open = false;
+        if (id == "files") {
+            root.files-open = true;
+            root.focused-app = "files";
+            root.screen = Screen.desktop;
+        } else if (id == "terminal") {
+            root.terminal-open = true;
+            root.focused-app = "terminal";
+            root.screen = Screen.desktop;
+        } else if (id == "settings") {
+            root.screen = Screen.settings;
+        } else {
+            root.show-toast("Este app ainda não existe no protótipo");
         }
-        HomeScreen {
-            vertical-stretch: 1;
+        keys.focus();
+    }
+
+    function show-toast(msg: string) {
+        root.toast = msg;
+        toast-timer.running = false;
+        toast-timer.running = true;
+    }
+
+    function toggle-launcher() {
+        if (root.screen != Screen.login) {
+            root.launcher-open = !root.launcher-open;
+            if (!root.launcher-open) {
+                keys.focus();
+            }
+        }
+    }
+
+    function lock() {
+        root.launcher-open = false;
+        root.screen = Screen.login;
+    }
+
+    toast-timer := Timer {
+        interval: 2.5s;
+        running: false;
+        triggered => {
+            root.toast = "";
+            self.running = false;
+        }
+    }
+
+    // Atalhos globais: teclas não tratadas pelos campos de texto chegam aqui.
+    keys := FocusScope {
+        key-pressed(event) => {
+            // Super no Linux. No macOS o Slint troca Cmd↔Ctrl, então a tecla
+            // ⌃ Control chega como Meta e também abre o launcher.
+            if (event.text == Key.Meta) {
+                root.toggle-launcher();
+                return accept;
+            }
+            if (event.text == Key.Escape) {
+                if (root.launcher-open) {
+                    root.launcher-open = false;
+                    keys.focus();
+                    return accept;
+                }
+                if (root.screen == Screen.settings) {
+                    root.screen = Screen.desktop;
+                    return accept;
+                }
+            }
+            return reject;
+        }
+
+        // ------------------------------------------------------------------
+        // Login
+        // ------------------------------------------------------------------
+        if root.screen == Screen.login: LoginScreen {
+            init => { self.focus-password(); }
+            logged-in => {
+                root.screen = Screen.desktop;
+                keys.focus();
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Área de trabalho (também fica por trás do launcher)
+        // ------------------------------------------------------------------
+        if root.screen == Screen.desktop: Rectangle {
+            Backdrop {
+                variant: BackdropVariant.desktop;
+                show-mark: root.launcher-open;
+            }
+
+            if root.files-open && !root.launcher-open: FilesWindow {
+                x: 110px;
+                y: 96px;
+                width: 761px;
+                height: 502px;
+                z: root.focused-app == "files" ? 2 : 1;
+                focused: root.focused-app == "files";
+                activated => { root.focused-app = "files"; }
+                close => { root.files-open = false; root.focused-app = "terminal"; }
+            }
+
+            if root.terminal-open && !root.launcher-open: TerminalWindow {
+                x: 650px;
+                y: 300px;
+                width: 641px;
+                height: 401px;
+                z: root.focused-app == "terminal" ? 2 : 1;
+                focused: root.focused-app == "terminal";
+                activated => { root.focused-app = "terminal"; }
+                close => { root.terminal-open = false; root.focused-app = "files"; }
+            }
+
+            // Dock: com "Dock sempre visível" desligado, só aparece quando o
+            // mouse chega na faixa inferior da tela.
+            if !root.launcher-open: dock-zone := TouchArea {
+                y: parent.height - 110px;
+                height: 110px;
+                z: 3;
+                property <bool> show: Theme.dock-always-visible || self.has-hover;
+
+                Dock {
+                    y: show ? parent.height - self.height - 18px : parent.height + 4px;
+                    files-open: root.files-open;
+                    terminal-open: root.terminal-open;
+                    focused-app: root.focused-app;
+                    launch(id) => { root.launch(id); }
+                    animate y { duration: Theme.anim; easing: ease-out; }
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Configurações
+        // ------------------------------------------------------------------
+        if root.screen == Screen.settings: Rectangle {
+            Backdrop { variant: BackdropVariant.plain; }
+            SettingsScreen {
+                y: Theme.bar-height;
+                height: parent.height - Theme.bar-height;
+                close => {
+                    root.screen = Screen.desktop;
+                    keys.focus();
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Barra superior (todas as telas menos o login)
+        // ------------------------------------------------------------------
+        if root.screen != Screen.login: TopBar {
+            y: 0;
+            width: parent.width;
+            z: 5;
+            launcher-open: root.launcher-open;
+            compact: root.launcher-open || root.screen == Screen.settings;
+            pill-clicked => { root.toggle-launcher(); }
+            power-clicked => { Shell.power-off(); }
+        }
+
+        // ------------------------------------------------------------------
+        // Launcher (overlay, abaixo da barra)
+        // ------------------------------------------------------------------
+        if root.launcher-open: Launcher {
+            y: Theme.bar-height;
+            height: parent.height - Theme.bar-height;
+            z: 4;
+            init => { self.reset(); }
+            launch(id) => { root.launch(id); }
+            close => {
+                root.launcher-open = false;
+                keys.focus();
+            }
+            lock => { root.lock(); }
+        }
+
+        // Aviso temporário
+        if root.toast != "": Rectangle {
+            y: parent.height - 140px;
+            width: toast-text.preferred-width + 32px;
+            height: 38px;
+            z: 6;
+            border-radius: 19px;
+            background: Theme.tile;
+            border-width: 1px;
+            border-color: Theme.accent.with-alpha(0.5);
+            toast-text := Text {
+                text: root.toast;
+                color: Theme.text;
+                font-size: 13.5px;
+            }
         }
     }
 }

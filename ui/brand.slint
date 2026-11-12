@@ -1,0 +1,37 @@
+// Identidade visual do Kalango: logotipo e ícone do app.
+//
+// Arquivos em ui/brand/ (derivados de assets/, que guarda os originais):
+// - kalango-logo.png: logotipo com letras brancas (fundo escuro), 1086×362,
+//   reduzido de assets/logo/Kalango_Logo_transparente.png;
+// - kalango-logo-claro.png: mesmo logotipo com as letras em azul-marinho (fundo
+//   claro), como na prancha assets/layout/logotipo.png;
+// - kalango-icon.png: ícone "g"-calango (barra, dock, favicon), recortado da prancha.
+//
+// Por que PNG e não o SVG de assets/logo: aquele vetor foi gerado por
+// rastreamento automático de bitmap e as letras viraram milhares de polígonos
+// minúsculos, que aparecem granulados em tamanho pequeno. Quando houver um
+// vetor desenhado à mão, basta trocar os caminhos abaixo para .svg.
+
+import { Theme } from "theme.slint";
+
+export global Brand {
+    out property <image> logo-dark: @image-url("brand/kalango-logo.png");
+    out property <image> logo-light: @image-url("brand/kalango-logo-claro.png");
+    out property <image> icon: @image-url("brand/kalango-icon.png");
+}
+
+/// Logotipo "Kalango" na variante certa para o tema atual.
+/// Defina só a altura: a largura segue a proporção do arquivo (3:1).
+export component KalangoLogo inherits Image {
+    source: Theme.is-light ? Brand.logo-light : Brand.logo-dark;
+    image-fit: contain;
+    width: self.height * 3;
+}
+
+/// Ícone do app (quadrado azul com o "g"-calango).
+export component KalangoIcon inherits Image {
+    source: Brand.icon;
+    width: 24px;
+    height: 24px;
+    image-fit: contain;
+}

@@ -1,0 +1,136 @@
+// Barra superior da área de trabalho: pílula "Kalango" (abre o launcher),
+// indicador de workspaces, data/hora central e indicadores de sistema.
+
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+import { Shell } from "../globals.slint";
+import { KalangoIcon } from "../brand.slint";
+
+/// Ícone de status centralizado verticalmente na barra.
+component BarIcon inherits Rectangle {
+    in property <image> icon;
+    in property <length> size: 15px;
+    width: root.size;
+    Image {
+        source: root.icon;
+        colorize: Theme.text;
+        width: root.size;
+        height: root.size;
+    }
+}
+
+export component TopBar inherits Rectangle {
+    /// Launcher aberto: a pílula fica preenchida com o destaque.
+    in property <bool> launcher-open: false;
+    /// Esconde workspaces e indicadores (como no layout do launcher/configurações).
+    in property <bool> compact: false;
+    callback pill-clicked();
+    callback power-clicked();
+
+    height: Theme.bar-height;
+    background: Theme.bar;
+
+    // Linha inferior
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.border;
+    }
+
+    // --- Esquerda: pílula + workspaces ---
+    pill := Rectangle {
+        x: 12px;
+        y: 3px;
+        width: pill-row.preferred-width + 22px;
+        height: parent.height - 7px;
+        border-radius: 7px;
+        background: root.launcher-open ? Theme.accent : pill-touch.has-hover ? Theme.tile-hover : Theme.tile;
+        border-width: 1px;
+        border-color: root.launcher-open ? Theme.accent : Theme.accent.with-alpha(0.35);
+        animate background { duration: Theme.anim; }
+
+        pill-row := HorizontalLayout {
+            padding-left: 11px;
+            padding-right: 11px;
+            spacing: 7px;
+            alignment: center;
+            Rectangle {
+                width: 18px;
+                KalangoIcon { width: 18px; height: 18px; }
+            }
+            Text {
+                text: "Kalango";
+                vertical-alignment: center;
+                color: root.launcher-open ? Theme.on-accent : Theme.text;
+                font-family: Theme.sans;
+                font-size: 13px;
+                font-weight: 600;
+            }
+        }
+
+        pill-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { root.pill-clicked(); }
+        }
+    }
+
+    // Workspaces: atual = barra em destaque, demais = pontos.
+    if !root.compact: HorizontalLayout {
+        x: pill.x + pill.width + 14px;
+        y: (parent.height - 4px) / 2;
+        height: 4px;
+        spacing: 5px;
+        Rectangle { width: 22px; height: 4px; border-radius: 2px; background: Theme.accent; }
+        Rectangle { width: 5px; height: 4px; border-radius: 2px; background: Theme.text-muted.with-alpha(0.6); }
+        Rectangle { width: 5px; height: 4px; border-radius: 2px; background: Theme.text-muted.with-alpha(0.6); }
+    }
+
+    // --- Centro: data e hora ---
+    Text {
+        text: Shell.bar-date;
+        color: Theme.text;
+        font-family: Theme.mono;
+        font-size: 13px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    // --- Direita: CPU, wifi, volume, bateria, power ---
+    if !root.compact: HorizontalLayout {
+        x: parent.width - self.preferred-width - 14px;
+        height: parent.height;
+        spacing: 14px;
+        alignment: end;
+
+        Text {
+            text: "CPU " + Shell.cpu;
+            vertical-alignment: center;
+            color: Theme.text-muted;
+            font-family: Theme.mono;
+            font-size: 12px;
+        }
+        BarIcon { icon: Icons.wifi; size: 15px; }
+        BarIcon { icon: Icons.volume; size: 15px; }
+        HorizontalLayout {
+            spacing: 4px;
+            BarIcon { icon: Icons.battery; size: 17px; }
+            Text {
+                text: Shell.battery;
+                vertical-alignment: center;
+                color: Theme.text;
+                font-family: Theme.mono;
+                font-size: 12px;
+                font-weight: 600;
+            }
+        }
+        Rectangle {
+            width: 18px;
+            Image { source: Icons.power; colorize: power-touch.has-hover ? Theme.danger : Theme.text; width: 15px; height: 15px; }
+            power-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.power-clicked(); }
+            }
+        }
+    }
+}

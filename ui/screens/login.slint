@@ -1,0 +1,210 @@
+// Tela de login: relógio grande, card do usuário com campo de senha e
+// rodapé com a marca e os botões de idioma, acessibilidade e desligar.
+
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+import { Shell } from "../globals.slint";
+import { Backdrop, BackdropVariant } from "../components/backdrop.slint";
+import { IconButton, Avatar, LinkText } from "../components/widgets.slint";
+import { KalangoLogo } from "../brand.slint";
+
+export component LoginScreen inherits Rectangle {
+    /// Senha aceita: a janela raiz troca para a área de trabalho.
+    callback logged-in();
+
+    /// Mensagem de erro sob o campo (vazia = sem erro).
+    property <string> error;
+
+    /// Foca o campo de senha (chamado ao exibir a tela).
+    public function focus-password() {
+        password.focus();
+    }
+
+    function submit() {
+        if (Shell.try-login(password.text)) {
+            root.error = "";
+            password.text = "";
+            root.logged-in();
+        } else {
+            root.error = "Digite a senha";
+        }
+    }
+
+    Backdrop {
+        variant: BackdropVariant.login;
+    }
+
+    // --- Relógio ---
+    Text {
+        y: 118px;
+        text: Shell.time;
+        color: Theme.text;
+        font-family: Theme.mono;
+        font-size: 108px;
+        font-weight: 400;
+        horizontal-alignment: center;
+    }
+    Text {
+        y: 238px;
+        text: Shell.long-date;
+        color: Theme.text-muted;
+        font-family: Theme.mono;
+        font-size: 15px;
+        letter-spacing: 0.5px;
+        horizontal-alignment: center;
+    }
+
+    // --- Card do usuário ---
+    card := Rectangle {
+        width: 379px;
+        height: 319px;
+        y: (root.height - self.height) / 2 + 125px;
+        border-radius: 16px;
+        background: Theme.panel;
+        border-width: 1px;
+        border-color: Theme.border;
+        drop-shadow-blur: 40px;
+        drop-shadow-color: #00000090;
+
+        Avatar {
+            y: 32px;
+            width: 92px;
+            height: 92px;
+            filled: false;
+            letter: "U";
+        }
+
+        Text {
+            y: 141px;
+            text: Shell.user-name;
+            color: Theme.text;
+            font-family: Theme.sans;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        Text {
+            x: 32px;
+            y: 186px;
+            text: "Senha";
+            color: Theme.text;
+            font-family: Theme.sans;
+            font-size: 13px;
+        }
+
+        // Campo de senha
+        Rectangle {
+            x: 32px;
+            y: 207px;
+            width: 259px;
+            height: 46px;
+            border-radius: Theme.radius-small;
+            background: Theme.sunken;
+            border-width: 1.5px;
+            border-color: root.error != "" ? Theme.danger : password.has-focus ? Theme.accent : Theme.border;
+            drop-shadow-blur: password.has-focus ? 10px : 0;
+            drop-shadow-color: Theme.accent.with-alpha(0.25);
+
+            password := TextInput {
+                x: 16px;
+                width: parent.width - 32px;
+                height: parent.height;
+                vertical-alignment: center;
+                input-type: InputType.password;
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 18px;
+                letter-spacing: 2px;
+                selection-background-color: Theme.accent.with-alpha(0.4);
+                edited => { root.error = ""; }
+                accepted => { root.submit(); }
+            }
+        }
+
+        // Botão entrar
+        Rectangle {
+            x: 299px;
+            y: 207px;
+            width: 46px;
+            height: 46px;
+            border-radius: Theme.radius-small;
+            background: go.has-hover ? Theme.accent.brighter(0.15) : Theme.accent;
+            Image { source: Icons.arrow-right; colorize: Theme.on-accent; width: 18px; height: 18px; }
+            go := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.submit(); }
+            }
+        }
+
+        if root.error != "": Text {
+            x: 32px;
+            y: 258px;
+            text: root.error;
+            color: Theme.danger;
+            font-family: Theme.sans;
+            font-size: 12px;
+        }
+
+        LinkText {
+            x: 32px;
+            y: 274px;
+            text: "Outro usuário";
+        }
+
+        Text {
+            x: parent.width - self.width - 32px;
+            y: 276px;
+            text: "wayland";
+            color: Theme.text-muted;
+            font-family: Theme.mono;
+            font-size: 12px;
+        }
+    }
+
+    // --- Rodapé: logotipo vetorial + "OS" (como na prancha da marca) ---
+    HorizontalLayout {
+        x: 30px;
+        y: root.height - 50px - 22px;
+        height: 50px;
+        spacing: 2px;
+        alignment: start;
+        KalangoLogo { height: 40px; }
+        Text {
+            text: "OS";
+            color: Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 22px;
+            font-weight: 600;
+            vertical-alignment: center;
+        }
+    }
+
+    HorizontalLayout {
+        x: root.width - self.preferred-width - 32px;
+        y: root.height - 44px - 28px;
+        height: 44px;
+        spacing: 8px;
+
+        // Idioma (fixo em pt-BR no protótipo)
+        Rectangle {
+            width: 64px;
+            border-radius: Theme.radius-small;
+            background: Theme.tile;
+            border-width: 1px;
+            border-color: Theme.border;
+            Text {
+                text: "PT-BR";
+                color: Theme.text;
+                font-family: Theme.mono;
+                font-size: 12px;
+                font-weight: 700;
+            }
+        }
+        IconButton { icon: Icons.accessibility; }
+        IconButton {
+            icon: Icons.power;
+            icon-color: Theme.danger;
+            clicked => { Shell.power-off(); }
+        }
+    }
+}

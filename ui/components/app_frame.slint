@@ -1,0 +1,98 @@
+// Moldura de janela de app (mock): barra de título arrastável + conteúdo.
+//
+// No desktop final as janelas serão de apps reais, desenhadas pelo
+// compositor Wayland; esta moldura só existe para validar o visual.
+
+import { Theme } from "../theme.slint";
+
+/// Estilo dos botões da barra de título.
+export enum FrameButtons {
+    /// Três bolinhas cinzas (estilo da janela Arquivos no layout).
+    neutral,
+    /// Âmbar/verde/vermelho (estilo da janela Terminal no layout).
+    colored,
+}
+
+export component AppFrame inherits Rectangle {
+    in property <length> title-height: 41px;
+    in property <FrameButtons> buttons: FrameButtons.colored;
+    /// Janela em foco: borda na cor de destaque.
+    in property <bool> focused: false;
+    /// Clique em qualquer lugar da janela (para trazer ao foco).
+    callback activated();
+    /// Bolinha vermelha (ou a terceira cinza).
+    callback close();
+
+    border-radius: Theme.radius;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: root.focused ? Theme.accent.with-alpha(0.55) : Theme.border;
+    drop-shadow-blur: 30px;
+    drop-shadow-color: #00000080;
+    clip: true;
+
+    // Captura cliques no corpo antes do conteúdo, só para focar a janela.
+    TouchArea {
+        clicked => { root.activated(); }
+    }
+
+    // Barra de título: arrastar move a janela. Fica atrás do conteúdo, então
+    // textos do app na barra (ex.: caminho) não bloqueiam o arraste; só
+    // elementos com TouchArea próprio (botões) capturam o clique.
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: root.title-height;
+
+        // Linha inferior da barra
+        Rectangle {
+            y: parent.height - 1px;
+            height: 1px;
+            background: Theme.border;
+        }
+
+        TouchArea {
+            mouse-cursor: move;
+            pointer-event(e) => {
+                if (e.kind == PointerEventKind.down) {
+                    root.activated();
+                }
+            }
+            // Desloca a janela pela diferença entre a posição atual e a do clique.
+            moved => {
+                root.x += self.mouse-x - self.pressed-x;
+                root.y += self.mouse-y - self.pressed-y;
+            }
+        }
+    }
+
+    // Conteúdo do app, em coordenadas da janela inteira: a faixa
+    // 0..title-height é a barra de título, o resto é o corpo.
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: root.height;
+        @children
+    }
+
+    // Botões da direita (por cima de tudo), posicionados a partir da borda.
+    for c[i] in root.buttons == FrameButtons.colored ? [#e8b04b, #5fd38d, #f07178] : [#4a525b, #4a525b, #4a525b]: Rectangle {
+        x: root.width - 16px - 13px - (2 - i) * 21px;
+        y: (root.title-height - 13px) / 2;
+        width: 13px;
+        height: 13px;
+        border-radius: 6.5px;
+        background: c;
+        TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                // Só "fechar" tem ação no protótipo.
+                if (i == 2) {
+                    root.close();
+                }
+            }
+        }
+    }
+}
