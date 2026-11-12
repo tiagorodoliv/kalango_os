@@ -22,7 +22,7 @@ import "fonts/JetBrainsMono-Medium.ttf";
 import "fonts/JetBrainsMono-Bold.ttf";
 
 import { Theme, ThemeMode } from "theme.slint";
-import { Apps, AppEntry, Shell } from "globals.slint";
+import { Apps, AppEntry, RecentEntry, Shell } from "globals.slint";
 import { Backdrop, BackdropVariant } from "components/backdrop.slint";
 import { TopBar } from "components/top_bar.slint";
 import { Dock } from "components/dock.slint";
@@ -33,7 +33,7 @@ import { Launcher } from "screens/launcher.slint";
 import { SettingsScreen } from "screens/settings.slint";
 
 // Reexportados para o Rust enxergar os globais e tipos.
-export { Theme, ThemeMode, Shell, Apps, AppEntry }
+export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry }
 
 /// Telas de nível superior.
 export enum Screen { login, desktop, settings }
@@ -289,6 +289,13 @@ export component AppWindow inherits Window {
             height: parent.height - Theme.bar-height;
             init => { self.reset(); }
             launch(id) => { root.launch(id); }
+            open-file(path) => {
+                if (Shell.open-file(path)) {
+                    Shell.quit();
+                } else {
+                    root.show-toast("Não foi possível abrir o arquivo");
+                }
+            }
             close => { Shell.quit(); }
         }
 

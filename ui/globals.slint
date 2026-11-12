@@ -18,12 +18,18 @@ export struct AppEntry {
     tint: color,
 }
 
-/// Um arquivo recente mostrado no launcher.
+/// Um item da seção RECENTES do launcher (arquivo ou atalho de app).
 export struct RecentEntry {
+    /// Nome do arquivo (ou do atalho, ex.: "Instalar Kalango OS").
     name: string,
+    /// Linha secundária: pasta do arquivo, abreviada com "~".
     path: string,
-    icon: image,
-    tint: color,
+    /// Tipo, que escolhe o ícone: "file", "code", "image" ou "install".
+    kind: string,
+    /// Caminho completo para abrir (arquivos).
+    target: string,
+    /// Id de app do catálogo a abrir no lugar de um arquivo (ex.: "installer").
+    app: string,
 }
 
 export global Apps {
@@ -46,9 +52,11 @@ export global Apps {
     /// Apps da dock (antes do separador; Configurações vem depois dele).
     out property <[AppEntry]> dock: [pinned[0], pinned[1], pinned[2], pinned[3], pinned[4]];
 
-    out property <[RecentEntry]> recents: [
-        { name: "README.md", path: "~/Projetos/distro", icon: Icons.file, tint: #7ea6f7 },
-        { name: "main.cpp", path: "~/Projetos/firmware", icon: Icons.code, tint: #a78bfa },
+    /// Protótipo: os dois arquivos do layout. Sessão real: o Rust preenche com
+    /// os recentes de verdade (`src/recent.rs`) e o atalho do instalador.
+    in-out property <[RecentEntry]> recents: [
+        { name: "README.md", path: "~/Projetos/distro", kind: "file" },
+        { name: "main.cpp", path: "~/Projetos/firmware", kind: "code" },
     ];
 }
 
@@ -102,6 +110,8 @@ export global Shell {
     /// Sessão real: abre o app do catálogo (ou "launcher"/"settings", que são
     /// janelas do próprio shell). Devolve `false` se o app não está instalado.
     callback open-app(string) -> bool;
+    /// Sessão real: abre um arquivo no app padrão (`xdg-open`).
+    callback open-file(string) -> bool;
     /// Fecha esta janela do shell (usado pelo launcher e pelas Configurações,
     /// que rodam como processos próprios na sessão real).
     callback quit();

@@ -8,7 +8,8 @@
 //! - [`session`]: sessão real (abrir apps, menu e Configurações como janelas
 //!   próprias, desligar);
 //! - [`appearance`]: aparência salva em disco e compartilhada entre processos;
-//! - [`greeter`]: tela de login de verdade, como greeter do greetd.
+//! - [`greeter`]: tela de login de verdade, como greeter do greetd;
+//! - [`recent`]: arquivos recentes de verdade no menu de apps.
 //!
 //! A lógica fica na biblioteca (e não no `main.rs`) para poder ser reusada
 //! por testes e por ferramentas como um gerador de capturas das telas.
@@ -17,6 +18,7 @@ pub mod appearance;
 pub mod apps;
 pub mod clock;
 pub mod greeter;
+pub mod recent;
 pub mod session;
 pub mod system;
 

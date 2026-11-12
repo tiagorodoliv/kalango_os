@@ -50,6 +50,8 @@ component AppTile inherits Rectangle {
 
 export component Launcher inherits Rectangle {
     callback launch(string);
+    /// Abrir um arquivo recente (caminho completo).
+    callback open-file(string);
     callback close();
     callback lock();
 
@@ -190,21 +192,46 @@ export component Launcher inherits Rectangle {
             border-radius: 8px;
             background: recent-touch.has-hover ? Theme.tile-hover : Theme.tile;
 
+            // O atalho do instalador (ISO live) ganha borda de destaque.
+            border-width: r.kind == "install" ? 1px : 0;
+            border-color: Theme.accent.with-alpha(0.6);
+
             Image {
                 x: 14px;
-                source: r.icon;
-                colorize: r.tint;
+                source: r.kind == "code" ? Icons.code : r.kind == "image" ? Icons.image
+                    : r.kind == "install" ? Icons.download : Icons.file;
+                colorize: r.kind == "code" ? #a78bfa : r.kind == "image" ? #f28b95
+                    : r.kind == "install" ? Theme.accent : #7ea6f7;
                 width: 19px;
                 height: 19px;
             }
             VerticalLayout {
                 x: 44px;
+                width: parent.width - 58px;
                 alignment: center;
                 spacing: 1px;
-                Text { text: r.name; color: Theme.text; font-family: Theme.sans; font-size: 13.5px; }
-                Text { text: r.path; color: Theme.text-muted; font-family: Theme.mono; font-size: 12px; }
+                Text { text: r.name; color: Theme.text; font-family: Theme.sans; font-size: 13.5px; overflow: elide; }
+                Text { text: r.path; color: Theme.text-muted; font-family: Theme.mono; font-size: 12px; overflow: elide; }
             }
-            recent-touch := TouchArea { mouse-cursor: pointer; }
+            recent-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    if (r.app != "") {
+                        root.launch(r.app);
+                    } else if (r.target != "") {
+                        root.open-file(r.target);
+                    }
+                }
+            }
+        }
+
+        if root.query == "" && Apps.recents.length == 0: Text {
+            x: 29px;
+            y: 421px;
+            text: "Nenhum arquivo aberto recentemente";
+            color: Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 13px;
         }
 
         // --- Rodapé ---

@@ -90,6 +90,10 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
         "files" => vec!["thunar".into()],
         "terminal" => vec!["foot".into()],
         "browser" => vec!["firefox-esr".into()],
+        "store" => vec!["gnome-software".into()],
+        "calendar" => vec!["gnome-calendar".into()],
+        // Só na ISO live: instalador Calamares (ver kalango-instalar).
+        "installer" => vec!["kalango-instalar".into()],
         "code" => vec!["mousepad".into()],
         "documents" => vec!["thunar".into(), documents_dir(&home)],
         "images" => vec!["ristretto".into(), pictures_dir(&home)],
@@ -153,10 +157,20 @@ fn find_in_path(program: &str) -> Option<PathBuf> {
         .find(|p| p.is_file())
 }
 
+/// Abre um arquivo no app padrão do tipo dele (`xdg-open`).
+pub fn open_file(path: &str) -> bool {
+    if !Path::new(path).exists() || find_in_path("xdg-open").is_none() {
+        return false;
+    }
+    let mut cmd = Command::new("xdg-open");
+    cmd.arg(path);
+    spawn(cmd, path)
+}
+
 /// Abre um app ou uma janela do shell. Devolve `false` se não deu para abrir
 /// (app inexistente no catálogo ou não instalado).
 pub fn open(id: &str) -> bool {
-    let mut cmd = match id {
+    let cmd = match id {
         "launcher" | "settings" => {
             let mode = if id == "launcher" { Mode::Launcher } else { Mode::Settings };
             let Ok(exe) = std::env::current_exe() else {
@@ -179,6 +193,11 @@ pub fn open(id: &str) -> bool {
             c
         }
     };
+    spawn(cmd, id)
+}
+
+/// Inicia o processo sem esperar por ele (`what` só aparece nos erros).
+fn spawn(mut cmd: Command, what: &str) -> bool {
     // Começa na pasta pessoal e sem herdar a entrada do shell.
     if let Some(home) = std::env::var_os("HOME") {
         cmd.current_dir(home);
@@ -191,7 +210,7 @@ pub fn open(id: &str) -> bool {
             true
         }
         Err(err) => {
-            eprintln!("kalango-shell: falha ao abrir {id}: {err}");
+            eprintln!("kalango-shell: falha ao abrir {what}: {err}");
             false
         }
     }
@@ -285,6 +304,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     let shell = ui.global::<Shell>();
     shell.set_native(native);
     shell.on_open_app(|id| open(&id));
+    shell.on_open_file(|path| open_file(&path));
     let real = native || mode == Mode::Greeter;
     shell.on_power_off(move || power_off(real));
 
@@ -299,6 +319,9 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             let name = crate::greeter::display_name(&login);
             shell.set_user_initial(crate::greeter::initial(&name).into());
             shell.set_user_name(name.into());
+        }
+        if mode == Mode::Launcher {
+            crate::recent::install(ui);
         }
     }
     shell.on_quit(|| {
@@ -341,8 +364,9 @@ mod tests {
         assert_eq!(command_for("code").unwrap(), ["mousepad"]);
         assert_eq!(command_for("documents").unwrap()[0], "thunar");
         assert_eq!(command_for("network").unwrap().last().unwrap(), "nmtui");
-        assert!(command_for("store").is_none());
-        assert!(command_for("calendar").is_none());
+        assert_eq!(command_for("store").unwrap(), ["gnome-software"]);
+        assert_eq!(command_for("installer").unwrap(), ["kalango-instalar"]);
+        assert!(command_for("inexistente").is_none());
         assert_eq!(command_for("lock").unwrap(), ["swaylock"]);
         assert_eq!(command_for("music").unwrap(), ["parole"]);
     }
