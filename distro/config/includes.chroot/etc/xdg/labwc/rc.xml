@@ -41,6 +41,10 @@
     <keybind key="W-b">
       <action name="Execute" command="firefox-esr" />
     </keybind>
+    <!-- Bloqueia a tela (config em /etc/swaylock/config). -->
+    <keybind key="W-l">
+      <action name="Execute" command="swaylock" />
+    </keybind>
   </keyboard>
 
   <windowRules>

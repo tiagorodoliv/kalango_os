@@ -1,0 +1,12 @@
+#!/bin/sh
+# Tela de login do Kalango OS (greeter do greetd, roda como _greetd).
+#
+# Um labwc só com o kalango-shell --greeter, configurado por
+# /etc/kalango/greeter (sem atalhos nem moldura). Quando a senha confere, o
+# shell sai, o labwc fecha e o greetd inicia a sessão (kalango-session).
+if systemd-detect-virt -q; then
+	# Mesmo motivo do kalango-session: em VM, composição e cursor por software.
+	export WLR_RENDERER=pixman
+	export WLR_NO_HARDWARE_CURSORS=1
+fi
+exec labwc -C /etc/kalango/greeter -s 'sh -c "kalango-shell --greeter; labwc --exit"'

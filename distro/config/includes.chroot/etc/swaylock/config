@@ -1,0 +1,31 @@
+# Bloqueio de tela do Kalango OS (swaylock, Super+L ou cadeado do menu de apps).
+# Cores de ui/theme.slint: fundo #07090d, painel #0d1218, borda #1e2a33,
+# texto #e6edf3, destaque ciano #3dd6f5, perigo #f07178, âmbar #e8b04b.
+color=07090d
+font=Inter
+indicator-radius=90
+indicator-thickness=8
+ignore-empty-password
+inside-color=0d1218e6
+inside-clear-color=0d1218e6
+inside-ver-color=0d1218e6
+inside-wrong-color=0d1218e6
+ring-color=1e2a33
+ring-clear-color=e8b04b
+ring-ver-color=3dd6f5
+ring-wrong-color=f07178
+key-hl-color=3dd6f5
+bs-hl-color=f07178
+line-color=00000000
+line-clear-color=00000000
+line-ver-color=00000000
+line-wrong-color=00000000
+separator-color=00000000
+# O swaylock só fala inglês ("Verifying", "Wrong"): os textos ficam
+# invisíveis e o estado aparece pela cor do anel (ciano conferindo,
+# vermelho senha errada, âmbar campo limpo).
+text-color=00000000
+text-clear-color=00000000
+text-ver-color=00000000
+text-wrong-color=00000000
+text-caps-lock-color=e8b04b

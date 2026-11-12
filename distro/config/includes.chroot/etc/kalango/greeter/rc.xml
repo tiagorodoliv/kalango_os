@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!-- labwc da tela de login (kalango-greeter): só a janela do greeter, em tela cheia. -->
+<labwc_config>
+  <keyboard>
+    <!-- Um atalho qualquer impede o labwc de carregar os padrão (Alt+F4 etc.). -->
+    <keybind key="W-F12"><action name="None" /></keybind>
+  </keyboard>
+  <windowRules>
+    <windowRule identifier="kalango-greeter" serverDecoration="no">
+      <action name="ToggleFullscreen"/>
+    </windowRule>
+  </windowRules>
+</labwc_config>

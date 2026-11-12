@@ -1,15 +1,15 @@
 # greetd: gerenciador de login do Kalango OS.
 #
-# Na ISO live, o usuário "user" (criado pelo live-config) entra direto na sessão
-# (kalango-session → labwc → kalango-shell).
-# Ao sair da sessão, cai no agreety (login em texto) até existir o greeter
-# em Slint (tela de login do shell falando PAM via greetd).
+# Na ISO live, o usuário "user" (criado pelo live-config, senha "live") entra
+# direto na sessão (kalango-session → labwc → kalango-shell). Ao sair da sessão
+# aparece a tela de login do Kalango (kalango-greeter → kalango-shell --greeter),
+# que confere a senha pelo PAM do greetd.
 
 [terminal]
 vt = 7
 
 [default_session]
-command = "/usr/sbin/agreety --cmd kalango-session"
+command = "kalango-greeter"
 user = "_greetd"
 
 [initial_session]
