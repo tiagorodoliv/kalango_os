@@ -82,7 +82,7 @@ if [ ! -f "$BUILDER/.pronto" ]; then
 	no_builder "
 		apt-get update
 		DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-			live-build debootstrap ca-certificates curl rsync \
+			live-build debootstrap ca-certificates curl rsync apt-utils \
 			build-essential pkg-config \
 			libfontconfig-dev libxkbcommon-dev libwayland-dev \
 			libudev-dev libinput-dev libgbm-dev libdrm-dev
@@ -90,6 +90,12 @@ if [ ! -f "$BUILDER/.pronto" ]; then
 			| sh -s -- -y --profile minimal --no-modify-path
 	"
 	touch "$BUILDER/.pronto"
+fi
+# Builder antigo (de antes da lista kalango.list.binary): o live-build precisa do
+# apt-ftparchive (apt-utils) para montar o repositório de pacotes dentro da ISO.
+if [ ! -x "$BUILDER/usr/bin/apt-ftparchive" ]; then
+	echo ">> Instalando apt-utils no builder"
+	no_builder "DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-utils"
 fi
 
 # --- 2. Compila o kalango-shell ---------------------------------------------
