@@ -14,6 +14,10 @@ export component LoginScreen inherits Rectangle {
 
     /// Mensagem de erro sob o campo (vazia = sem erro).
     property <string> error;
+    /// Erro exibido: o local (campo vazio) ou o do greetd (senha incorreta).
+    property <string> shown-error: root.error != "" ? root.error : Shell.login-error;
+    /// "Outro usuário": o nome vira um campo para digitar o login.
+    property <bool> editing-user: false;
 
     /// Foca o campo de senha (chamado ao exibir a tela).
     public function focus-password() {
@@ -21,6 +25,19 @@ export component LoginScreen inherits Rectangle {
     }
 
     function submit() {
+        if (Shell.greeter) {
+            // Greeter: o greetd confere a senha no PAM (resposta assíncrona).
+            if (Shell.login-busy) {
+                return;
+            }
+            if (password.text == "") {
+                root.error = "Digite a senha";
+                return;
+            }
+            Shell.start-login(Shell.login-user, password.text);
+            password.text = "";
+            return;
+        }
         if (Shell.try-login(password.text)) {
             root.error = "";
             password.text = "";
@@ -71,16 +88,48 @@ export component LoginScreen inherits Rectangle {
             width: 92px;
             height: 92px;
             filled: false;
-            letter: "U";
+            letter: Shell.user-initial;
         }
 
-        Text {
+        if !root.editing-user: Text {
             y: 141px;
             text: Shell.user-name;
             color: Theme.text;
             font-family: Theme.sans;
             font-size: 20px;
             font-weight: 600;
+        }
+
+        // Greeter, "Outro usuário": campo para o login no lugar do nome.
+        if root.editing-user: Rectangle {
+            x: 32px;
+            y: 134px;
+            width: parent.width - 64px;
+            height: 38px;
+            border-radius: Theme.radius-small;
+            background: Theme.sunken;
+            border-width: 1.5px;
+            border-color: user-input.has-focus ? Theme.accent : Theme.border;
+            user-input := TextInput {
+                x: 12px;
+                width: parent.width - 24px;
+                height: parent.height;
+                vertical-alignment: center;
+                horizontal-alignment: center;
+                text: Shell.login-user;
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 16px;
+                selection-background-color: Theme.accent.with-alpha(0.4);
+                init => { self.select-all(); self.focus(); }
+                accepted => {
+                    if (self.text != "") {
+                        Shell.choose-user(self.text);
+                    }
+                    root.editing-user = false;
+                    password.focus();
+                }
+            }
         }
 
         Text {
@@ -101,7 +150,7 @@ export component LoginScreen inherits Rectangle {
             border-radius: Theme.radius-small;
             background: Theme.sunken;
             border-width: 1.5px;
-            border-color: root.error != "" ? Theme.danger : password.has-focus ? Theme.accent : Theme.border;
+            border-color: root.shown-error != "" ? Theme.danger : password.has-focus ? Theme.accent : Theme.border;
             drop-shadow-blur: password.has-focus ? 10px : 0;
             drop-shadow-color: Theme.accent.with-alpha(0.25);
 
@@ -116,7 +165,10 @@ export component LoginScreen inherits Rectangle {
                 font-size: 18px;
                 letter-spacing: 2px;
                 selection-background-color: Theme.accent.with-alpha(0.4);
-                edited => { root.error = ""; }
+                edited => {
+                    root.error = "";
+                    Shell.login-error = "";
+                }
                 accepted => { root.submit(); }
             }
         }
@@ -136,11 +188,11 @@ export component LoginScreen inherits Rectangle {
             }
         }
 
-        if root.error != "": Text {
+        if root.shown-error != "" || Shell.login-busy: Text {
             x: 32px;
             y: 258px;
-            text: root.error;
-            color: Theme.danger;
+            text: Shell.login-busy ? "Entrando…" : root.shown-error;
+            color: Shell.login-busy ? Theme.text-muted : Theme.danger;
             font-family: Theme.sans;
             font-size: 12px;
         }
@@ -149,6 +201,11 @@ export component LoginScreen inherits Rectangle {
             x: 32px;
             y: 274px;
             text: "Outro usuário";
+            clicked => {
+                if (Shell.greeter) {
+                    root.editing-user = true;
+                }
+            }
         }
 
         Text {

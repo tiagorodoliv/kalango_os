@@ -3,7 +3,8 @@
 //! O mesmo binário roda em três processos, escolhidos pelo argumento:
 //! - sem argumento: a área de trabalho (barra, dock, fundo), sempre atrás dos apps;
 //! - `--launcher`: o menu de apps, em tela cheia e transparente, por cima de tudo;
-//! - `--settings`: as Configurações, numa janela comum.
+//! - `--settings`: as Configurações, numa janela comum;
+//! - `--greeter`: a tela de login do greetd (ver [`crate::greeter`]).
 //!
 //! O menu e as Configurações são processos próprios porque, sem layer-shell,
 //! uma janela "sempre atrás" não consegue mostrar nada por cima dos apps.
@@ -17,7 +18,7 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, Timer, TimerMode};
 
-use crate::{AppWindow, Shell, ShellMode};
+use crate::{AppWindow, Screen, Shell, ShellMode};
 
 /// O que este processo mostra.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -25,6 +26,7 @@ pub enum Mode {
     Desktop,
     Launcher,
     Settings,
+    Greeter,
 }
 
 impl Mode {
@@ -35,6 +37,7 @@ impl Mode {
             match arg.as_str() {
                 "--launcher" => mode = Mode::Launcher,
                 "--settings" => mode = Mode::Settings,
+                "--greeter" => mode = Mode::Greeter,
                 _ => {}
             }
         }
@@ -48,6 +51,7 @@ impl Mode {
             Mode::Desktop => crate::APP_ID,
             Mode::Launcher => "kalango-launcher",
             Mode::Settings => "kalango-settings",
+            Mode::Greeter => "kalango-greeter",
         }
     }
 
@@ -57,6 +61,7 @@ impl Mode {
             Mode::Desktop => None,
             Mode::Launcher => Some("--launcher"),
             Mode::Settings => Some("--settings"),
+            Mode::Greeter => Some("--greeter"),
         }
     }
 
@@ -65,6 +70,7 @@ impl Mode {
             Mode::Desktop => ShellMode::Desktop,
             Mode::Launcher => ShellMode::Launcher,
             Mode::Settings => ShellMode::Settings,
+            Mode::Greeter => ShellMode::Greeter,
         }
     }
 }
@@ -87,10 +93,16 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
         "code" => vec!["mousepad".into()],
         "documents" => vec!["thunar".into(), documents_dir(&home)],
         "images" => vec!["ristretto".into(), pictures_dir(&home)],
+        "music" => vec!["parole".into()],
         "monitor" => vec!["foot".into(), "--title=Monitor".into(), "htop".into()],
         // Ícones de Wi-Fi e volume da barra superior.
         "network" => vec!["foot".into(), "--title=Rede e Wi-Fi".into(), "nmtui".into()],
         "sound" => vec!["pavucontrol".into()],
+        // Rodapé do menu de apps. O swaylock usa o protocolo de bloqueio do
+        // Wayland (ext-session-lock): nenhuma janela aparece por cima dele.
+        "lock" => vec!["swaylock".into()],
+        // Encerra o labwc; o greetd volta para a tela de login.
+        "logout" => vec!["labwc".into(), "--exit".into()],
         "updates" => vec![
             "foot".into(),
             "--title=Atualizações".into(),
@@ -192,7 +204,7 @@ pub fn open(id: &str) -> bool {
 /// Configurações não abrem outra janela. Devolve `false` quando este processo
 /// deve sair sem mostrar nada.
 pub fn claim_instance(mode: Mode) -> bool {
-    if mode == Mode::Desktop {
+    if matches!(mode, Mode::Desktop | Mode::Greeter) {
         return true;
     }
     let Some(dir) = std::env::var_os("XDG_RUNTIME_DIR") else {
@@ -223,9 +235,9 @@ fn is_shell_process(pid: u32) -> bool {
         .unwrap_or(false)
 }
 
-/// Desliga o computador (sessão real) ou só encerra o shell (protótipo).
-pub fn power_off() {
-    if is_native() {
+/// Desliga o computador (sessão real e greeter) ou só encerra o shell (protótipo).
+pub fn power_off(real: bool) {
+    if real {
         if let Err(err) = Command::new("systemctl").arg("poweroff").spawn() {
             eprintln!("kalango-shell: falha ao desligar: {err}");
         }
@@ -273,7 +285,22 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     let shell = ui.global::<Shell>();
     shell.set_native(native);
     shell.on_open_app(|id| open(&id));
-    shell.on_power_off(power_off);
+    let real = native || mode == Mode::Greeter;
+    shell.on_power_off(move || power_off(real));
+
+    if mode == Mode::Greeter {
+        crate::greeter::install(ui);
+        return None;
+    }
+    if native {
+        // A sessão já foi autenticada pelo greetd: nada de tela de login falsa.
+        ui.set_screen(Screen::Desktop);
+        if let Ok(login) = std::env::var("USER") {
+            let name = crate::greeter::display_name(&login);
+            shell.set_user_initial(crate::greeter::initial(&name).into());
+            shell.set_user_name(name.into());
+        }
+    }
     shell.on_quit(|| {
         let _ = slint::quit_event_loop();
     });
@@ -305,6 +332,7 @@ mod tests {
         assert_eq!(Mode::from_args(args(&["kalango-shell"])), Mode::Desktop);
         assert_eq!(Mode::from_args(args(&["x", "--launcher"])), Mode::Launcher);
         assert_eq!(Mode::from_args(args(&["x", "--settings"])), Mode::Settings);
+        assert_eq!(Mode::from_args(args(&["x", "--greeter"])), Mode::Greeter);
     }
 
     #[test]
@@ -315,6 +343,8 @@ mod tests {
         assert_eq!(command_for("network").unwrap().last().unwrap(), "nmtui");
         assert!(command_for("store").is_none());
         assert!(command_for("calendar").is_none());
+        assert_eq!(command_for("lock").unwrap(), ["swaylock"]);
+        assert_eq!(command_for("music").unwrap(), ["parole"]);
     }
 
     #[test]

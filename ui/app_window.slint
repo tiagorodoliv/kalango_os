@@ -6,7 +6,8 @@
 // Na sessão real (`Shell.native`) o mesmo binário roda em três processos,
 // escolhidos por `mode`: a área de trabalho (sempre atrás dos apps), o menu
 // de apps (`--launcher`, tela cheia e transparente, por cima de tudo) e as
-// Configurações (`--settings`, janela comum). As janelas de demonstração
+// Configurações (`--settings`, janela comum); o greeter do greetd
+// (`--greeter`) usa só a tela de login. As janelas de demonstração
 // somem e a dock/menu abrem os apps instalados.
 // O estado de navegação mora aqui; tema e dados do sistema ficam nos
 // globais `Theme` e `Shell`, que o Rust também acessa.
@@ -45,6 +46,8 @@ export enum ShellMode {
     launcher,
     /// Só as Configurações (`--settings`).
     settings,
+    /// Só a tela de login, conferindo a senha no greetd (`--greeter`).
+    greeter,
 }
 
 export component AppWindow inherits Window {
@@ -151,7 +154,7 @@ export component AppWindow inherits Window {
                 return accept;
             }
             if (event.text == Key.Escape) {
-                if (root.mode != ShellMode.desktop) {
+                if (root.mode == ShellMode.launcher || root.mode == ShellMode.settings) {
                     Shell.quit();
                     return accept;
                 }
@@ -171,7 +174,7 @@ export component AppWindow inherits Window {
         // ------------------------------------------------------------------
         // Login
         // ------------------------------------------------------------------
-        if root.mode == ShellMode.desktop && root.screen == Screen.login: LoginScreen {
+        if root.mode == ShellMode.greeter || (root.mode == ShellMode.desktop && root.screen == Screen.login): LoginScreen {
             init => { self.focus-password(); }
             logged-in => {
                 root.screen = Screen.desktop;

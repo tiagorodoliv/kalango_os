@@ -222,7 +222,7 @@ export component Launcher inherits Rectangle {
             spacing: 12px;
             Rectangle {
                 width: 34px;
-                Avatar { width: 34px; height: 34px; }
+                Avatar { width: 34px; height: 34px; letter: Shell.user-initial; }
             }
             Text {
                 text: Shell.user-name;
@@ -237,11 +237,21 @@ export component Launcher inherits Rectangle {
             y: 503px;
             height: 44px;
             spacing: 10px;
-            // Sessão real: ainda não há bloqueio de tela de verdade (o shell
-            // fica atrás das janelas), então o botão só existe no protótipo.
-            if !Shell.native: IconButton {
+            // Sessão real: bloquear abre o swaylock e "sair" encerra a sessão
+            // (volta para a tela de login do greetd). Protótipo: tela de login.
+            IconButton {
                 icon: Icons.lock;
-                clicked => { root.lock(); }
+                clicked => {
+                    if (Shell.native) {
+                        root.launch("lock");
+                    } else {
+                        root.lock();
+                    }
+                }
+            }
+            if Shell.native: IconButton {
+                icon: Icons.log-out;
+                clicked => { root.launch("logout"); }
             }
             IconButton {
                 icon: Icons.power;

@@ -67,6 +67,19 @@ export global Shell {
     in property <string> battery: "--";
     /// Nome exibido do usuário.
     in property <string> user-name: "Usuário";
+    /// Letra do avatar (inicial do nome).
+    in property <string> user-initial: "U";
+
+    // --- Tela de login de verdade (greeter do greetd, `src/greeter.rs`) ---
+
+    /// Rodando como greeter: a senha vai para o greetd/PAM.
+    in property <bool> greeter: false;
+    /// Login (nome de usuário do sistema) que vai entrar.
+    in property <string> login-user: "user";
+    /// Conferindo a senha (o PAM leva ~2 s para recusar).
+    in property <bool> login-busy: false;
+    /// Erro da última tentativa ("Senha incorreta"); a UI limpa ao digitar.
+    in-out property <string> login-error: "";
     /// Sessão real do Kalango OS (labwc, variável `KALANGO_SESSION=1`):
     /// os apps abrem de verdade e as janelas de demonstração somem.
     /// Desligado no desenvolvimento e nas capturas (protótipo navegável).
@@ -92,4 +105,9 @@ export global Shell {
     /// Fecha esta janela do shell (usado pelo launcher e pelas Configurações,
     /// que rodam como processos próprios na sessão real).
     callback quit();
+    /// Greeter: confere a senha do usuário no greetd e, se der certo, sai
+    /// para o greetd iniciar a sessão. O resultado volta em `login-error`.
+    callback start-login(string /* usuário */, string /* senha */);
+    /// Greeter: troca o usuário ("Outro usuário").
+    callback choose-user(string);
 }
