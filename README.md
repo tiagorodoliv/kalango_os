@@ -29,6 +29,8 @@ src/
   greeter.rs           tela de login de verdade (greeter do greetd, senha conferida no PAM)
   recent.rs            arquivos recentes de verdade no menu de apps
   device.rs            Configurações reais: Wi-Fi (nmcli), som (wpctl), energia e ficha do sistema
+  displays.rs          Configurações → Monitores: resolução, escala e rotação (wlr-randr)
+  labwc.rs             margem da dock no labwc (Configurações → Barra de tarefas)
 examples/
   snapshot.rs          gera PNG de cada tela em target/snapshots/
 ui/

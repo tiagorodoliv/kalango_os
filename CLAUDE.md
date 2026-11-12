@@ -25,7 +25,16 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     As outras páginas mexem no sistema de verdade (`src/device.rs` + global `Device` em `ui/device.slint`,
     páginas em `ui/screens/settings_pages.slint`): Rede e Wi-Fi pelo `nmcli` (lista, liga/desliga, conecta com
     senha), Som pelo `wpctl` (volume/mudo), Energia (bateria, suspender/reiniciar), Usuários (`passwd` no foot),
-    Atualizações e Sobre o sistema (os-release, kernel, CPU, memória, disco). Bluetooth e Monitores só têm aviso.
+    Atualizações e Sobre o sistema (os-release, kernel, CPU, memória, disco). Bluetooth só tem aviso.
+    **Barra de tarefas** (opções no `Theme`, gravadas no mesmo `aparencia.conf`): dia/segundos/CPU/bateria na
+    barra, dock sempre visível, tamanho (44/52/60 px) e apps da dock (`Theme.dock-apps`, ids por vírgula;
+    `Apps.dock` = `Shell.dock-entries`). A área de trabalho ajusta a margem do labwc gerando
+    `~/.config/labwc/rc.xml` (cópia do de /etc com a marca "Gerado pelo kalango-shell" e o `bottom` trocado;
+    sem a marca, nunca sobrescreve) + `labwc --reconfigure` (`src/labwc.rs`); janelas já maximizadas só se
+    ajustam ao maximizar de novo. **Monitores** (`src/displays.rs`): `wlr-randr` (texto, não `--json`),
+    resolução/taxa/escala/rotação, confirmação de 15 s que volta sozinha, salvo em
+    `~/.config/kalango/monitores.conf` e reaplicado pela área de trabalho ao entrar. Escala só se sobrar
+    ≥ 1024×600 lógicos para o shell. `--mode` precisa da taxa exatamente como o wlr-randr escreve.
     O `nmcli` roda com `LC_ALL=C` (os estados viriam traduzidos). Antes de conectar com senha, o perfil antigo
     da rede é apagado: um perfil de tentativa com senha errada faz o `nmcli` falhar com "key-mgmt missing".
     Campo que precisa de `focus()` não pode estar sob `visible: false` nem num `if` recém-criado (o foco se
@@ -100,6 +109,11 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `etc/xdg/foot/foot.ini` (mesmas cores de `ui/theme.slint`); libadwaita (Loja, Agenda) só lê a preferência pelo
   portal, que a sessão não tem: `ADW_DEBUG_COLOR_SCHEME=prefer-dark` no `environment` do labwc (+ override de
   GSettings `90_kalango.gschema.override`, compilado pelo hook `0100`).
+- Tema GTK 3 próprio **Kalango** (`/usr/share/themes/Kalango/gtk-3.0/gtk.css`): importa o Adwaita escuro embutido
+  e troca as cores pelas do shell; o destaque é a cor nomeada `@kalango_accent`, que o shell redefine em
+  `~/.config/gtk-3.0/gtk.css` (com marca; vale para apps abertos depois, e o Thunar fica vivo como daemon:
+  `thunar -q`). Ativado em `settings.ini` e no gschema override. Padrões do Thunar (ícones, caminho em botões,
+  sem barra de menu) em `etc/xdg/xfce4/xfconf/xfce-perchannel-xml/thunar.xml`; miniaturas pelo `tumbler`.
 - `run-qemu.sh --disco` liga um disco de 20 GB (`distro/out/disco-teste.qcow2`) para testar o instalador;
   `--so-disco` dá boot pelo disco sem a ISO.
 - `auto/config` usa `noeject` (desligar não para pedindo para remover a mídia).
@@ -112,10 +126,10 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
 - `assets/wallpapers/` — 6 wallpapers 2880×1800: Ciano, Roxo, Azul, Verde, Amarelo, Rosa
   (mesma ordem das 6 cores de destaque da tela Aparência → trocar a cor de destaque pode trocar o wallpaper).
 - `assets/logo/` — `Kalango_Logo_Vetorizado.svg` e `Kalango_Logo_transparente.png` (2172×724).
-- `ui/icons/` — 29 ícones SVG de traço (24×24, stroke branco; aplicar cor com `colorize`):
+- `ui/icons/` — 31 ícones SVG de traço (24×24, stroke branco; aplicar cor com `colorize`):
   folder, terminal, globe, code, bag, settings, image, music, file-text, file, calendar, activity, download,
   search, lock, power, wifi, volume, battery, x, chevron-left/right, arrow-right, user, accessibility,
-  monitor, bluetooth, info, contrast.
+  monitor, bluetooth, info, contrast, dock, chevron-down.
 - Na raiz ainda estão os arquivos originais enviados (zips, logo .svg/.png duplicados). Não apagar sem perguntar ao Tiago.
 
 ## Especificação extraída do layout
