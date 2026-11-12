@@ -18,13 +18,20 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     Super+Espaço abre; rodar de novo fecha (pidfile em `$XDG_RUNTIME_DIR`).
   - `kalango-shell --settings`: Configurações em janela comum. A aparência é salva em
     `~/.config/kalango/aparencia.conf` e os outros processos aplicam em <1 s (`src/appearance.rs`).
+  - `kalango-shell --greeter`: tela de login de verdade (`src/greeter.rs`). O greetd roda `kalango-greeter`
+    (labwc com config própria em `/etc/kalango/greeter`, sem atalhos) como `_greetd`; a senha vai pelo IPC do
+    greetd (JSON com tamanho u32 nativo, socket `$GREETD_SOCK`) para o PAM e, se conferir, o greeter sai e o
+    greetd inicia `kalango-session`. Usuário padrão: o primeiro de UID 1000–59999 do `/etc/passwd`;
+    "Outro usuário" deixa digitar o login. Sem `$GREETD_SOCK` qualquer senha entra (dev).
 - **Modo real × protótipo:** `KALANGO_SESSION=1` (em `etc/xdg/labwc/environment`) liga `Shell.native`: dock/menu
   abrem apps instalados (`session::command_for`: thunar, foot, firefox-esr, mousepad, ristretto, htop, nmtui,
-  pavucontrol), avisos vão para o centro da barra (o rodapé pode estar atrás de um app), power faz
-  `systemctl poweroff`. Sem a variável (dev no host, `examples/snapshot.rs`) continua o protótipo com as janelas
-  de demonstração. Loja, Música e Agenda ainda não têm app ("Este app ainda não está disponível").
-- Próximos passos da arquitetura: tela de login em Slint como greeter do greetd (PAM) — hoje a sessão entra sozinha
-  e a tela de login do shell aceita qualquer senha; bloqueio de tela real; layer-shell para barra/dock/menu.
+  pavucontrol, parole), avisos vão para o centro da barra (o rodapé pode estar atrás de um app), power faz
+  `systemctl poweroff`, a área de trabalho começa direto (sem login falso) e o nome vem do GECOS de `$USER`.
+  Rodapé do menu: cadeado = `swaylock` (ext-session-lock, seguro), sair = `labwc --exit` (volta ao greeter).
+  Sem a variável (dev no host, `examples/snapshot.rs`) continua o protótipo com as janelas de demonstração.
+  Loja e Agenda ainda não têm app ("Este app ainda não está disponível").
+- Próximos passos da arquitetura: layer-shell para barra/dock/menu; Loja e Agenda; recentes reais no menu;
+  instalador (hoje só ISO live).
 
 ## Ambiente
 
@@ -54,7 +61,11 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `systemctl restart greetd`. A VM live tem rede e sudo sem senha (dá para `apt install`).
 - Menu de boot com timeout de 5 s: `distro/config/bootloaders/{isolinux/isolinux.cfg,grub-pc/config.cfg}`
   (o padrão do live-build é esperar o Enter para sempre).
-- Atalhos (labwc, além dos padrão): Super = menu, Super+Enter = foot, Super+E = thunar, Super+B = firefox.
+- Atalhos (labwc, além dos padrão): Super = menu, Super+Enter = foot, Super+E = thunar, Super+B = firefox,
+  Super+L = bloquear (swaylock; `/etc/swaylock/config` com as cores do tema e textos invisíveis, porque o
+  swaylock só fala inglês).
+- Live: autologin (`initial_session`) uma vez por boot; ao sair aparece o greeter. Usuário `user`, senha `live`,
+  nome exibido "Usuário" (`user-fullname` no `auto/config`).
   Para depurar, Ctrl+Alt+F2 dá console com login automático (usuário `user`, senha `live`);
   `journalctl -t kalango-shell` tem a saída do shell. O greetd está no VT7.
 - Tema escuro dos apps: `etc/gtk-3.0/settings.ini`, `etc/gtk-4.0/settings.ini`, `etc/xdg/labwc/themerc-override`,
