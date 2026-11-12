@@ -237,7 +237,9 @@ export component Launcher inherits Rectangle {
             y: 503px;
             height: 44px;
             spacing: 10px;
-            IconButton {
+            // Sessão real: ainda não há bloqueio de tela de verdade (o shell
+            // fica atrás das janelas), então o botão só existe no protótipo.
+            if !Shell.native: IconButton {
                 icon: Icons.lock;
                 clicked => { root.lock(); }
             }

@@ -1,8 +1,9 @@
 // Dados globais compartilhados entre UI e Rust.
 //
 // - `Apps`: catálogo dos apps fixados (fonte única para launcher e dock).
-// - `Shell`: estado do sistema preenchido pelo Rust (relógio, CPU, bateria)
-//   e callbacks que a UI chama no Rust (busca, login, desligar).
+// - `Shell`: estado do sistema preenchido pelo Rust (relógio, CPU, bateria,
+//   apps abertos) e callbacks que a UI chama no Rust (busca, login, abrir app,
+//   desligar).
 
 import { Icons } from "icons.slint";
 
@@ -66,6 +67,15 @@ export global Shell {
     in property <string> battery: "--";
     /// Nome exibido do usuário.
     in property <string> user-name: "Usuário";
+    /// Sessão real do Kalango OS (labwc, variável `KALANGO_SESSION=1`):
+    /// os apps abrem de verdade e as janelas de demonstração somem.
+    /// Desligado no desenvolvimento e nas capturas (protótipo navegável).
+    in property <bool> native: false;
+    /// Apps com janela aberta (sessão real), para os indicadores da dock.
+    in property <bool> files-running: false;
+    in property <bool> terminal-running: false;
+    in property <bool> browser-running: false;
+    in property <bool> code-running: false;
 
     // --- Implementado no Rust ---
 
@@ -74,6 +84,12 @@ export global Shell {
     /// Valida a senha. Protótipo: aceita qualquer senha não vazia
     /// (no sistema real: PAM via greetd).
     callback try-login(string) -> bool;
-    /// Desliga. Protótipo: encerra o programa (no sistema real: logind).
+    /// Desliga. Protótipo: encerra o programa; sessão real: `systemctl poweroff`.
     callback power-off();
+    /// Sessão real: abre o app do catálogo (ou "launcher"/"settings", que são
+    /// janelas do próprio shell). Devolve `false` se o app não está instalado.
+    callback open-app(string) -> bool;
+    /// Fecha esta janela do shell (usado pelo launcher e pelas Configurações,
+    /// que rodam como processos próprios na sessão real).
+    callback quit();
 }

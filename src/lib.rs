@@ -4,41 +4,67 @@
 //! crate liga a UI aos serviços do sistema:
 //! - [`clock`]: data/hora local em pt-BR;
 //! - [`system`]: uso de CPU e bateria;
-//! - [`apps`]: busca do launcher.
+//! - [`apps`]: busca do launcher;
+//! - [`session`]: sessão real (abrir apps, menu e Configurações como janelas
+//!   próprias, desligar);
+//! - [`appearance`]: aparência salva em disco e compartilhada entre processos.
 //!
 //! A lógica fica na biblioteca (e não no `main.rs`) para poder ser reusada
 //! por testes e por ferramentas como um gerador de capturas das telas.
 
+pub mod appearance;
 pub mod apps;
 pub mod clock;
+pub mod session;
 pub mod system;
+
+pub use session::Mode;
 
 // Tipos gerados pelo build.rs (AppWindow, Shell, Theme, Apps...).
 slint::include_modules!();
 
-/// Cria a janela principal já ligada aos serviços.
+/// Identificador da janela do shell no Wayland (`app_id` do xdg-shell).
+///
+/// Deve bater com o `identifier` das regras em
+/// `distro/config/includes.chroot/etc/xdg/labwc/rc.xml`.
+pub const APP_ID: &str = "kalango-shell";
+
+/// Cria a janela da área de trabalho já ligada aos serviços.
 ///
 /// Os timers devolvidos precisam ficar vivos enquanto a janela roda.
 pub fn build() -> Result<(AppWindow, Vec<slint::Timer>), slint::PlatformError> {
+    build_mode(Mode::Desktop)
+}
+
+/// Cria a janela de um modo do shell (área de trabalho, menu ou Configurações).
+///
+/// Os timers devolvidos precisam ficar vivos enquanto a janela roda.
+pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::PlatformError> {
+    // app_id Wayland: o labwc usa esse nome nas regras de janela da ISO.
+    // Precisa vir depois de criar a janela (que inicializa a plataforma do
+    // Slint) e antes de mostrá-la (quando a janela nativa é criada).
     let ui = AppWindow::new()?;
+    slint::set_xdg_app_id(mode.app_id())?;
     let shell = ui.global::<Shell>();
 
     // Protótipo: qualquer senha não vazia entra. No sistema real a
     // autenticação será via PAM, pelo greetd.
     shell.on_try_login(|password| !password.is_empty());
 
-    // Protótipo: desligar = encerrar o programa. No sistema real: logind.
-    shell.on_power_off(|| {
-        let _ = slint::quit_event_loop();
-    });
-
     apps::install(&ui);
-    let timers = vec![clock::start(&ui), system::start(&ui)];
+    let mut timers = vec![clock::start(&ui), system::start(&ui)];
+    timers.extend(session::install(&ui, mode));
+    timers.extend(appearance::install(&ui));
     Ok((ui, timers))
 }
 
-/// Abre a janela e roda o loop de eventos até ela ser fechada.
+/// Abre a janela do modo pedido nos argumentos e roda até ela ser fechada.
 pub fn run() -> Result<(), slint::PlatformError> {
-    let (ui, _timers) = build()?;
+    let mode = Mode::from_args(std::env::args());
+    // Super com o menu aberto: o novo processo fecha o antigo e sai.
+    if !session::claim_instance(mode) {
+        return Ok(());
+    }
+    let (ui, _timers) = build_mode(mode)?;
     ui.run()
 }

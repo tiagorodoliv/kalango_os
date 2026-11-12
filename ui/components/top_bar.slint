@@ -10,12 +10,20 @@ import { KalangoIcon } from "../brand.slint";
 component BarIcon inherits Rectangle {
     in property <image> icon;
     in property <length> size: 15px;
+    /// Ícone clicável (destaca ao passar o mouse e emite `clicked`).
+    in property <bool> clickable: false;
+    callback clicked();
     width: root.size;
     Image {
         source: root.icon;
-        colorize: Theme.text;
+        colorize: root.clickable && touch.has-hover ? Theme.accent : Theme.text;
         width: root.size;
         height: root.size;
+    }
+    touch := TouchArea {
+        enabled: root.clickable;
+        mouse-cursor: root.clickable ? pointer : default;
+        clicked => { root.clicked(); }
     }
 }
 
@@ -24,8 +32,15 @@ export component TopBar inherits Rectangle {
     in property <bool> launcher-open: false;
     /// Esconde workspaces e indicadores (como no layout do launcher/configurações).
     in property <bool> compact: false;
+    /// Aviso temporário no lugar da data (sessão real: a barra é a única
+    /// parte do shell que nunca fica atrás das janelas dos apps).
+    in property <string> message;
     callback pill-clicked();
     callback power-clicked();
+    /// Wi-Fi e volume clicáveis (sessão real: abrem os ajustes de rede e som).
+    in property <bool> status-clickable: false;
+    callback network-clicked();
+    callback sound-clicked();
 
     height: Theme.bar-height;
     background: Theme.bar;
@@ -87,8 +102,8 @@ export component TopBar inherits Rectangle {
 
     // --- Centro: data e hora ---
     Text {
-        text: Shell.bar-date;
-        color: Theme.text;
+        text: root.message != "" ? root.message : Shell.bar-date;
+        color: root.message != "" ? Theme.accent : Theme.text;
         font-family: Theme.mono;
         font-size: 13px;
         font-weight: 600;
@@ -98,7 +113,10 @@ export component TopBar inherits Rectangle {
 
     // --- Direita: CPU, wifi, volume, bateria, power ---
     if !root.compact: HorizontalLayout {
-        x: parent.width - self.preferred-width - 14px;
+        // Largura explícita: sem ela o layout ocupa a barra inteira e, com o
+        // deslocamento em x, os itens ficam fora da tela.
+        width: self.preferred-width;
+        x: parent.width - self.width - 14px;
         height: parent.height;
         spacing: 14px;
         alignment: end;
@@ -110,8 +128,18 @@ export component TopBar inherits Rectangle {
             font-family: Theme.mono;
             font-size: 12px;
         }
-        BarIcon { icon: Icons.wifi; size: 15px; }
-        BarIcon { icon: Icons.volume; size: 15px; }
+        BarIcon {
+            icon: Icons.wifi;
+            size: 15px;
+            clickable: root.status-clickable;
+            clicked => { root.network-clicked(); }
+        }
+        BarIcon {
+            icon: Icons.volume;
+            size: 15px;
+            clickable: root.status-clickable;
+            clicked => { root.sound-clicked(); }
+        }
         HorizontalLayout {
             spacing: 4px;
             BarIcon { icon: Icons.battery; size: 17px; }

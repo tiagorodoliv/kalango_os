@@ -2,6 +2,12 @@
 //
 // Fluxo navegável: login → área de trabalho (janelas Arquivos/Terminal,
 // dock, barra) → menu de apps (overlay) → Configurações → Aparência.
+//
+// Na sessão real (`Shell.native`) o mesmo binário roda em três processos,
+// escolhidos por `mode`: a área de trabalho (sempre atrás dos apps), o menu
+// de apps (`--launcher`, tela cheia e transparente, por cima de tudo) e as
+// Configurações (`--settings`, janela comum). As janelas de demonstração
+// somem e a dock/menu abrem os apps instalados.
 // O estado de navegação mora aqui; tema e dados do sistema ficam nos
 // globais `Theme` e `Shell`, que o Rust também acessa.
 
@@ -31,8 +37,18 @@ export { Theme, ThemeMode, Shell, Apps, AppEntry }
 /// Telas de nível superior.
 export enum Screen { login, desktop, settings }
 
+/// O que este processo do shell mostra (ver `src/session.rs`).
+export enum ShellMode {
+    /// Área de trabalho: login, barra, dock e fundo. Padrão.
+    desktop,
+    /// Só o menu de apps, sobre fundo transparente (`--launcher`).
+    launcher,
+    /// Só as Configurações (`--settings`).
+    settings,
+}
+
 export component AppWindow inherits Window {
-    title: "Kalango OS";
+    title: root.mode == ShellMode.settings ? "Configurações" : "Kalango OS";
     icon: @image-url("brand/kalango-icon.png");
     // Referência do layout em px lógicos; no dispositivo (feature kms)
     // a janela ocupa a tela inteira automaticamente.
@@ -40,9 +56,11 @@ export component AppWindow inherits Window {
     preferred-height: 900px;
     min-width: 1100px;
     min-height: 720px;
-    background: Theme.background;
+    // O launcher é uma camada transparente por cima dos apps.
+    background: root.mode == ShellMode.launcher ? transparent : Theme.background;
     default-font-family: Theme.sans;
 
+    in property <ShellMode> mode: ShellMode.desktop;
     in-out property <Screen> screen: Screen.login;
     in-out property <bool> launcher-open: false;
     property <bool> files-open: true;
@@ -54,6 +72,25 @@ export component AppWindow inherits Window {
 
     /// Abre um app pelo id do catálogo.
     function launch(id: string) {
+        if (Shell.native) {
+            // Sessão real: o Rust abre o app instalado (ou a janela de
+            // Configurações). O launcher se fecha depois de abrir.
+            if (Shell.open-app(id)) {
+                root.launcher-open = false;
+                if (root.mode == ShellMode.launcher) {
+                    Shell.quit();
+                }
+            } else {
+                root.show-toast("Este app ainda não está disponível");
+            }
+        } else {
+            root.launch-demo(id);
+        }
+        keys.focus();
+    }
+
+    /// Protótipo: "abre" as janelas de demonstração dentro do shell.
+    function launch-demo(id: string) {
         root.launcher-open = false;
         if (id == "files") {
             root.files-open = true;
@@ -68,7 +105,6 @@ export component AppWindow inherits Window {
         } else {
             root.show-toast("Este app ainda não existe no protótipo");
         }
-        keys.focus();
     }
 
     function show-toast(msg: string) {
@@ -78,7 +114,12 @@ export component AppWindow inherits Window {
     }
 
     function toggle-launcher() {
-        if (root.screen != Screen.login) {
+        if (Shell.native) {
+            // Sessão real: o menu é outra janela, que fica por cima dos apps.
+            if (!Shell.open-app("launcher")) {
+                root.show-toast("Não foi possível abrir o menu de apps");
+            }
+        } else if (root.screen != Screen.login) {
             root.launcher-open = !root.launcher-open;
             if (!root.launcher-open) {
                 keys.focus();
@@ -110,6 +151,10 @@ export component AppWindow inherits Window {
                 return accept;
             }
             if (event.text == Key.Escape) {
+                if (root.mode != ShellMode.desktop) {
+                    Shell.quit();
+                    return accept;
+                }
                 if (root.launcher-open) {
                     root.launcher-open = false;
                     keys.focus();
@@ -126,7 +171,7 @@ export component AppWindow inherits Window {
         // ------------------------------------------------------------------
         // Login
         // ------------------------------------------------------------------
-        if root.screen == Screen.login: LoginScreen {
+        if root.mode == ShellMode.desktop && root.screen == Screen.login: LoginScreen {
             init => { self.focus-password(); }
             logged-in => {
                 root.screen = Screen.desktop;
@@ -137,13 +182,13 @@ export component AppWindow inherits Window {
         // ------------------------------------------------------------------
         // Área de trabalho (também fica por trás do launcher)
         // ------------------------------------------------------------------
-        if root.screen == Screen.desktop: Rectangle {
+        if root.mode == ShellMode.desktop && root.screen == Screen.desktop: Rectangle {
             Backdrop {
                 variant: BackdropVariant.desktop;
                 show-mark: root.launcher-open;
             }
 
-            if root.files-open && !root.launcher-open: FilesWindow {
+            if !Shell.native && root.files-open && !root.launcher-open: FilesWindow {
                 x: 110px;
                 y: 96px;
                 width: 761px;
@@ -154,7 +199,7 @@ export component AppWindow inherits Window {
                 close => { root.files-open = false; root.focused-app = "terminal"; }
             }
 
-            if root.terminal-open && !root.launcher-open: TerminalWindow {
+            if !Shell.native && root.terminal-open && !root.launcher-open: TerminalWindow {
                 x: 650px;
                 y: 300px;
                 width: 641px;
@@ -187,7 +232,7 @@ export component AppWindow inherits Window {
         // ------------------------------------------------------------------
         // Configurações
         // ------------------------------------------------------------------
-        if root.screen == Screen.settings: Rectangle {
+        if root.mode == ShellMode.desktop && root.screen == Screen.settings: Rectangle {
             Backdrop { variant: BackdropVariant.plain; }
             SettingsScreen {
                 y: Theme.bar-height;
@@ -202,12 +247,16 @@ export component AppWindow inherits Window {
         // ------------------------------------------------------------------
         // Barra superior (todas as telas menos o login)
         // ------------------------------------------------------------------
-        if root.screen != Screen.login: TopBar {
+        if root.mode == ShellMode.desktop && root.screen != Screen.login: TopBar {
             y: 0;
             width: parent.width;
             z: 5;
             launcher-open: root.launcher-open;
             compact: root.launcher-open || root.screen == Screen.settings;
+            message: Shell.native ? root.toast : "";
+            status-clickable: Shell.native;
+            network-clicked => { root.launch("network"); }
+            sound-clicked => { root.launch("sound"); }
             pill-clicked => { root.toggle-launcher(); }
             power-clicked => { Shell.power-off(); }
         }
@@ -228,8 +277,28 @@ export component AppWindow inherits Window {
             lock => { root.lock(); }
         }
 
-        // Aviso temporário
-        if root.toast != "": Rectangle {
+        // ------------------------------------------------------------------
+        // Processos da sessão real: menu de apps e Configurações sozinhos
+        // ------------------------------------------------------------------
+        if root.mode == ShellMode.launcher: Launcher {
+            // A faixa da barra fica transparente: a barra real aparece por trás.
+            y: Theme.bar-height;
+            height: parent.height - Theme.bar-height;
+            init => { self.reset(); }
+            launch(id) => { root.launch(id); }
+            close => { Shell.quit(); }
+        }
+
+        if root.mode == ShellMode.settings: Rectangle {
+            Backdrop { variant: BackdropVariant.plain; }
+            SettingsScreen {
+                close => { Shell.quit(); }
+            }
+        }
+
+        // Aviso temporário (na área de trabalho da sessão real ele vai para
+        // a barra superior, porque o rodapé pode estar atrás de um app)
+        if root.toast != "" && !(Shell.native && root.mode == ShellMode.desktop): Rectangle {
             y: parent.height - 140px;
             width: toast-text.preferred-width + 32px;
             height: 38px;

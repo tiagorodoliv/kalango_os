@@ -2,7 +2,7 @@
 
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
-import { Apps, AppEntry } from "../globals.slint";
+import { Apps, AppEntry, Shell } from "../globals.slint";
 
 /// Um item da dock (tile 52×52 com ícone colorido).
 component DockItem inherits Rectangle {
@@ -63,8 +63,13 @@ export component Dock inherits Rectangle {
 
         for app in Apps.dock: DockItem {
             app: app;
-            running: (app.id == "files" && root.files-open) || (app.id == "terminal" && root.terminal-open);
-            active: app.id == root.focused-app && self.running;
+            // Sessão real: apps abertos de verdade (o shell não sabe qual está
+            // em foco, então só mostra o ponto). Protótipo: janelas de demonstração.
+            running: Shell.native
+                ? (app.id == "files" && Shell.files-running) || (app.id == "terminal" && Shell.terminal-running)
+                  || (app.id == "browser" && Shell.browser-running) || (app.id == "code" && Shell.code-running)
+                : (app.id == "files" && root.files-open) || (app.id == "terminal" && root.terminal-open);
+            active: !Shell.native && app.id == root.focused-app && self.running;
             clicked => { root.launch(app.id); }
         }
 
