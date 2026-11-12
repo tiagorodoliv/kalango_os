@@ -1,0 +1,12 @@
+#!/bin/sh
+# Inicia a sessão gráfica do Kalango OS (chamado pelo greetd).
+#
+# Em máquina virtual, o labwc (wlroots) desenhando com OpenGL na GPU virtual
+# deixa blocos pretos e restos de imagem na tela (atualização parcial errada).
+# Compor a tela por software (pixman) e desenhar o cursor por software
+# resolve; os apps continuam usando a GPU virtual para desenhar a si mesmos.
+if systemd-detect-virt -q; then
+	export WLR_RENDERER=pixman
+	export WLR_NO_HARDWARE_CURSORS=1
+fi
+exec labwc

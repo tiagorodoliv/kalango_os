@@ -1,0 +1,43 @@
+# Pacotes da imagem do Kalango OS (Debian trixie).
+
+# Live: boot pela ISO e criação do usuário "user" no boot
+live-boot
+live-config
+live-config-systemd
+user-setup
+sudo
+
+# Sessão gráfica: greetd (login) -> labwc (compositor Wayland) -> kalango-shell
+greetd
+labwc
+xwayland
+dbus-user-session
+
+# Gráficos e bibliotecas usadas pelo kalango-shell (Slint, backend winit/femtovg)
+libgl1-mesa-dri
+libegl1
+libwayland-egl1
+libxkbcommon0
+libfontconfig1
+
+# Apps reais abertos pela dock e pelo menu (ver src/session.rs)
+thunar
+foot
+firefox-esr
+firefox-esr-l10n-pt-br
+mousepad
+ristretto
+htop
+xdg-user-dirs
+
+# Rede e som (Wi-Fi da barra abre o nmtui; volume abre o pavucontrol)
+network-manager
+pipewire-audio
+wireplumber
+pavucontrol
+
+# Idioma e fontes (as fontes do shell já vão embutidas no binário)
+locales
+keyboard-configuration
+fonts-inter
+fonts-jetbrains-mono

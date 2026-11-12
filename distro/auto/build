@@ -1,0 +1,5 @@
+#!/bin/sh
+# Gera a ISO e guarda o log completo em build.log.
+set -e
+
+lb build noauto "${@}" 2>&1 | tee build.log

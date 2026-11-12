@@ -1,0 +1,7 @@
+# Variáveis da sessão labwc.
+XKB_DEFAULT_LAYOUT=br
+# Liga o modo real do kalango-shell: abre os apps instalados (ver src/session.rs).
+KALANGO_SESSION=1
+# Apps GTK/Qt/Firefox nativos em Wayland.
+MOZ_ENABLE_WAYLAND=1
+QT_QPA_PLATFORM=wayland

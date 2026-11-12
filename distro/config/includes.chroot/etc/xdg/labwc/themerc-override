@@ -1,0 +1,23 @@
+# Barras de título e menus do labwc nas cores do Kalango OS (tema escuro).
+# Mesmas cores de ui/theme.slint: painel #0d1218, fundo #07090d, borda #1e2a33,
+# texto #e6edf3, texto secundário #8b98a5, destaque ciano #3dd6f5.
+border.width: 1
+window.active.border.color: #1e2a33
+window.inactive.border.color: #1e2a33
+window.active.title.bg.color: #0d1218
+window.inactive.title.bg.color: #07090d
+window.active.label.text.color: #e6edf3
+window.inactive.label.text.color: #8b98a5
+window.label.text.justify: center
+window.active.button.unpressed.image.color: #e6edf3
+window.inactive.button.unpressed.image.color: #8b98a5
+menu.items.bg.color: #0d1218
+menu.items.text.color: #e6edf3
+menu.items.active.bg.color: #1a222b
+menu.items.active.text.color: #3dd6f5
+menu.border.color: #1e2a33
+menu.separator.color: #1e2a33
+osd.bg.color: #0d1218
+osd.border.color: #1e2a33
+osd.label.text.color: #e6edf3
+window.active.indicator.toggled-keybind.color: #3dd6f5

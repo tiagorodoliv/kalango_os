@@ -1,0 +1,8 @@
+#!/bin/sh
+# Limpa a árvore de build e os arquivos gerados pelo lb config.
+# Mantém cache/ (pacotes baixados) para acelerar o próximo build.
+set -e
+
+lb clean noauto "${@}"
+rm -f config/binary config/bootstrap config/chroot config/common config/source
+rm -f build.log

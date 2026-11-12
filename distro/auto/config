@@ -1,0 +1,23 @@
+#!/bin/sh
+# Configuração do live-build para a ISO do Kalango OS.
+# Roda dentro do chroot "builder" (Debian trixie), chamado por distro/build.sh.
+set -e
+
+# noeject: ao desligar, não para pedindo "remova a mídia e aperte ENTER".
+
+lb config noauto \
+	--mode debian \
+	--distribution trixie \
+	--architectures amd64 \
+	--archive-areas "main contrib non-free-firmware" \
+	--mirror-bootstrap "${KALANGO_MIRROR:-http://deb.debian.org/debian/}" \
+	--mirror-binary "http://deb.debian.org/debian/" \
+	--binary-image iso-hybrid \
+	--debian-installer none \
+	--memtest none \
+	--image-name kalango-os \
+	--iso-application "Kalango OS" \
+	--iso-publisher "Kalango OS" \
+	--iso-volume "KALANGO_OS" \
+	--bootappend-live "boot=live components noeject quiet splash username=user hostname=kalango locales=pt_BR.UTF-8 keyboard-layouts=br timezone=America/Sao_Paulo" \
+	"${@}"

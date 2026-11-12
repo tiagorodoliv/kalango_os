@@ -1,0 +1,19 @@
+# Chroot de build e ISOs geradas
+/.cache/
+/out/
+
+# Binário do shell, copiado pelo build.sh
+/config/includes.chroot/usr/local/bin/kalango-shell
+
+# Arquivos gerados pelo live-build
+/config/binary
+/config/bootstrap
+/config/chroot
+/config/common
+/config/source
+/build.log
+/.build/
+/cache/
+/chroot/
+/binary/
+*.iso
