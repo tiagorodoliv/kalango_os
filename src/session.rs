@@ -181,7 +181,13 @@ pub fn open(id: &str) -> bool {
             c
         }
         _ => {
-            let Some(argv) = command_for(id) else {
+            // Apps do sistema ("Todos os apps"): comando do `.desktop`.
+            let argv = if id.starts_with(crate::desktop::ID_PREFIX) {
+                crate::desktop::from_id(id).map(|app| app.command())
+            } else {
+                command_for(id)
+            };
+            let Some(argv) = argv else {
                 return false;
             };
             if find_in_path(&argv[0]).is_none() {

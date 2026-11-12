@@ -15,7 +15,12 @@ export struct AppEntry {
     name: string,
     icon: image,
     /// Cor do ícone; o fundo do quadradinho usa a mesma cor com alfa baixo.
+    /// Transparente nos apps do sistema com ícone próprio (já colorido).
     tint: color,
+    /// Inicial exibida no lugar do ícone (app do sistema sem ícone).
+    letter: string,
+    /// Texto extra da busca (nome genérico, palavras-chave, programa).
+    keywords: string,
 }
 
 /// Um item da seção RECENTES do launcher (arquivo ou atalho de app).
@@ -48,6 +53,11 @@ export global Apps {
         { id: "monitor", name: "Monitor", icon: Icons.activity, tint: #3dd6f5 },
         { id: "updates", name: "Atualizações", icon: Icons.download, tint: #9aa5b1 },
     ];
+
+    /// Todos os apps instalados (página "Todos os apps" do menu), em ordem
+    /// alfabética. Sessão real: o Rust lê os `.desktop` do sistema
+    /// (`src/desktop.rs`). Protótipo: os próprios fixados.
+    in-out property <[AppEntry]> all: pinned;
 
     /// Apps da dock (antes do separador; Configurações vem depois dele).
     out property <[AppEntry]> dock: [pinned[0], pinned[1], pinned[2], pinned[3], pinned[4]];

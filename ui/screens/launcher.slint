@@ -6,7 +6,9 @@ import { Icons } from "../icons.slint";
 import { Apps, AppEntry, Shell } from "../globals.slint";
 import { SectionLabel, Avatar, IconButton, LinkText } from "../components/widgets.slint";
 
-/// Tile de app da grade (108×101).
+/// Tile de app da grade (108×101). Apps do catálogo usam os ícones de traço
+/// na cor do app; apps do sistema ("Todos os apps") trazem o ícone colorido
+/// próprio (`tint` transparente) ou, sem ícone, a inicial.
 component AppTile inherits Rectangle {
     in property <AppEntry> app;
     callback clicked();
@@ -19,23 +21,37 @@ component AppTile inherits Rectangle {
     border-color: Theme.border;
     animate background { duration: Theme.anim; }
 
+    /// Ícone colorido do próprio app (app do sistema).
+    property <bool> own-icon: root.app.tint == transparent;
+
     // Quadradinho do ícone: o Terminal tem fundo preto, os demais a cor do app.
     Rectangle {
         y: 15px;
         width: 48px;
         height: 48px;
         border-radius: 10px;
-        background: root.app.id == "terminal" ? #05080b : root.app.tint.with-alpha(0.16);
-        Image {
+        background: root.own-icon ? transparent
+            : root.app.id == "terminal" ? #05080b : root.app.tint.with-alpha(0.16);
+        if root.app.letter == "": Image {
             source: root.app.icon;
-            colorize: root.app.id == "files" ? Theme.accent : root.app.tint;
-            width: 22px;
-            height: 22px;
+            colorize: root.own-icon ? transparent : root.app.id == "files" ? Theme.accent : root.app.tint;
+            width: root.own-icon ? 44px : 22px;
+            height: root.own-icon ? 44px : 22px;
+        }
+        if root.app.letter != "": Text {
+            text: root.app.letter;
+            color: root.app.tint;
+            font-family: Theme.sans;
+            font-size: 22px;
+            font-weight: 600;
         }
     }
 
     Text {
         y: 73px;
+        width: parent.width - 12px;
+        horizontal-alignment: center;
+        overflow: elide;
         text: root.app.name;
         color: Theme.text;
         font-family: Theme.sans;
@@ -57,12 +73,24 @@ export component Launcher inherits Rectangle {
 
     /// Texto digitado na busca.
     property <string> query: search.text;
-    /// Apps exibidos: todos sem busca, ou o resultado do filtro (feito no Rust).
-    property <[AppEntry]> shown: root.query == "" ? Apps.pinned : Shell.filter-apps(root.query);
+    /// Página "Todos os apps" aberta (no lugar dos fixados e recentes).
+    property <bool> all-view: false;
+    /// Grade grande e com rolagem: busca ou "Todos os apps". Sem ela, a grade
+    /// dos fixados (2 linhas) divide o card com os recentes.
+    property <bool> tall-grid: root.query != "" || root.all-view;
+    /// Apps exibidos: fixados, todos os apps ou o resultado do filtro (feito
+    /// no Rust, que procura também nos apps instalados).
+    property <[AppEntry]> shown: root.query != "" ? Shell.filter-apps(root.query)
+        : root.all-view ? Apps.all : Apps.pinned;
 
-    /// Limpa a busca e foca o campo (chamado ao abrir).
+    // Volta ao topo da grade quando a lista muda (outra busca ou página).
+    changed query => { grid.content-y = 0; }
+    changed all-view => { grid.content-y = 0; }
+
+    /// Limpa a busca, volta aos fixados e foca o campo (chamado ao abrir).
     public function reset() {
         search.text = "";
+        root.all-view = false;
         search.focus();
     }
 
@@ -154,20 +182,43 @@ export component Launcher inherits Rectangle {
         SectionLabel {
             x: 29px;
             y: 112px;
-            text: root.query == "" ? "FIXADOS" : "RESULTADOS";
+            text: root.query != "" ? "RESULTADOS" : root.all-view ? "TODOS OS APPS" : "FIXADOS";
         }
         if root.query == "": LinkText {
             x: parent.width - self.width - 29px;
             y: 110px;
-            text: "Todos os apps";
+            text: root.all-view ? "Voltar aos fixados" : "Todos os apps";
+            clicked => {
+                root.all-view = !root.all-view;
+                search.focus();
+            }
         }
 
-        // Grade 6 colunas; posição calculada pelo índice.
-        for app[i] in root.shown: AppTile {
-            x: 29px + Math.mod(i, 6) * (108px + 11px);
-            y: 140px + floor(i / 6) * (101px + 11px);
-            app: app;
-            clicked => { root.launch(app.id); }
+        // Grade 6 colunas; posição calculada pelo índice. Com busca ou em
+        // "Todos os apps" ela ocupa até o rodapé e rola com a roda do mouse.
+        grid := Flickable {
+            x: 29px;
+            y: 140px;
+            width: 703px;
+            height: root.tall-grid ? 330px : 213px;
+            content-height: max(self.height, ceil(root.shown.length / 6) * (101px + 11px) - 11px);
+
+            for app[i] in root.shown: AppTile {
+                x: Math.mod(i, 6) * (108px + 11px);
+                y: floor(i / 6) * (101px + 11px);
+                app: app;
+                clicked => { root.launch(app.id); }
+            }
+        }
+
+        // Indicador de rolagem (só quando a lista não cabe).
+        if grid.content-height > grid.height: Rectangle {
+            x: grid.x + grid.width + 10px;
+            y: grid.y + grid.height * (-grid.content-y / grid.content-height);
+            width: 3px;
+            height: grid.height * grid.height / grid.content-height;
+            border-radius: 1.5px;
+            background: Theme.text-muted.with-alpha(0.5);
         }
 
         if root.shown.length == 0: Text {
@@ -179,12 +230,12 @@ export component Launcher inherits Rectangle {
         }
 
         // --- Recentes (só sem busca) ---
-        if root.query == "": SectionLabel {
+        if !root.tall-grid: SectionLabel {
             x: 29px;
             y: 381px;
             text: "RECENTES";
         }
-        for r[i] in root.query == "" ? Apps.recents : []: Rectangle {
+        for r[i] in root.tall-grid ? [] : Apps.recents: Rectangle {
             x: 29px + i * (346px + 9px);
             y: 406px;
             width: 346px;
@@ -225,7 +276,7 @@ export component Launcher inherits Rectangle {
             }
         }
 
-        if root.query == "" && Apps.recents.length == 0: Text {
+        if !root.tall-grid && Apps.recents.length == 0: Text {
             x: 29px;
             y: 421px;
             text: "Nenhum arquivo aberto recentemente";

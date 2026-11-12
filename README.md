@@ -19,7 +19,8 @@ src/
   lib.rs               monta a janela e liga os serviços
   clock.rs             data/hora local em pt-BR
   system.rs            CPU (/proc/stat) e bateria (/sys/class/power_supply)
-  apps.rs              busca do launcher (ignora acentos e maiúsculas)
+  apps.rs              busca do launcher (ignora acentos e maiúsculas) e "Todos os apps"
+  desktop.rs           apps instalados, lidos dos arquivos .desktop (nome pt-BR, ícone, Exec)
   session.rs           sessão real: abrir apps, menu e Configurações como janelas próprias, desligar
   appearance.rs        aparência salva em ~/.config/kalango e compartilhada entre os processos
   greeter.rs           tela de login de verdade (greeter do greetd, senha conferida no PAM)

@@ -36,6 +36,10 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   pavucontrol, parole, gnome-software = Loja, gnome-calendar = Agenda), avisos vão para o centro da barra (o rodapé pode estar atrás de um app), power faz
   `systemctl poweroff`, a área de trabalho começa direto (sem login falso) e o nome vem do GECOS de `$USER`.
   Rodapé do menu: cadeado = `swaylock` (ext-session-lock, seguro), sair = `labwc --exit` (volta ao greeter).
+  "Todos os apps" do menu = os `.desktop` do sistema (`src/desktop.rs`: `Name[pt_BR]`, ícone do hicolor/Adwaita
+  ou a inicial, `Exec` sem `%f`/`%U`, `Terminal=true` abre no foot; some `NoDisplay`, `OnlyShowIn` e o
+  instalador do Debian), id `desktop:<caminho>`; a busca procura neles depois dos fixados, sem repetir os
+  programas dos fixados. Lidos numa thread depois de o menu aparecer (~40 ms com 60 apps em release).
   RECENTES do menu = `~/.local/share/recently-used.xbel` (`src/recent.rs`), abertos com `xdg-open`; na ISO live
   (`/run/live/medium` existe) o 1º item é "Instalar Kalango OS" (app `installer`).
   Sem a variável (dev no host, `examples/snapshot.rs`) continua o protótipo com as janelas de demonstração.
