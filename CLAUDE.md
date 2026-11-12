@@ -9,16 +9,59 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
 - **Linguagem/UI:** Rust + Slint (resolvido para **slint 1.18.1** no Cargo.lock).
   - Dev: janela comum no macOS (backend winit, renderer femtovg).
   - Dispositivo: `cargo build --release --features kms` (desenha direto via DRM/KMS).
-- **Ponto em aberto (arquitetura):** o layout tem janelas de apps reais (Arquivos, Terminal), então o desktop final
-  precisa de um **compositor Wayland**. Opções: (a) compositor pronto (labwc/wayfire) + shell em Slint;
-  (b) compositor próprio em Rust com Smithay (caminho do COSMIC). Por ora, construir um **protótipo navegável
-  de tela cheia** que reproduz o layout (login → área de trabalho → menu de apps → configurações), com as
-  janelas de apps como mock dentro do próprio Slint. Decidir o compositor depois de validar o visual.
+- **Compositor (decidido em 2026-11-11): labwc + shell em Slint.** A sessão é greetd → `kalango-session` → labwc
+  → `kalango-shell`. Sem layer-shell (winit não suporta), o shell roda em 3 processos do mesmo binário
+  (`src/session.rs`), cada um com seu app_id e regra em `etc/xdg/labwc/rc.xml`:
+  - `kalango-shell` (sem argumento): barra, dock e fundo; tela cheia, sem moldura, sempre atrás dos apps.
+    O `<margin top="35" bottom="88">` do labwc impede app maximizado de cobrir barra e dock.
+  - `kalango-shell --launcher`: menu de apps em tela cheia, transparente, sempre por cima. Super (onRelease) ou
+    Super+Espaço abre; rodar de novo fecha (pidfile em `$XDG_RUNTIME_DIR`).
+  - `kalango-shell --settings`: Configurações em janela comum. A aparência é salva em
+    `~/.config/kalango/aparencia.conf` e os outros processos aplicam em <1 s (`src/appearance.rs`).
+- **Modo real × protótipo:** `KALANGO_SESSION=1` (em `etc/xdg/labwc/environment`) liga `Shell.native`: dock/menu
+  abrem apps instalados (`session::command_for`: thunar, foot, firefox-esr, mousepad, ristretto, htop, nmtui,
+  pavucontrol), avisos vão para o centro da barra (o rodapé pode estar atrás de um app), power faz
+  `systemctl poweroff`. Sem a variável (dev no host, `examples/snapshot.rs`) continua o protótipo com as janelas
+  de demonstração. Loja, Música e Agenda ainda não têm app ("Este app ainda não está disponível").
+- Próximos passos da arquitetura: tela de login em Slint como greeter do greetd (PAM) — hoje a sessão entra sozinha
+  e a tela de login do shell aceita qualquer senha; bloqueio de tela real; layer-shell para barra/dock/menu.
 
 ## Ambiente
 
 - Rust instalado via rustup em `~/.cargo` **sem** alterar o PATH: usar `~/.cargo/bin/cargo` ou rodar `source ~/.cargo/env`.
 - O esqueleto atual compila (`cargo build` OK).
+- Máquina Linux de dev (Ubuntu 26.10, x86_64): `cargo build`, `cargo test` e `cargo run --example snapshot` OK.
+  Pacotes do host já instalados: `libudev-dev libinput-dev libdrm-dev libgbm-dev libseat-dev debootstrap
+  debian-archive-keyring` (+ qemu-system-x86, OVMF; usuário no grupo `kvm`). `--features kms` compila.
+- glibc do host (Ubuntu, 2.44) é mais nova que a do trixie (2.41): **não** copiar binário compilado no host para a ISO.
+  O `live-build` do Ubuntu é a 3.0 (2012) e não serve. Por isso `distro/build.sh` usa um chroot trixie
+  (`distro/.cache/builder`) que compila o shell e roda o live-build do Debian. Nunca dar `rm -rf` nesse chroot
+  com o script rodando: /dev, /proc e /sys ficam montados dentro dele.
+  O `lb build` às vezes falha com `umount: .../chroot/proc: target is busy` (corrida com o apt saindo);
+  o `build.sh` tenta de novo até 3 vezes (o live-build retoma de onde parou) e, ao sair, desmonta o que
+  sobrou no chroot da ISO. Não editar o `build.sh` com ele rodando: o sh lê o script aos poucos.
+
+## ISO (`distro/`)
+
+- `distro/build.sh` (pede sudo) → `distro/out/kalango-os-<versão>.iso` (versão do `Cargo.toml`); `--so-shell` só compila o binário.
+- `distro/run-qemu.sh [--uefi] [--gl]` testa a ISO no QEMU/KVM (q35, `vmport=off`, 1440×900). Padrão: GTK sem GL
+  (`gtk,gl=on` no GNOME/Wayland do host inverte o mouse e estraga a imagem); `--gl` usa virgl em janela SDL.
+- Em VM, `/usr/local/bin/kalango-session` exporta `WLR_RENDERER=pixman` e `WLR_NO_HARDWARE_CURSORS=1`: com o labwc
+  em GL na GPU virtual aparecem blocos pretos no canto superior esquerdo.
+- Testar sem sudo/sem refazer a ISO: compilar contra o trixie com `bwrap --ro-bind distro/.cache/builder /` +
+  toolchain do host (binário em `target/release/kalango_os`), passar para a VM por `-virtfs` (9p) e, dentro dela,
+  copiar binário/configs, `rm /run/greetd.run` (o greetd só faz autologin uma vez por boot) e
+  `systemctl restart greetd`. A VM live tem rede e sudo sem senha (dá para `apt install`).
+- Menu de boot com timeout de 5 s: `distro/config/bootloaders/{isolinux/isolinux.cfg,grub-pc/config.cfg}`
+  (o padrão do live-build é esperar o Enter para sempre).
+- Atalhos (labwc, além dos padrão): Super = menu, Super+Enter = foot, Super+E = thunar, Super+B = firefox.
+  Para depurar, Ctrl+Alt+F2 dá console com login automático (usuário `user`, senha `live`);
+  `journalctl -t kalango-shell` tem a saída do shell. O greetd está no VT7.
+- Tema escuro dos apps: `etc/gtk-3.0/settings.ini`, `etc/gtk-4.0/settings.ini`, `etc/xdg/labwc/themerc-override`,
+  `etc/xdg/foot/foot.ini` (mesmas cores de `ui/theme.slint`).
+- `auto/config` usa `noeject` (desligar não para pedindo para remover a mídia).
+- `distro/auto/config`: trixie amd64, main+contrib+non-free-firmware, pt_BR, teclado br, usuário live `user`.
+- Pacotes em `distro/config/package-lists/kalango.list.chroot`; configs de sistema em `distro/config/includes.chroot/`.
 
 ## Assets (já organizados)
 

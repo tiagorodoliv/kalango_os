@@ -1,4 +1,4 @@
-# linux_os
+# kalango_os
 
 Interface gráfica (shell) do sistema operacional proprietário, em **Rust + [Slint](https://slint.dev)**.
 
@@ -15,11 +15,13 @@ Interface gráfica (shell) do sistema operacional proprietário, em **Rust + [Sl
 Cargo.toml             dependências e feature `kms` (build do dispositivo)
 build.rs               compila ui/app_window.slint em código Rust
 src/
-  main.rs              ponto de entrada (só chama linux_os::run)
+  main.rs              ponto de entrada (só chama kalango_os::run)
   lib.rs               monta a janela e liga os serviços
   clock.rs             data/hora local em pt-BR
   system.rs            CPU (/proc/stat) e bateria (/sys/class/power_supply)
   apps.rs              busca do launcher (ignora acentos e maiúsculas)
+  session.rs           sessão real: abrir apps, menu e Configurações como janelas próprias, desligar
+  appearance.rs        aparência salva em ~/.config/kalango e compartilhada entre os processos
 examples/
   snapshot.rs          gera PNG de cada tela em target/snapshots/
 ui/
@@ -39,7 +41,7 @@ assets/                layouts de referência, logo e wallpapers
 ```sh
 ~/.cargo/bin/cargo run                       # abre o protótipo numa janela
 ~/.cargo/bin/cargo run --example snapshot    # gera as capturas das telas
-~/.cargo/bin/cargo test                      # testes de relógio, CPU e busca
+~/.cargo/bin/cargo test                      # testes de relógio, CPU, busca, sessão e aparência
 ```
 
 Qualquer senha não vazia entra. Atalhos: **Super** (no macOS, **⌃ Control**) abre/fecha o menu de apps;
@@ -56,6 +58,20 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```sh
 cargo run
 ```
+
+## Gerar a ISO (Debian 13 trixie + labwc)
+
+```sh
+distro/build.sh          # pede sudo; a primeira vez cria o chroot de build (~1 GB)
+distro/run-qemu.sh       # testa a ISO gerada em distro/out/ no QEMU
+```
+
+`distro/run-qemu.sh --gl` usa aceleração 3D (janela SDL); `--uefi` dá boot por UEFI.
+
+A ISO entra direto na sessão: greetd → labwc → `kalango-shell`. Logs do shell: `journalctl -t kalango-shell`.
+Na ISO a dock e o menu abrem os apps de verdade (Thunar, foot, Firefox, Mousepad, Ristretto, htop) e o Wi-Fi e o
+volume da barra abrem `nmtui` e `pavucontrol`. Atalhos: **Super** abre/fecha o menu, **Super+Enter** terminal,
+**Super+E** arquivos, **Super+B** navegador, **Alt+Tab** troca de janela, **Alt+F4** fecha.
 
 ## Build para o dispositivo (Linux, tela direta via KMS)
 
