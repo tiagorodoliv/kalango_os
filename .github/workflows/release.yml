@@ -1,0 +1,62 @@
+# Gera a ISO e publica um Release quando o mantenedor cria uma tag de versão:
+#   git tag v0.2.0 && git push origin v0.2.0
+# A versão da ISO vem do Cargo.toml: atualize o campo version antes da tag.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  iso:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      # O build (chroot de build + chroot da ISO + ISO) passa de 10 GB: libera
+      # espaço tirando ferramentas pré-instaladas que o build não usa.
+      - name: Liberar espaço em disco
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force || true
+          df -h /
+
+      - name: Dependências do build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends debootstrap debian-archive-keyring
+
+      - name: Gerar a ISO
+        run: sudo distro/build.sh
+
+      - name: Conferir a ISO e gerar o SHA-256
+        run: |
+          cd distro/out
+          ls -lh *.iso
+          sha256sum *.iso > SHA256SUMS
+          cat SHA256SUMS
+
+      # Tag: Release em rascunho (o mantenedor revisa as notas e publica).
+      - name: Publicar o Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" distro/out/*.iso distro/out/SHA256SUMS \
+            --draft --generate-notes --title "Kalango OS ${GITHUB_REF_NAME#v}"
+
+      # Rodado à mão (workflow_dispatch): só guarda a ISO como artefato.
+      - name: Guardar a ISO
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: iso
+          path: |
+            distro/out/*.iso
+            distro/out/SHA256SUMS
+          retention-days: 7

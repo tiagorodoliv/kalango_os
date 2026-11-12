@@ -1,6 +1,10 @@
 # Kalango OS — interface (shell) em Rust + Slint
 
-Projeto da interface gráfica do **Kalango OS**, distro Linux proprietária.
+Projeto da interface gráfica do **Kalango OS**, distro Linux baseada no Debian.
+**Open source (GPL-3.0-or-later), decidido em 2026-11-12**; o repositório fica privado até a versão estável.
+Nome e logo são marca protegida (`TRADEMARKS.md`). Contribuições por PR revisado pelo Tiago (`CONTRIBUTING.md`,
+DCO com `git commit -s`); CI em `.github/workflows/ci.yml` e ISO publicada por tag `v*` (`release.yml`, Release
+em rascunho). Doações: `.github/FUNDING.yml`, ainda todo comentado (plataforma não escolhida).
 Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Conventional Commits, JSDoc/rustdoc em tudo que é público).
 
 ## Decisões já tomadas

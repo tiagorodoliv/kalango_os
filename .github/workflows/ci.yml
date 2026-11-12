@@ -1,0 +1,48 @@
+# Testes a cada push e Pull Request: compila, roda os testes e o clippy.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # Bibliotecas que o Slint (winit, femtovg, kms) precisa para compilar.
+      - name: Dependências do sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libfontconfig1-dev libxkbcommon-dev libwayland-dev \
+            libudev-dev libinput-dev libgbm-dev libdrm-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Testes
+        run: cargo test
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Build do dispositivo (feature kms)
+        run: cargo build --features kms
+
+      # Capturas das telas, para o revisor ver a interface sem compilar.
+      - name: Capturas das telas
+        run: cargo run --example snapshot -- target/snapshots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: capturas
+          path: target/snapshots/*.png

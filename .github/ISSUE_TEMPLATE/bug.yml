@@ -1,0 +1,48 @@
+name: Relatar um problema
+description: Algo não funciona como deveria no Kalango OS.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: o-que
+    attributes:
+      label: O que aconteceu
+      description: O que você fez, o que esperava e o que aconteceu de fato.
+      placeholder: |
+        1. Abri Configurações → Rede e Wi-Fi
+        2. Cliquei na rede "Casa" e digitei a senha
+        3. Esperava conectar, mas apareceu "Confira a senha"
+    validations:
+      required: true
+  - type: input
+    id: versao
+    attributes:
+      label: Versão da ISO
+      description: "Nome do arquivo (ex.: kalango-os-0.1.0.iso) ou Configurações → Sobre o sistema."
+    validations:
+      required: true
+  - type: dropdown
+    id: onde
+    attributes:
+      label: Onde está rodando
+      options:
+        - Máquina real, pela ISO live (pendrive)
+        - Máquina real, sistema instalado
+        - Máquina virtual (QEMU, VirtualBox, VMware...)
+    validations:
+      required: true
+  - type: input
+    id: maquina
+    attributes:
+      label: Computador
+      description: Marca e modelo, ou o programa de VM. Ajuda em problemas de vídeo, Wi-Fi e som.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: "Saída de `journalctl -b -t kalango-shell` (e `journalctl -b -u greetd` se for no login)."
+      render: text
+  - type: textarea
+    id: capturas
+    attributes:
+      label: Capturas de tela
+      description: Arraste as imagens para cá, se ajudar.

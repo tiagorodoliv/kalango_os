@@ -2,7 +2,8 @@
 name = "kalango_os"
 version = "0.1.0"
 edition = "2021"
-description = "Interface gráfica (shell) do sistema operacional proprietário, em Rust + Slint"
+description = "Interface gráfica (shell) do Kalango OS, distro Linux baseada no Debian, em Rust + Slint"
+license = "GPL-3.0-or-later"
 publish = false
 
 [dependencies]

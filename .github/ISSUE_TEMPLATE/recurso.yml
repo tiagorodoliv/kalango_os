@@ -1,0 +1,24 @@
+name: Sugerir um recurso
+description: Uma ideia para o Kalango OS.
+labels: ["recurso"]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema isso resolve
+      description: O que hoje é difícil ou impossível de fazer.
+    validations:
+      required: true
+  - type: textarea
+    id: ideia
+    attributes:
+      label: Como você imagina
+      description: Como o recurso funcionaria. Desenhos e referências de outros sistemas são bem-vindos.
+    validations:
+      required: true
+  - type: checkboxes
+    id: ajuda
+    attributes:
+      label: Contribuição
+      options:
+        - label: Quero ajudar a implementar

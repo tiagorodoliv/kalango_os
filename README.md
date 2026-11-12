@@ -1,6 +1,9 @@
-# kalango_os
+# Kalango OS
 
-Interface gráfica (shell) do sistema operacional proprietário, em **Rust + [Slint](https://slint.dev)**.
+Distro Linux baseada no **Debian 13 (trixie)**, com uma interface própria (shell) em
+**Rust + [Slint](https://slint.dev)** sobre o compositor Wayland **labwc**.
+
+Software livre sob a [GPL-3.0](LICENSE). Quer ajudar? Veja [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Por que Rust + Slint
 
@@ -91,3 +94,25 @@ cargo build --release --features kms
 
 O dispositivo precisa de `libinput`, `libudev`, `libxkbcommon` e acesso a `/dev/dri` e `/dev/input`.
 Para compilação cruzada (ex.: ARM64), usar `cross`: `cross build --release --features kms --target aarch64-unknown-linux-gnu`.
+
+## Contribuir
+
+Issues e Pull Requests são bem-vindos: o passo a passo, os padrões (pt-BR, Conventional Commits) e como
+testar estão em [CONTRIBUTING.md](CONTRIBUTING.md). Toda mudança é revisada antes de entrar no `main`, e as
+ISOs são publicadas em **Releases** quando o mantenedor cria uma tag de versão (`.github/workflows/release.yml`).
+Falhas de segurança vão em particular: [SECURITY.md](SECURITY.md). Convivência: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## Licença
+
+O código do Kalango OS (shell, scripts e configurações da distro) é licenciado sob a
+**GNU General Public License v3.0 ou posterior** ([LICENSE](LICENSE)).
+
+O nome "Kalango OS" e o logotipo **não** estão sob a GPL: versões modificadas precisam de outro nome e outro
+logo. Detalhes em [TRADEMARKS.md](TRADEMARKS.md).
+
+Componentes de terceiros:
+- [Slint](https://slint.dev), usado sob a licença GPL-3.0 (uma das licenças oferecidas pelo Slint);
+- fontes Inter e JetBrains Mono, sob a SIL Open Font License (`ui/fonts/*LICENSE*`, `ui/fonts/*OFL*`);
+- pacotes do Debian incluídos na ISO, cada um com a própria licença (em `/usr/share/doc/<pacote>/copyright`
+  no sistema). O código-fonte deles está nos repositórios do Debian (`apt source <pacote>`) e em
+  <https://sources.debian.org>.
