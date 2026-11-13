@@ -61,6 +61,11 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   RECENTES do menu = `~/.local/share/recently-used.xbel` (`src/recent.rs`), abertos com `xdg-open`; na ISO live
   (`/run/live/medium` existe) o 1º item é "Instalar Kalango OS" (app `installer`).
   Sem a variável (dev no host, `examples/snapshot.rs`) continua o protótipo com as janelas de demonstração.
+- **Menu do botão direito na área de trabalho** (`ui/components/desktop_menu.slint`): papel de parede, dock,
+  monitores, terminal, arquivos, Configurações. Desenhado **dentro** da janela (não `PopupWindow`): a área de
+  trabalho é tela cheia e sempre atrás, e o labwc não entrega cliques a popups dela. Abre as Configurações
+  numa página com `settings:<n>` → `kalango-shell --settings --pagina=<n>`; se já estiverem abertas, o pedido
+  vai por `$XDG_RUNTIME_DIR/kalango-settings.pagina` (`session::watch_page_requests`).
 - **Loja = GNOME Software + Flatpak/Flathub** (decidido em 2026-11-12): pacotes `flatpak` e
   `gnome-software-plugin-flatpak`; o hook `0110` faz `flatpak remote-add --system flathub` a partir de
   `usr/share/kalango/flathub.flatpakrepo` (arquivo oficial com a chave; sem rede no build). O `kalango-session`

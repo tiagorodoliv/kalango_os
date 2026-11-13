@@ -339,7 +339,8 @@ export component SettingsScreen inherits Rectangle {
         { name: "Atualizações", icon: Icons.download },
         { name: "Sobre o sistema", icon: Icons.info },
     ];
-    property <int> current: 2;
+    /// Página aberta (índice em `sections`).
+    in-out property <int> current: 2;
 
     // --- Barra lateral ---
     Rectangle {

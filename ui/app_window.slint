@@ -26,6 +26,7 @@ import { Apps, AppEntry, RecentEntry, Shell } from "globals.slint";
 import { Backdrop, BackdropVariant } from "components/backdrop.slint";
 import { TopBar } from "components/top_bar.slint";
 import { Dock } from "components/dock.slint";
+import { DesktopMenu } from "components/desktop_menu.slint";
 import { FilesWindow } from "apps/files.slint";
 import { TerminalWindow } from "apps/terminal.slint";
 import { LoginScreen } from "screens/login.slint";
@@ -67,6 +68,14 @@ export component AppWindow inherits Window {
     in property <ShellMode> mode: ShellMode.desktop;
     in-out property <Screen> screen: Screen.login;
     in-out property <bool> launcher-open: false;
+    /// Página aberta nas Configurações (2 = Aparência, 3 = Barra de tarefas,
+    /// 4 = Monitores...). O Rust escolhe a inicial (`--pagina=`) e troca a
+    /// página quando o menu da área de trabalho pede outra.
+    in-out property <int> settings-page: 2;
+    /// Menu do botão direito aberto, e onde o botão foi clicado.
+    property <bool> menu-open: false;
+    property <length> menu-x;
+    property <length> menu-y;
     property <bool> files-open: true;
     property <bool> terminal-open: true;
     /// App com a janela em primeiro plano ("files" ou "terminal").
@@ -108,6 +117,19 @@ export component AppWindow inherits Window {
             root.screen = Screen.settings;
         } else {
             root.show-toast("Este app ainda não existe no protótipo");
+        }
+    }
+
+    /// Abre as Configurações numa página. Sessão real: janela própria
+    /// (`settings:<página>`); protótipo: a tela de Configurações.
+    function open-settings(page: int) {
+        if (Shell.native) {
+            if (!Shell.open-app("settings:" + page)) {
+                root.show-toast("Não foi possível abrir as Configurações");
+            }
+        } else {
+            root.settings-page = page;
+            root.screen = Screen.settings;
         }
     }
 
@@ -192,6 +214,42 @@ export component AppWindow inherits Window {
                 show-mark: root.launcher-open;
             }
 
+            // Botão direito no fundo: menu da área de trabalho.
+            TouchArea {
+                pointer-event(ev) => {
+                    if (ev.button == PointerEventButton.right && ev.kind == PointerEventKind.down) {
+                        root.menu-x = self.mouse-x;
+                        root.menu-y = self.mouse-y;
+                        root.menu-open = true;
+                    }
+                }
+            }
+            // Desenhado dentro da própria janela (e não como PopupWindow): na
+            // sessão real a área de trabalho é uma janela em tela cheia sempre
+            // atrás das outras, e o labwc não entrega os cliques a um popup dela.
+            if root.menu-open: TouchArea {
+                z: 10;
+                // Clique fora do menu (qualquer botão) fecha.
+                pointer-event(ev) => {
+                    if (ev.kind == PointerEventKind.down) {
+                        root.menu-open = false;
+                    }
+                }
+                DesktopMenu {
+                    // Sem passar da borda da tela.
+                    x: min(root.menu-x, parent.width - self.width - 8px);
+                    y: min(root.menu-y, parent.height - self.height - 8px);
+                    settings(page) => {
+                        root.menu-open = false;
+                        root.open-settings(page);
+                    }
+                    launch(id) => {
+                        root.menu-open = false;
+                        root.launch(id);
+                    }
+                }
+            }
+
             if !Shell.native && root.files-open && !root.launcher-open: FilesWindow {
                 x: 110px;
                 y: 96px;
@@ -253,6 +311,7 @@ export component AppWindow inherits Window {
             SettingsScreen {
                 y: Theme.bar-height;
                 height: parent.height - Theme.bar-height;
+                current <=> root.settings-page;
                 close => {
                     root.screen = Screen.desktop;
                     keys.focus();
@@ -315,6 +374,7 @@ export component AppWindow inherits Window {
         if root.mode == ShellMode.settings: Rectangle {
             Backdrop { variant: BackdropVariant.plain; }
             SettingsScreen {
+                current <=> root.settings-page;
                 close => { Shell.quit(); }
             }
         }

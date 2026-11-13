@@ -171,6 +171,11 @@ pub fn open_file(path: &str) -> bool {
 /// Abre um app ou uma janela do shell. Devolve `false` se não deu para abrir
 /// (app inexistente no catálogo ou não instalado).
 pub fn open(id: &str) -> bool {
+    // "settings:3": Configurações já numa página (menu da área de trabalho).
+    let (id, page) = match id.split_once(':') {
+        Some(("settings", page)) => ("settings", page.parse::<i32>().ok()),
+        _ => (id, None),
+    };
     let cmd = match id {
         "launcher" | "settings" => {
             let mode = if id == "launcher" { Mode::Launcher } else { Mode::Settings };
@@ -179,6 +184,9 @@ pub fn open(id: &str) -> bool {
             };
             let mut c = Command::new(exe);
             c.args(mode.arg());
+            if let Some(page) = page {
+                c.arg(format!("--pagina={page}"));
+            }
             c
         }
         _ => {
@@ -221,6 +229,42 @@ fn spawn(mut cmd: Command, what: &str) -> bool {
             false
         }
     }
+}
+
+/// Página pedida para as Configurações (`--pagina=3`).
+pub fn page_from_args<I: IntoIterator<Item = String>>(args: I) -> Option<i32> {
+    args.into_iter()
+        .find_map(|a| a.strip_prefix("--pagina=").and_then(|p| p.parse().ok()))
+}
+
+/// Arquivo com a página pedida às Configurações que já estão abertas.
+fn page_request_file() -> Option<PathBuf> {
+    std::env::var_os("XDG_RUNTIME_DIR").map(|d| Path::new(&d).join("kalango-settings.pagina"))
+}
+
+/// Pede às Configurações já abertas que mudem de página (elas conferem o
+/// pedido de tempos em tempos, ver [`watch_page_requests`]).
+pub fn request_page(page: i32) {
+    if let Some(file) = page_request_file() {
+        let _ = fs::write(file, page.to_string());
+    }
+}
+
+/// Nas Configurações: confere os pedidos de página e troca a página aberta.
+/// O timer devolvido precisa ficar vivo.
+pub fn watch_page_requests(ui: &AppWindow) -> Option<Timer> {
+    let file = page_request_file()?;
+    let _ = fs::remove_file(&file);
+    let weak = ui.as_weak();
+    let timer = Timer::default();
+    timer.start(TimerMode::Repeated, Duration::from_millis(400), move || {
+        let Ok(text) = fs::read_to_string(&file) else { return };
+        let _ = fs::remove_file(&file);
+        if let (Some(ui), Ok(page)) = (weak.upgrade(), text.trim().parse::<i32>()) {
+            ui.set_settings_page(page);
+        }
+    });
+    Some(timer)
 }
 
 /// Garante uma instância só do launcher e das Configurações.
@@ -355,6 +399,14 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pagina_pelos_argumentos() {
+        let args = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(page_from_args(args(&["x", "--settings", "--pagina=3"])), Some(3));
+        assert_eq!(page_from_args(args(&["x", "--settings"])), None);
+        assert_eq!(page_from_args(args(&["x", "--pagina=abc"])), None);
+    }
 
     #[test]
     fn modo_pelos_argumentos() {

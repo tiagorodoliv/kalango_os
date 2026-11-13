@@ -79,10 +79,21 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
 /// Abre a janela do modo pedido nos argumentos e roda até ela ser fechada.
 pub fn run() -> Result<(), slint::PlatformError> {
     let mode = Mode::from_args(std::env::args());
+    let page = session::page_from_args(std::env::args());
     // Super com o menu aberto: o novo processo fecha o antigo e sai.
+    // Configurações já abertas: só pede a página a elas.
     if !session::claim_instance(mode) {
+        if let (Mode::Settings, Some(page)) = (mode, page) {
+            session::request_page(page);
+        }
         return Ok(());
     }
-    let (ui, _timers) = build_mode(mode)?;
+    let (ui, mut timers) = build_mode(mode)?;
+    if mode == Mode::Settings {
+        if let Some(page) = page {
+            ui.set_settings_page(page);
+        }
+        timers.extend(session::watch_page_requests(&ui));
+    }
     ui.run()
 }

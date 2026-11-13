@@ -1,0 +1,78 @@
+// Menu do botão direito na área de trabalho: atalhos para o papel de parede,
+// a dock, os monitores e os apps mais usados.
+
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+
+/// Um item do menu (ícone de traço + texto).
+component MenuItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> text;
+    callback clicked();
+
+    height: 34px;
+    border-radius: 6px;
+    background: touch.has-hover ? Theme.accent-soft : transparent;
+
+    Image {
+        x: 10px;
+        source: root.icon;
+        colorize: touch.has-hover ? Theme.accent : Theme.text-muted;
+        width: 16px;
+        height: 16px;
+    }
+    Text {
+        x: 36px;
+        text: root.text;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 13.5px;
+        vertical-alignment: center;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Linha divisória entre grupos de itens.
+component MenuSeparator inherits Rectangle {
+    height: 9px;
+    Rectangle {
+        height: 1px;
+        background: Theme.border;
+    }
+}
+
+/// O conteúdo do menu (o `PopupWindow` fica em app_window.slint).
+export component DesktopMenu inherits Rectangle {
+    /// Abre as Configurações numa página (2 = Aparência, 3 = Barra de
+    /// tarefas, 4 = Monitores).
+    callback settings(int);
+    /// Abre um app do catálogo ("terminal", "files", "settings").
+    callback launch(string);
+
+    width: 236px;
+    height: col.preferred-height;
+    border-radius: Theme.radius-small + 2px;
+    background: Theme.panel-solid;
+    border-width: 1px;
+    border-color: Theme.border;
+    drop-shadow-blur: 22px;
+    drop-shadow-color: #00000090;
+
+    // Segura os cliques no fundo do menu (fora dos itens) para não fechá-lo.
+    TouchArea { }
+
+    col := VerticalLayout {
+        padding: 5px;
+        MenuItem { icon: Icons.image; text: "Mudar papel de parede"; clicked => { root.settings(2); } }
+        MenuItem { icon: Icons.dock; text: "Ajustar a dock"; clicked => { root.settings(3); } }
+        MenuItem { icon: Icons.monitor; text: "Monitores"; clicked => { root.settings(4); } }
+        MenuSeparator { }
+        MenuItem { icon: Icons.terminal; text: "Abrir terminal"; clicked => { root.launch("terminal"); } }
+        MenuItem { icon: Icons.folder; text: "Abrir Arquivos"; clicked => { root.launch("files"); } }
+        MenuSeparator { }
+        MenuItem { icon: Icons.settings; text: "Configurações"; clicked => { root.launch("settings"); } }
+    }
+}
