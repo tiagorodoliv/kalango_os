@@ -1,0 +1,14 @@
+#!/bin/sh
+# Secure Boot no sistema instalado: o helper do Calamares do Debian só instala
+# o "grub-efi" (sem assinatura), e um PC com o Secure Boot ligado (como os que
+# vêm com Windows) recusaria dar boot pelo disco. Com o shim-signed e o
+# grub-efi-amd64-signed instalados (vêm do repositório da ISO,
+# kalango.list.binary), o grub-install do Debian põe o shim na partição EFI e
+# o sistema liga com o Secure Boot ligado ou desligado.
+set -e
+HELPER=/usr/share/calamares/helpers/calamares-bootloader-config
+grep -q 'apt-get -y install grub-efi$' "$HELPER" || {
+	echo "0130: o $HELPER mudou; revise o hook do Secure Boot" >&2
+	exit 1
+}
+sed -i 's/apt-get -y install grub-efi$/apt-get -y install grub-efi grub-efi-amd64-signed shim-signed/' "$HELPER"

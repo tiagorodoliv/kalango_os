@@ -7,6 +7,11 @@
 # com grub-efi-amd64: o GRUB de BIOS fica em kalango-bios.list.binary.
 grub-efi
 grub-efi-amd64
+# Secure Boot: o shim assinado pela Microsoft carrega o GRUB assinado pelo
+# Debian. Com eles no disco, o sistema instalado liga com o Secure Boot
+# ligado ou desligado (hook 0130 faz o instalador instalá-los).
+shim-signed
+grub-efi-amd64-signed
 cryptsetup
 cryptsetup-initramfs
 keyutils

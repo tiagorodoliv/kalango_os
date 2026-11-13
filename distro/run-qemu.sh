@@ -1,8 +1,11 @@
 #!/bin/sh
 # Testa a ISO do Kalango OS no QEMU (com KVM).
 #
-# Uso:  distro/run-qemu.sh [--uefi] [--gl] [--disco | --so-disco] [--dev pasta] [caminho.iso]
+# Uso:  distro/run-qemu.sh [--uefi | --secureboot] [--gl] [--disco | --so-disco] [--dev pasta] [caminho.iso]
 #   --uefi      dá boot por UEFI (OVMF) em vez de BIOS.
+#   --secureboot UEFI com Secure Boot ligado (chaves da Microsoft, como num PC
+#               com Windows). As variáveis da UEFI (entradas de boot) ficam em
+#               distro/out/ovmf-vars-secureboot.fd, para o --so-disco depois.
 #   --gl        GPU com aceleração 3D (virgl) numa janela SDL. Mais rápido, mas
 #               depende do driver de vídeo do host.
 #   --disco     liga também um disco virtual de 20 GB (distro/out/disco-teste.qcow2,
@@ -15,6 +18,7 @@ set -eu
 
 DISTRO=$(cd "$(dirname "$0")" && pwd)
 FIRMWARE=""
+MACHINE="q35,vmport=off"
 DISCO=""
 DEV=""
 ISO_ARGS="yes"
@@ -27,6 +31,17 @@ while [ $# -gt 0 ]; do
 	case "$1" in
 	--uefi)
 		FIRMWARE="-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd"
+		shift
+		;;
+	--secureboot)
+		VARS="$DISTRO/out/ovmf-vars-secureboot.fd"
+		mkdir -p "$DISTRO/out"
+		[ -f "$VARS" ] || cp /usr/share/OVMF/OVMF_VARS_4M.ms.fd "$VARS"
+		# O firmware com Secure Boot exige SMM (modo de gerenciamento do sistema).
+		MACHINE="q35,vmport=off,smm=on"
+		FIRMWARE="-global driver=cfi.pflash01,property=secure,value=on
+			-drive if=pflash,format=raw,unit=0,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.secboot.fd
+			-drive if=pflash,format=raw,unit=1,file=$VARS"
 		shift
 		;;
 	--gl)
@@ -60,7 +75,7 @@ fi
 # vmport=off: sem o "VMware VMMouse", que disputaria o ponteiro com o tablet.
 # shellcheck disable=SC2086
 exec qemu-system-x86_64 \
-	-enable-kvm -machine q35,vmport=off -cpu host -smp 4 -m 4096 \
+	-enable-kvm -machine "$MACHINE" -cpu host -smp 4 -m 4096 \
 	$FIRMWARE \
 	$VIDEO \
 	-device qemu-xhci -device usb-tablet \

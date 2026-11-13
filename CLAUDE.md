@@ -185,6 +185,10 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   usam os ícones do tema na sessão real (`desktop::find_themed_icon` segue o `Inherits` como o GTK;
   `apps::themed_icon_names`); `tint` transparente = ícone colorido próprio. Descartados: Papirus (187 MB),
   WhiteSur e La Capitaine (imitam o Finder/App Store da Apple).
+- **Secure Boot (2026-11-13: funcionar ligado ou desligado, quem usa decide):** a ISO já liga pelo shim assinado do
+  Debian; `shim-signed` + `grub-efi-amd64-signed` vão no repositório da ISO (`kalango.list.binary`) e o hook `0130`
+  faz o helper do Calamares instalá-los (o grub-install do Debian põe o shim na partição EFI).
+  `run-qemu.sh --secureboot` (OVMF com chaves da Microsoft; variáveis em `out/ovmf-vars-secureboot.fd`).
 - `run-qemu.sh --disco` liga um disco de 20 GB (`distro/out/disco-teste.qcow2`) para testar o instalador;
   `--so-disco` dá boot pelo disco sem a ISO.
 - `auto/config` usa `noeject` (desligar não para pedindo para remover a mídia).
