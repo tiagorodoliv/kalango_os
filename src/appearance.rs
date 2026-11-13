@@ -46,6 +46,8 @@ pub struct Prefs {
     pub dock_style: i32,
     /// 0 = circuitos; 1 em diante, os modelos de [`crate::wallpaper::MODELS`].
     pub wallpaper: i32,
+    /// Família de ícones: 0 = Flat Remix, 1 = Colloid, 2 = Fluent.
+    pub icon_theme: i32,
 }
 
 /// Nomes da borda da dock no arquivo (índice = `dock_position`).
@@ -56,16 +58,21 @@ const DOCK_STYLES: [&str; 2] = ["dock", "barra"];
 /// As 6 cores de destaque (mesma ordem de `Theme.accents` em ui/theme.slint).
 pub const ACCENTS: [&str; 6] = ["#3dd6f5", "#a78bfa", "#7ea6f7", "#5fd38d", "#e8b04b", "#f28b95"];
 
-/// Temas de ícones do Kalango, um por cor de destaque (mesma ordem de
-/// [`ACCENTS`]; gerados por `distro/icones/gerar.py`).
-pub const ICON_THEMES: [&str; 6] = [
-    "Kalango-Ciano",
-    "Kalango-Roxo",
-    "Kalango-Azul",
-    "Kalango-Verde",
-    "Kalango-Ambar",
-    "Kalango-Rosa",
-];
+/// Cores dos temas de ícones do Kalango (mesma ordem de [`ACCENTS`]).
+const ICON_COLORS: [&str; 6] = ["Ciano", "Roxo", "Azul", "Verde", "Ambar", "Rosa"];
+/// Famílias de ícones (Configurações → Aparência), como ficam no arquivo.
+const ICON_FAMILIES: [&str; 3] = ["flatremix", "colloid", "fluent"];
+
+/// Nome do tema de ícones para uma família (0 = Flat Remix, 1 = Colloid,
+/// 2 = Fluent) e uma cor de destaque. Instalados por `distro/icones/`.
+pub fn icon_theme_name(family: i32, accent: i32) -> String {
+    let color = ICON_COLORS[accent.clamp(0, 5) as usize];
+    match family {
+        1 => format!("Kalango-Colloid-{color}"),
+        2 => format!("Kalango-Fluent-{color}"),
+        _ => format!("Kalango-{color}"),
+    }
+}
 
 /// Marca do `~/.config/gtk-3.0/gtk.css` gerado pelo shell.
 const GTK_MARK: &str = "/* Gerado pelo kalango-shell (Configurações → Aparência). */";
@@ -79,24 +86,25 @@ pub fn gtk_css(accent_index: i32) -> String {
 ")
 }
 
-/// Troca a variante do tema de ícones (pastas na cor de destaque). Só mexe
-/// se o tema atual for um dos do Kalango: um tema escolhido pelo usuário fica.
+/// Troca o tema de ícones (família e pastas na cor de destaque). Só mexe se
+/// o tema atual for um dos do Kalango: um tema escolhido pelo usuário fica.
 /// Os apps GTK abertos trocam os ícones na hora.
-fn sync_icon_theme(accent_index: i32) {
+fn sync_icon_theme(family: i32, accent_index: i32) -> String {
     const KEY: [&str; 2] = ["org.gnome.desktop.interface", "icon-theme"];
+    let wanted = icon_theme_name(family, accent_index);
     let Ok(out) = std::process::Command::new("gsettings").arg("get").args(KEY).output() else {
-        return;
+        return wanted;
     };
     let current = String::from_utf8_lossy(&out.stdout).trim().trim_matches('\'').to_string();
-    let wanted = ICON_THEMES[accent_index.clamp(0, 5) as usize];
-    if current == wanted || !(current.is_empty() || ICON_THEMES.contains(&current.as_str())) {
-        return;
+    if current == wanted || !(current.is_empty() || current.starts_with("Kalango-")) {
+        return current;
     }
     let _ = std::process::Command::new("gsettings")
         .arg("set")
         .args(KEY)
-        .arg(wanted)
+        .arg(&wanted)
         .status();
+    wanted
 }
 
 /// Grava a cor de destaque no `gtk.css` do usuário (apps GTK abertos depois
@@ -126,13 +134,19 @@ fn sync_gtk_accent(accent_index: i32) {
 /// Ajustes fora do shell que seguem as preferências (só a área de trabalho
 /// faz, um processo por sessão): margem da dock no labwc, destaque do GTK e
 /// cor das pastas (tema de ícones).
-fn sync_system(now: &Prefs, before: Option<&Prefs>) {
+fn sync_system(ui: &AppWindow, now: &Prefs, before: Option<&Prefs>) {
     if before.is_none_or(|b| b.dock_margins() != now.dock_margins()) {
         crate::labwc::set_dock_margins(now.dock_margins());
     }
     if before.is_none_or(|b| b.accent_index != now.accent_index) {
         sync_gtk_accent(now.accent_index);
-        sync_icon_theme(now.accent_index);
+    }
+    if before.is_none_or(|b| b.accent_index != now.accent_index || b.icon_theme != now.icon_theme) {
+        let theme = sync_icon_theme(now.icon_theme, now.accent_index);
+        // Dock e menu desta janela com os ícones do tema novo.
+        if before.is_some() {
+            crate::apps::use_themed_icons(ui, &theme);
+        }
     }
 }
 
@@ -159,6 +173,7 @@ impl Prefs {
             dock_position: t.get_dock_position(),
             dock_style: t.get_dock_style(),
             wallpaper: t.get_wallpaper(),
+            icon_theme: t.get_icon_theme(),
         }
     }
 
@@ -180,6 +195,7 @@ impl Prefs {
         t.set_dock_position(self.dock_position);
         t.set_dock_style(self.dock_style);
         t.set_wallpaper(self.wallpaper);
+        t.set_icon_theme(self.icon_theme);
     }
 
     /// Margens que o labwc reserva para a dock na borda dela: a espessura da
@@ -219,7 +235,7 @@ impl Prefs {
              # Barra de tarefas\n\
              barra-data={}\nbarra-segundos={}\nbarra-cpu={}\nbarra-bateria={}\n\
              dock-tamanho={}\ndock-apps={}\ndock-posicao={}\ndock-estilo={}\n\
-             papel-de-parede={}\n",
+             papel-de-parede={}\nicones={}\n",
             self.accent_index,
             mode,
             self.transparency,
@@ -235,6 +251,7 @@ impl Prefs {
             DOCK_POSITIONS[self.dock_position.clamp(0, 2) as usize],
             DOCK_STYLES[self.dock_style.clamp(0, 1) as usize],
             crate::wallpaper::name(self.wallpaper),
+            ICON_FAMILIES[self.icon_theme.clamp(0, 2) as usize],
         )
     }
 
@@ -294,6 +311,11 @@ impl Prefs {
                         p.dock_style = i as i32;
                     }
                 }
+                "icones" => {
+                    if let Some(i) = ICON_FAMILIES.iter().position(|f| *f == value) {
+                        p.icon_theme = i as i32;
+                    }
+                }
                 "papel-de-parede" => {
                     if let Some(i) = crate::wallpaper::index(value) {
                         p.wallpaper = i;
@@ -342,7 +364,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     // Só a área de trabalho (um processo por sessão) mexe no labwc.
     let desktop = mode == Mode::Desktop;
     if desktop {
-        sync_system(&last, None);
+        sync_system(ui, &last, None);
     }
     let mut last_mtime = modified(&path);
 
@@ -361,7 +383,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             }
             last_mtime = modified(&path);
             if desktop {
-                sync_system(&now, Some(&last));
+                sync_system(&ui, &now, Some(&last));
             }
             last = now;
         } else if modified(&path) != last_mtime {
@@ -371,7 +393,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
                 let p = Prefs::parse(&text, &now);
                 p.apply(&ui);
                 if desktop {
-                    sync_system(&p, Some(&last));
+                    sync_system(&ui, &p, Some(&last));
                 }
                 last = p;
             }
@@ -401,6 +423,7 @@ mod tests {
             dock_position: 0,
             dock_style: 0,
             wallpaper: 1,
+            icon_theme: 0,
         }
     }
 
@@ -422,6 +445,7 @@ mod tests {
             dock_position: 1,
             dock_style: 1,
             wallpaper: 0,
+            icon_theme: 2,
         };
         assert_eq!(Prefs::parse(&p.to_text(), &padrao()), p);
     }
@@ -441,6 +465,14 @@ mod tests {
         assert_eq!(p.accent_index, 2);
         assert_eq!(p.dock_size, 1);
         assert_eq!(p.dock_apps, "files,terminal,browser,code,store");
+    }
+
+    #[test]
+    fn nome_do_tema_de_icones() {
+        assert_eq!(icon_theme_name(0, 0), "Kalango-Ciano");
+        assert_eq!(icon_theme_name(1, 1), "Kalango-Colloid-Roxo");
+        assert_eq!(icon_theme_name(2, 4), "Kalango-Fluent-Ambar");
+        assert_eq!(icon_theme_name(9, 99), "Kalango-Rosa");
     }
 
     #[test]

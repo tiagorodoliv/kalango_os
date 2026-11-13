@@ -38,6 +38,11 @@ export struct RecentEntry {
     app: string,
 }
 
+/// Amostras de um tema de ícones (Configurações → Aparência).
+export struct IconPreview {
+    icons: [image],
+}
+
 export global Apps {
     /// Os 12 apps fixados do launcher (grade 6×2), na ordem do layout.
     /// Na sessão real, o Rust troca os ícones de traço pelos do tema de ícones
@@ -93,6 +98,8 @@ export global Shell {
     /// Miniaturas dos papéis de parede (ordem de `Theme.wallpaper-names`;
     /// a 1ª, dos circuitos, fica vazia).
     in property <[image]> wallpaper-thumbs;
+    /// Amostras dos temas de ícones (ordem de `Theme.icon-theme-names`).
+    in property <[IconPreview]> icon-previews;
     /// Uso de CPU, "12%" ou "--" fora do Linux.
     in property <string> cpu: "--";
     /// Carga da bateria, "78%" ou "--" sem bateria.

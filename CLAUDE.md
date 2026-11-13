@@ -142,6 +142,13 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   enquanto o usuário não tem `~/.config/geany/geany.conf`). Sem Geany, o "Código" abre o Mousepad. Mousepad usa
   o estilo GtkSourceView `usr/share/gtksourceview-4/styles/kalango.xml` (padrões no gschema override). Os dois:
   fundo/seleção/números do tema do sistema + cores de sintaxe do VS Code Dark Modern.
+- Temas de ícones extras (Aparência → Ícones, escolhidos pelo Tiago em 2026-11-13): **Colloid** e **Fluent**
+  (GPL-3.0, vinceliuice), instalados por `distro/icones/temas-extras.sh` (commit fixo + SHA-256; ~6 min no build).
+  Colloid: base `Colloid-Dark` + `Colloid-Light` (a escura aponta pastas da clara) e `Kalango-Colloid-<Cor>` só
+  com os arquivos que mudam; `-a` evita os ícones que imitam App Store/Finder. Fluent: bases ocultas
+  `.Fluent-base`/`.Fluent-dark-base` + `Fluent-<cor>[-dark]`, e `Kalango-Fluent-<Cor>` é só um nome (Inherits).
+  `Theme.icon-theme` (0 Flat Remix, 1 Colloid, 2 Fluent; `icones=` no aparencia.conf) +
+  `appearance::icon_theme_name`; a área de trabalho recarrega os ícones da dock ao trocar.
 - Ícones: **Flat Remix** (GPL-3.0, escolhido pelo Tiago em 2026-11-12; não está no Debian). `distro/icones/
   flat-remix.sh` (chamado pelo `build.sh`) baixa a versão fixa (tag + SHA-256) para `distro/.cache` e instala
   `Flat-Remix-Blue-Dark` inteiro (~54 MB) + `Kalango-<Cor>` (6, um por destaque: Cyan, Violet, Blue, Green,

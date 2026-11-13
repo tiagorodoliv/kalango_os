@@ -22,7 +22,7 @@ import "fonts/JetBrainsMono-Medium.ttf";
 import "fonts/JetBrainsMono-Bold.ttf";
 
 import { Theme, ThemeMode } from "theme.slint";
-import { Apps, AppEntry, RecentEntry, Shell } from "globals.slint";
+import { Apps, AppEntry, RecentEntry, Shell, IconPreview } from "globals.slint";
 import { Backdrop, BackdropVariant } from "components/backdrop.slint";
 import { TopBar } from "components/top_bar.slint";
 import { Dock } from "components/dock.slint";
@@ -35,7 +35,7 @@ import { SettingsScreen } from "screens/settings.slint";
 import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution } from "device.slint";
 
 // Reexportados para o Rust enxergar os globais e tipos.
-export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry, Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution }
+export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry, IconPreview, Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution }
 
 /// Telas de nível superior.
 export enum Screen { login, desktop, settings }

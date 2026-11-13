@@ -20,7 +20,7 @@ thread_local! {
 use slint::{Color, ComponentHandle, Image, Model, ModelRc, SharedString, VecModel};
 
 use crate::desktop::{self, DesktopApp};
-use crate::{AppEntry, AppWindow, Apps, Shell};
+use crate::{AppEntry, AppWindow, Apps, IconPreview, Shell};
 
 /// Normaliza para comparação: minúsculas e sem acentos do português.
 pub fn normalize(text: &str) -> String {
@@ -104,11 +104,10 @@ pub fn themed_icon_names(id: &str) -> &'static [&'static str] {
     }
 }
 
-/// Troca os ícones de traço dos apps fixados pelos do tema de ícones (com
+/// Troca os ícones dos apps fixados pelos do tema de ícones `theme` (com
 /// `tint` transparente, que a dock e o menu desenham sem colorir).
-fn use_themed_icons(ui: &AppWindow) {
+pub fn use_themed_icons(ui: &AppWindow, theme: &str) {
     let dirs = desktop::data_dirs();
-    let theme = desktop::current_icon_theme();
     let apps = ui.global::<Apps>();
     let entries: Vec<AppEntry> = apps
         .get_pinned()
@@ -116,7 +115,7 @@ fn use_themed_icons(ui: &AppWindow) {
         .map(|mut app| {
             let image = themed_icon_names(&app.id)
                 .iter()
-                .find_map(|name| desktop::find_themed_icon(name, &theme, &dirs))
+                .find_map(|name| desktop::find_themed_icon(name, theme, &dirs))
                 .and_then(|path| Image::load_from_path(&path).ok());
             if let Some(image) = image {
                 app.icon = image;
@@ -126,6 +125,28 @@ fn use_themed_icons(ui: &AppWindow) {
         })
         .collect();
     apps.set_pinned(ModelRc::from(Rc::new(VecModel::from(entries))));
+}
+
+/// Amostras de cada família de ícones para a escolha na Aparência (pasta,
+/// Arquivos, Terminal, Navegador e Configurações), na variante azul.
+pub fn icon_previews() -> Vec<IconPreview> {
+    let dirs = desktop::data_dirs();
+    (0..3)
+        .map(|family| {
+            let theme = crate::appearance::icon_theme_name(family, 2);
+            let icons: Vec<Image> = std::iter::once(&["folder"][..])
+                .chain(["files", "terminal", "browser", "settings"].iter().map(|id| themed_icon_names(id)))
+                .map(|names| {
+                    names
+                        .iter()
+                        .find_map(|n| desktop::find_themed_icon(n, &theme, &dirs))
+                        .and_then(|p| Image::load_from_path(&p).ok())
+                        .unwrap_or_default()
+                })
+                .collect();
+            IconPreview { icons: ModelRc::from(Rc::new(VecModel::from(icons))) }
+        })
+        .collect()
 }
 
 /// Cores das iniciais dos apps sem ícone (as cores de destaque do tema).
@@ -162,7 +183,9 @@ fn to_entry(app: &DesktopApp, icon: Option<&PathBuf>) -> AppEntry {
 /// `Apps.all` com os apps instalados.
 pub fn install(ui: &AppWindow, load_installed: bool, themed: bool) {
     if themed {
-        use_themed_icons(ui);
+        use_themed_icons(ui, &desktop::current_icon_theme());
+        ui.global::<Shell>()
+            .set_icon_previews(ModelRc::from(Rc::new(VecModel::from(icon_previews()))));
     }
     let shell = ui.global::<Shell>();
     shell.on_dock_has(|list, id| dock_ids(&list).contains(&id.as_str()));

@@ -169,158 +169,211 @@ component OptionRow inherits Rectangle {
 
 /// Página Aparência.
 component AppearancePage inherits Rectangle {
-    // --- Tema ---
-    SectionLabel { x: 0; y: 113px; text: "TEMA"; }
-    HorizontalLayout {
-        x: 0;
-        y: 135px;
-        spacing: 17px;
-        ThemeCard {
-            label: "Escuro (vidro)";
-            mode: ThemeMode.glass;
-            preview-bg: #07090d;
-            preview-window: #17222b;
-            preview-dock: #2a3540;
-            preview-accent: Theme.accents[Theme.accent-index];
-            clicked => { Theme.mode = ThemeMode.glass; }
-        }
-        ThemeCard {
-            label: "Escuro sólido (OLED)";
-            mode: ThemeMode.oled;
-            preview-bg: #000000;
-            preview-window: #0e0e0e;
-            preview-dock: #262626;
-            preview-accent: Theme.accents[Theme.accent-index];
-            clicked => { Theme.mode = ThemeMode.oled; }
-        }
-        ThemeCard {
-            label: "Claro";
-            mode: ThemeMode.light;
-            preview-bg: #eef1f4;
-            preview-window: #ffffff;
-            preview-dock: #d4dbe2;
-            preview-accent: Theme.accents[Theme.accent-index].darker(0.45);
-            clicked => { Theme.mode = ThemeMode.light; }
-        }
-    }
-
-    // --- Cor de destaque ---
-    SectionLabel { x: 0; y: 333px; text: "COR DE DESTAQUE"; }
-    for c[i] in Theme.accents: Rectangle {
-        x: i * (44px + 14px);
-        y: 355px;
-        width: 44px;
-        height: 44px;
-        border-radius: 22px;
-        // Selecionado: anel claro com uma folga até o círculo de cor.
-        border-width: Theme.accent-index == i ? 2px : 0;
-        border-color: Theme.text;
-
+    // Com rolagem abaixo do título: a página é mais alta que a janela
+    // maximizada. O conteúdo é deslocado 100px para cima para manter as
+    // posições (y) originais dos elementos.
+    Flickable {
+        y: 100px;
+        height: parent.height - 100px;
+        content-height: 810px;
         Rectangle {
-            width: Theme.accent-index == i ? 34px : 44px;
-            height: self.width;
-            border-radius: self.width / 2;
-            background: c;
-            animate width { duration: Theme.anim; }
-        }
-        TouchArea {
-            mouse-cursor: pointer;
-            clicked => { Theme.accent-index = i; }
-        }
-    }
+        y: -100px;
+        height: 910px;
 
-    // --- Painel de opções ---
-    Rectangle {
-        x: 0;
-        y: 432px;
-        width: min(721px, parent.width);
-        height: 3 * 67px;
-        border-radius: Theme.radius;
-        background: Theme.panel;
-        border-width: 1px;
-        border-color: Theme.border;
-
-        VerticalLayout {
-            OptionRow {
-                title: "Transparência das janelas";
-                subtitle: "Quanto do fundo aparece através do vidro";
-                divider: false;
-                SliderBar {
-                    x: parent.width - self.width - 72px;
-                    value <=> Theme.transparency;
-                }
-                Text {
-                    x: parent.width - self.width - 20px;
-                    width: 42px;
-                    text: round(Theme.transparency * 100) + "%";
-                    color: Theme.text;
-                    font-family: Theme.mono;
-                    font-size: 13px;
-                    horizontal-alignment: right;
-                    vertical-alignment: center;
-                }
+        // --- Tema ---
+        SectionLabel { x: 0; y: 113px; text: "TEMA"; }
+        HorizontalLayout {
+            x: 0;
+            y: 135px;
+            spacing: 17px;
+            ThemeCard {
+                label: "Escuro (vidro)";
+                mode: ThemeMode.glass;
+                preview-bg: #07090d;
+                preview-window: #17222b;
+                preview-dock: #2a3540;
+                preview-accent: Theme.accents[Theme.accent-index];
+                clicked => { Theme.mode = ThemeMode.glass; }
             }
-            OptionRow {
-                title: "Desfoque do fundo";
-                subtitle: "Desligar economiza GPU em hardware mais antigo";
-                Toggle {
-                    x: parent.width - self.width - 20px;
-                    checked <=> Theme.blur;
-                }
+            ThemeCard {
+                label: "Escuro sólido (OLED)";
+                mode: ThemeMode.oled;
+                preview-bg: #000000;
+                preview-window: #0e0e0e;
+                preview-dock: #262626;
+                preview-accent: Theme.accents[Theme.accent-index];
+                clicked => { Theme.mode = ThemeMode.oled; }
             }
-            OptionRow {
-                title: "Reduzir animações";
-                subtitle: "Transições instantâneas";
-                Toggle {
-                    x: parent.width - self.width - 20px;
-                    checked <=> Theme.reduce-motion;
-                }
+            ThemeCard {
+                label: "Claro";
+                mode: ThemeMode.light;
+                preview-bg: #eef1f4;
+                preview-window: #ffffff;
+                preview-dock: #d4dbe2;
+                preview-accent: Theme.accents[Theme.accent-index].darker(0.45);
+                clicked => { Theme.mode = ThemeMode.light; }
             }
         }
-    }
 
-    // --- Papel de parede (a dock fica em Barra de tarefas) ---
-    SectionLabel { x: 0; y: 657px; text: "PAPEL DE PAREDE"; }
-    for nome[i] in Theme.wallpaper-names: Rectangle {
-        x: i * (80px + 10px);
-        y: 681px;
-        width: 80px;
-        height: 45px;
-        border-radius: 6px;
-        clip: true;
-        background: Theme.background;
-        // Circuitos (sem miniatura): linha e nó na cor de destaque.
-        if i == 0: Rectangle {
-            Rectangle { x: 8px; y: 30px; width: 40px; height: 1.5px; background: Theme.circuit; }
-            Rectangle { x: 47px; y: 14px; width: 1.5px; height: 17px; background: Theme.circuit; }
+        // --- Cor de destaque ---
+        SectionLabel { x: 0; y: 333px; text: "COR DE DESTAQUE"; }
+        for c[i] in Theme.accents: Rectangle {
+            x: i * (44px + 14px);
+            y: 355px;
+            width: 44px;
+            height: 44px;
+            border-radius: 22px;
+            // Selecionado: anel claro com uma folga até o círculo de cor.
+            border-width: Theme.accent-index == i ? 2px : 0;
+            border-color: Theme.text;
+
             Rectangle {
-                x: 43px; y: 9px; width: 10px; height: 10px; border-radius: 5px;
-                border-width: 1.5px; border-color: Theme.accent; background: transparent;
+                width: Theme.accent-index == i ? 34px : 44px;
+                height: self.width;
+                border-radius: self.width / 2;
+                background: c;
+                animate width { duration: Theme.anim; }
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => { Theme.accent-index = i; }
             }
         }
-        if i > 0 && i < Shell.wallpaper-thumbs.length: Image {
-            width: parent.width;
-            height: parent.height;
-            source: Shell.wallpaper-thumbs[i];
-            image-fit: cover;
-        }
+
+        // --- Painel de opções ---
         Rectangle {
-            border-radius: 6px;
-            border-width: Theme.wallpaper == i ? 2px : 1px;
-            border-color: Theme.wallpaper == i ? Theme.accent : Theme.border;
+            x: 0;
+            y: 432px;
+            width: min(721px, parent.width);
+            height: 3 * 67px;
+            border-radius: Theme.radius;
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: Theme.border;
+
+            VerticalLayout {
+                OptionRow {
+                    title: "Transparência das janelas";
+                    subtitle: "Quanto do fundo aparece através do vidro";
+                    divider: false;
+                    SliderBar {
+                        x: parent.width - self.width - 72px;
+                        value <=> Theme.transparency;
+                    }
+                    Text {
+                        x: parent.width - self.width - 20px;
+                        width: 42px;
+                        text: round(Theme.transparency * 100) + "%";
+                        color: Theme.text;
+                        font-family: Theme.mono;
+                        font-size: 13px;
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                    }
+                }
+                OptionRow {
+                    title: "Desfoque do fundo";
+                    subtitle: "Desligar economiza GPU em hardware mais antigo";
+                    Toggle {
+                        x: parent.width - self.width - 20px;
+                        checked <=> Theme.blur;
+                    }
+                }
+                OptionRow {
+                    title: "Reduzir animações";
+                    subtitle: "Transições instantâneas";
+                    Toggle {
+                        x: parent.width - self.width - 20px;
+                        checked <=> Theme.reduce-motion;
+                    }
+                }
+            }
         }
-        TouchArea {
-            mouse-cursor: pointer;
-            clicked => { Theme.wallpaper = i; }
+
+        // --- Papel de parede (a dock fica em Barra de tarefas) ---
+        SectionLabel { x: 0; y: 657px; text: "PAPEL DE PAREDE"; }
+        for nome[i] in Theme.wallpaper-names: Rectangle {
+            x: i * (80px + 10px);
+            y: 681px;
+            width: 80px;
+            height: 45px;
+            border-radius: 6px;
+            clip: true;
+            background: Theme.background;
+            // Circuitos (sem miniatura): linha e nó na cor de destaque.
+            if i == 0: Rectangle {
+                Rectangle { x: 8px; y: 30px; width: 40px; height: 1.5px; background: Theme.circuit; }
+                Rectangle { x: 47px; y: 14px; width: 1.5px; height: 17px; background: Theme.circuit; }
+                Rectangle {
+                    x: 43px; y: 9px; width: 10px; height: 10px; border-radius: 5px;
+                    border-width: 1.5px; border-color: Theme.accent; background: transparent;
+                }
+            }
+            if i > 0 && i < Shell.wallpaper-thumbs.length: Image {
+                width: parent.width;
+                height: parent.height;
+                source: Shell.wallpaper-thumbs[i];
+                image-fit: cover;
+            }
+            Rectangle {
+                border-radius: 6px;
+                border-width: Theme.wallpaper == i ? 2px : 1px;
+                border-color: Theme.wallpaper == i ? Theme.accent : Theme.border;
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => { Theme.wallpaper = i; }
+            }
+        }
+        Text {
+            x: 0;
+            y: 734px;
+            text: Theme.wallpaper-names[Theme.wallpaper];
+            color: Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 13px;
+        }
+
+        // --- Ícones (as pastas seguem a cor de destaque nos três) ---
+        SectionLabel { x: 0; y: 768px; text: "ÍCONES"; }
+        for nome[i] in Theme.icon-theme-names: Rectangle {
+            x: i * (229px + 17px);
+            y: 792px;
+            width: 229px;
+            height: 92px;
+            border-radius: Theme.radius;
+            background: Theme.panel;
+            border-width: Theme.icon-theme == i ? 2px : 1px;
+            border-color: Theme.icon-theme == i ? Theme.accent : Theme.border;
+
+            HorizontalLayout {
+                y: 12px;
+                height: 40px;
+                alignment: center;
+                spacing: 8px;
+                if i < Shell.icon-previews.length: HorizontalLayout {
+                    spacing: 8px;
+                    for icone in Shell.icon-previews[i].icons: Image {
+                        width: 34px;
+                        height: 34px;
+                        source: icone;
+                    }
+                }
+            }
+            Text {
+                y: 62px;
+                text: nome;
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 14px;
+                font-weight: Theme.icon-theme == i ? 600 : 400;
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => { Theme.icon-theme = i; }
+            }
         }
     }
-    Text {
-        x: 0;
-        y: 734px;
-        text: Theme.wallpaper-names[Theme.wallpaper];
-        color: Theme.text-muted;
-        font-family: Theme.sans;
-        font-size: 13px;
     }
 }
 

@@ -68,6 +68,7 @@ if [ "$TUDO" -eq 1 ]; then
 	CACHE="$DISTRO/.cache"
 	[ -w "$CACHE" ] || [ -f "$CACHE"/flat-remix-*.tar.gz ] || CACHE="$ROOT/target/cache"
 	sh "$DISTRO/icones/flat-remix.sh" "$DEV/raiz/usr/share/icons" "$CACHE"
+	sh "$DISTRO/icones/temas-extras.sh" "$DEV/raiz/usr/share/icons" "$CACHE"
 fi
 
 if [ "$SO_PREPARAR" -eq 1 ]; then

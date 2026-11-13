@@ -48,6 +48,10 @@ export global Theme {
     /// Estilo: 0 = dock flutuante centralizada, 1 = barra encostada na borda,
     /// ocupando a largura (ou altura) toda, como uma barra de tarefas.
     in-out property <int> dock-style: 0;
+    /// Tema de ícones: 0 = Flat Remix, 1 = Colloid, 2 = Fluent (as pastas
+    /// seguem a cor de destaque nos três).
+    in-out property <int> icon-theme: 0;
+    out property <[string]> icon-theme-names: ["Flat Remix", "Colloid", "Fluent"];
     /// Papel de parede: 0 = circuitos (desenho do próprio shell); 1 em diante,
     /// as imagens de `wallpaper-names` (arquivos em src/wallpaper.rs).
     in-out property <int> wallpaper: 1;

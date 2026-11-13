@@ -131,6 +131,9 @@ Componentes de terceiros:
 - fontes Inter e JetBrains Mono, sob a SIL Open Font License (`ui/fonts/*LICENSE*`, `ui/fonts/*OFL*`);
 - ícones [Flat Remix](https://github.com/daniruiz/flat-remix), de Daniel Ruiz de Alegría, sob a GPL-3.0
   (baixados no build por `distro/icones/flat-remix.sh`);
+- ícones [Colloid](https://github.com/vinceliuice/Colloid-icon-theme) e
+  [Fluent](https://github.com/vinceliuice/Fluent-icon-theme), de Vince Liuice, sob a GPL-3.0
+  (baixados no build por `distro/icones/temas-extras.sh`);
 - pacotes do Debian incluídos na ISO, cada um com a própria licença (em `/usr/share/doc/<pacote>/copyright`
   no sistema). O código-fonte deles está nos repositórios do Debian (`apt source <pacote>`) e em
   <https://sources.debian.org>.

@@ -130,6 +130,8 @@ install -d "$BUILDER/work/iso/config/includes.chroot/usr/share/backgrounds/kalan
 cp "$ROOT"/assets/wallpapers/16x9/*.png "$BUILDER/work/iso/config/includes.chroot/usr/share/backgrounds/kalango/"
 # Ícones (Flat Remix + pastas por cor de destaque), baixados uma vez para o cache.
 sh "$DISTRO/icones/flat-remix.sh" "$BUILDER/work/iso/config/includes.chroot/usr/share/icons" "$DISTRO/.cache"
+# Temas extras da Aparência (Colloid e Fluent), também com cache.
+sh "$DISTRO/icones/temas-extras.sh" "$BUILDER/work/iso/config/includes.chroot/usr/share/icons" "$DISTRO/.cache"
 no_builder "cd /work/iso && lb config"
 # O live-build às vezes falha ao desmontar o /proc do chroot ("target is busy"): um processo
 # do apt ainda está saindo. Ele retoma de onde parou, então basta rodar de novo. As
