@@ -1,5 +1,6 @@
 # Executado pelo labwc ao iniciar a sessão.
-# Cria ~/Documentos, ~/Imagens etc. (nomes em pt-BR) na primeira sessão.
+# Cria ~/Documents, ~/Pictures etc. na primeira sessão (nomes no idioma do
+# sistema: ~/Documentos, ~/Imagens em português).
 xdg-user-dirs-update
 # Janela de senha do administrador (polkit): a Loja instala apps por ela.
 lxpolkit &

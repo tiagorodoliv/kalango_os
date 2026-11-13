@@ -9,4 +9,7 @@ if systemd-detect-virt -q; then
 	export WLR_RENDERER=pixman
 	export WLR_NO_HARDWARE_CURSORS=1
 fi
+# Idioma e teclado do sistema (o _greetd não tem regiao.conf próprio).
+. /usr/local/lib/kalango/regiao.sh
+kalango_regiao
 exec labwc -C /etc/kalango/greeter -s 'sh -c "kalango-shell --greeter; labwc --exit"'

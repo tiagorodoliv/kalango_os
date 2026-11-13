@@ -103,7 +103,7 @@ echo ">> Compilando kalango-shell (release) no builder"
 mkdir -p "$BUILDER/work/shell"
 rsync -a --delete \
 	--include='/Cargo.toml' --include='/Cargo.lock' --include='/build.rs' \
-	--include='/src/***' --include='/ui/***' --exclude='*' \
+	--include='/src/***' --include='/ui/***' --include='/lang/***' --exclude='*' \
 	"$ROOT/" "$BUILDER/work/shell/"
 no_builder "cd /work/shell && cargo build --release --locked"
 

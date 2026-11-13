@@ -49,7 +49,18 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     greetd (JSON com tamanho u32 nativo, socket `$GREETD_SOCK`) para o PAM e, se conferir, o greeter sai e o
     greetd inicia `kalango-session`. Usuário padrão: o primeiro de UID 1000–59999 do `/etc/passwd`;
     "Outro usuário" deixa digitar o login. Sem `$GREETD_SOCK` qualquer senha entra (dev).
-- **Modo real × protótipo:** `KALANGO_SESSION=1` (em `etc/xdg/labwc/environment`) liga `Shell.native`: dock/menu
+- **Idioma (decidido em 2026-11-13): inglês por padrão, português como tradução**, para servir a outros países.
+  Textos dos `.slint` em inglês com `@tr("...")`; tradução em `lang/pt_BR/LC_MESSAGES/kalango_os.po` (msgid =
+  inglês, sem contexto: `DefaultTranslationContext::None` no `build.rs`), embutida no binário. Textos montados no
+  Rust usam `i18n::tr("en", "pt")`. Idioma = `LC_ALL`/`LC_MESSAGES`/`LANG` começando com `pt`
+  (`src/i18n.rs`). Texto novo na UI: `@tr("English")` + par msgid/msgstr no `.po`. Comentários e docs continuam
+  em pt-BR. Configurações → **Idioma e região** (`src/region.rs`): idioma (vale no próximo login) e teclado
+  (na hora: `~/.config/labwc/environment` com marca + `labwc --reconfigure`), gravados em
+  `~/.config/kalango/regiao.conf`, lido por `/usr/local/lib/kalango/regiao.sh` (kalango-session, greeter,
+  instalador) depois de `/etc/default/locale` e `/etc/default/keyboard`. **O labwc lê um só `environment`**
+  (o do usuário esconde o do sistema): por isso as variáveis da sessão são exportadas no `kalango-session`.
+  Live: `locales=en_US.UTF-8,pt_BR.UTF-8 keyboard-layouts=us timezone=Etc/UTC`; Calamares começa em Nova York.
+- **Modo real × protótipo:** `KALANGO_SESSION=1` (exportado pelo `kalango-session`) liga `Shell.native`: dock/menu
   abrem apps instalados (`session::command_for`: thunar, foot, firefox-esr, mousepad, ristretto, htop, nmtui,
   pavucontrol, parole, gnome-software = Loja, gnome-calendar = Agenda), avisos vão para o centro da barra (o rodapé pode estar atrás de um app), power faz
   `systemctl poweroff`, a área de trabalho começa direto (sem login falso) e o nome vem do GECOS de `$USER`.
@@ -74,7 +85,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   Flatpak do Debian libera instalar para o grupo `sudo` sem senha. Na ISO live, o que se instala fica na RAM
   (overlay = metade da memória): apps grandes podem não caber.
 - **Instalador: Calamares** com a sequência do `calamares-settings-debian` e, por cima (`etc/calamares/`): marca
-  `branding/kalango` (logo, slides, `stylesheet.qss` escuro), `locale.conf` (São Paulo/pt-BR), `packages.conf`
+  `branding/kalango` (logo, slides, `stylesheet.qss` escuro), `locale.conf` (Nova York; a pessoa escolhe), `packages.conf`
   (remove também o calamares) e `shellprocess@kalango` (tira o `[initial_session]` do greetd e o
   `kalango-instalar`; **não usar `$` nos comandos**, o Calamares trata `$nome` como variável).
   `kalango-instalar` abre o Calamares com `sudo env WAYLAND_DISPLAY=... calamares` (a sessão não tem agente do
@@ -124,7 +135,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   Super+L = bloquear (swaylock; `/etc/swaylock/config` com as cores do tema e textos invisíveis, porque o
   swaylock só fala inglês).
 - Live: autologin (`initial_session`) uma vez por boot; ao sair aparece o greeter. Usuário `user`, senha `live`,
-  nome exibido "Usuário" (`user-fullname` no `auto/config`).
+  nome exibido "User" (`user-fullname` no `auto/config`).
   Para depurar, Ctrl+Alt+F2 dá console com login automático (usuário `user`, senha `live`);
   `journalctl -t kalango-shell` tem a saída do shell. O greetd está no VT7.
 - Tema escuro dos apps: `etc/gtk-3.0/settings.ini`, `etc/gtk-4.0/settings.ini`, `etc/xdg/labwc/themerc-override`,
@@ -161,7 +172,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
 - `run-qemu.sh --disco` liga um disco de 20 GB (`distro/out/disco-teste.qcow2`) para testar o instalador;
   `--so-disco` dá boot pelo disco sem a ISO.
 - `auto/config` usa `noeject` (desligar não para pedindo para remover a mídia).
-- `distro/auto/config`: trixie amd64, main+contrib+non-free-firmware, pt_BR, teclado br, usuário live `user`.
+- `distro/auto/config`: trixie amd64, main+contrib+non-free-firmware, en_US (+ pt_BR), teclado us, usuário live `user`.
 - Pacotes em `distro/config/package-lists/kalango.list.chroot`; configs de sistema em `distro/config/includes.chroot/`.
 
 ## Assets (já organizados)

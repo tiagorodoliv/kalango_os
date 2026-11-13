@@ -5,6 +5,9 @@ set -e
 
 # noeject: ao desligar, não para pedindo "remova a mídia e aperte ENTER".
 # user-fullname: nome exibido no login e no menu (o padrão é "Debian Live user").
+# Idioma e teclado padrão: inglês (en_US) e us, para servir a qualquer país;
+# o pt_BR também é gerado, para quem troca em Configurações → Idioma e região
+# ou instala em português (o Calamares deixa escolher idioma, fuso e teclado).
 
 lb config noauto \
 	--mode debian \
@@ -20,5 +23,5 @@ lb config noauto \
 	--iso-application "Kalango OS" \
 	--iso-publisher "Kalango OS" \
 	--iso-volume "KALANGO_OS" \
-	--bootappend-live "boot=live components noeject quiet splash username=user user-fullname=Usuário hostname=kalango locales=pt_BR.UTF-8 keyboard-layouts=br timezone=America/Sao_Paulo" \
+	--bootappend-live "boot=live components noeject quiet splash username=user user-fullname=User hostname=kalango locales=en_US.UTF-8,pt_BR.UTF-8 keyboard-layouts=us timezone=Etc/UTC" \
 	"${@}"

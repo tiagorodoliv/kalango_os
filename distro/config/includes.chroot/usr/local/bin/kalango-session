@@ -20,4 +20,19 @@ mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/labwc"
 if [ -r /etc/profile.d/flatpak.sh ]; then
 	. /etc/profile.d/flatpak.sh
 fi
+# Variáveis da sessão. Ficam aqui, e não em /etc/xdg/labwc/environment: o
+# labwc lê um só arquivo "environment", e o ~/.config/labwc/environment que
+# o shell grava ao trocar o teclado (src/region.rs) esconderia o do sistema.
+# Liga o modo real do kalango-shell: abre os apps instalados (src/session.rs).
+export KALANGO_SESSION=1
+# Tema escuro nos apps libadwaita (Loja, Agenda). Eles só leem a preferência
+# pelo portal de configurações, que a sessão labwc não tem.
+export ADW_DEBUG_COLOR_SCHEME=prefer-dark
+# Apps GTK/Qt/Firefox nativos em Wayland.
+export MOZ_ENABLE_WAYLAND=1
+export QT_QPA_PLATFORM=wayland
+# Idioma e teclado (/usr/local/lib/kalango/regiao.sh): inglês e teclado us
+# por padrão, ou o que o sistema e o usuário escolheram.
+. /usr/local/lib/kalango/regiao.sh
+kalango_regiao
 exec labwc
