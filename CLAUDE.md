@@ -115,9 +115,16 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `thunar -q`). Ativado em `settings.ini` e no gschema override. Padrões do Thunar (ícones, caminho em botões,
   sem barra de menu) em `etc/xdg/xfce4/xfconf/xfce-perchannel-xml/thunar.xml`; miniaturas pelo `tumbler`.
 - Editor de código ("Código" da dock, `session::command_for`): **Geany** com o esquema
-  `usr/share/geany/colorschemes/kalango-dark-modern.conf` (paleta do VS Code Dark Modern) e padrões globais em
-  `usr/share/geany/geany.conf` (números de linha, JetBrains Mono, régua na coluna 100; o Geany só usa esse arquivo
-  enquanto o usuário não tem `~/.config/geany/geany.conf`). Sem Geany, o "Código" abre o Mousepad.
+  `usr/share/geany/colorschemes/kalango-dark-modern.conf` e padrões globais em `usr/share/geany/geany.conf`
+  (números de linha, JetBrains Mono, régua na coluna 100, sem barra de ferramentas; o Geany só usa esse arquivo
+  enquanto o usuário não tem `~/.config/geany/geany.conf`). Sem Geany, o "Código" abre o Mousepad. Mousepad usa
+  o estilo GtkSourceView `usr/share/gtksourceview-4/styles/kalango.xml` (padrões no gschema override). Os dois:
+  fundo/seleção/números do tema do sistema + cores de sintaxe do VS Code Dark Modern.
+- Ícones: temas próprios `Kalango-<Cor>` (6, um por destaque) gerados por `distro/icones/gerar.py` (pastas planas
+  na cor de destaque com os ícones de `ui/icons`, dispositivos/lixeira em quadrado escuro, arquivos como folha
+  escura); o resto herda do Adwaita. Padrão `Kalango-Ciano` (settings.ini + gschema); o shell troca a variante
+  com `gsettings` ao mudar o destaque (só se o tema atual for um Kalango), e os apps abertos mudam na hora.
+  Índice gerado pelo hook `0100`. Papirus foi descartado (187 MB).
 - `run-qemu.sh --disco` liga um disco de 20 GB (`distro/out/disco-teste.qcow2`) para testar o instalador;
   `--so-disco` dá boot pelo disco sem a ISO.
 - `auto/config` usa `noeject` (desligar não para pedindo para remover a mídia).
@@ -127,6 +134,9 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
 ## Assets (já organizados)
 
 - `assets/layout/` — telas de referência 2880×1800: `login.png`, `desktop.png`, `menu_apps.png`, `config_aparencia.png`, `logotipo.png`.
+- `assets/wallpapers/16x9/` — 7 wallpapers (Preto, Branco, Azul, Verde, Roxo, Laranja, PretoAzul) em 3840×2160,
+  2560×1440 e 1920×1080, gerados por `assets/wallpapers/gerar.py` (numpy + Pillow; `--previa` = só Full HD):
+  fitas de luz translúcidas, hexágonos nos cantos e o logotipo real (letras azul-marinho no Branco).
 - `assets/wallpapers/` — 6 wallpapers 2880×1800: Ciano, Roxo, Azul, Verde, Amarelo, Rosa
   (mesma ordem das 6 cores de destaque da tela Aparência → trocar a cor de destaque pode trocar o wallpaper).
 - `assets/logo/` — `Kalango_Logo_Vetorizado.svg` e `Kalango_Logo_transparente.png` (2172×724).
