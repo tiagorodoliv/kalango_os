@@ -444,7 +444,10 @@ export component SettingsScreen inherits Rectangle {
         if root.current == 9: AboutPage { }
     }
 
-    IconButton {
+    // Fechar dentro da tela só no protótipo (lá as Configurações são uma tela
+    // do próprio shell). Na sessão real elas são uma janela, com os botões
+    // minimizar/maximizar/fechar do labwc na barra de título.
+    if !Shell.native: IconButton {
         x: root.width - self.width - 34px;
         y: 37px;
         width: 36px;
