@@ -94,6 +94,13 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `avahi-browse -tpr _smb._tcp` (Linux/macOS/NAS; Windows não se anuncia: campo de endereço `\\pc\pasta` →
   `smb://` e "Browse network" = `thunar network:///`), tudo pelo gvfs (`gvfs-backends`). Testado na VM: visitante
   lê e não grava, com senha grava, Thunar lista as pastas e a Rede.
+- **Pendrives (2026-11-13): a cópia não termina antes da gravação.** `etc/udev/rules.d/90-kalango-pendrive.rules`
+  (`90-`: precisa do `ID_BUS` do 60-persistent-storage) põe `bdi/strict_limit=1` e `bdi/max_bytes=16 MB` em disco
+  USB: a cópia anda na velocidade real. A área de trabalho (`src/usb.rs`, thread a cada 2 s) dá `sync -f` nos
+  discos USB montados e mostra "Gravando no pendrive, não remova" no centro da barra (`Shell.usb-writing`; fim =
+  aviso pelo `show-toast`, público). O udisks já monta FAT32 com `flush`; exFAT não tem. Medido em exFAT a 2 MB/s
+  (`run-qemu.sh --pendrive`), 60 MB: sem nada o `cp` acaba em 0,2 s com 58 MB na memória; com regra + shell, 29 s e
+  nada pendente.
 - **Menu do botão direito na área de trabalho** (`ui/components/desktop_menu.slint`): papel de parede, dock,
   monitores, terminal, arquivos, Configurações. Desenhado **dentro** da janela (não `PopupWindow`): a área de
   trabalho é tela cheia e sempre atrás, e o labwc não entrega cliques a popups dela. Abre as Configurações

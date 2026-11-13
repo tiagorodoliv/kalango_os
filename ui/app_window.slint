@@ -139,7 +139,9 @@ export component AppWindow inherits Window {
         }
     }
 
-    function show-toast(msg: string) {
+    /// Aviso curto (na sessão real, no centro da barra). Público para o
+    /// Rust avisar também (ex.: fim da gravação no pendrive).
+    public function show-toast(msg: string) {
         root.toast = msg;
         toast-timer.running = false;
         toast-timer.running = true;
@@ -354,7 +356,9 @@ export component AppWindow inherits Window {
             z: 5;
             launcher-open: root.launcher-open;
             compact: root.launcher-open || root.screen == Screen.settings;
-            message: Shell.native ? root.toast : "";
+            message: !Shell.native ? ""
+                : root.toast != "" ? root.toast
+                : Shell.usb-writing ? @tr("Writing to the USB drive, do not remove it") : "";
             quick-open: root.quick-open;
             status-clicked => { root.toggle-quick(); }
             pill-clicked => { root.toggle-launcher(); }

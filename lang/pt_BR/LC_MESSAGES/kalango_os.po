@@ -756,3 +756,6 @@ msgstr "Estilo escuro"
 #: ui/screens/quick_settings.slint
 msgid "Not connected"
 msgstr "Sem conexão"
+
+msgid "Writing to the USB drive, do not remove it"
+msgstr "Gravando no pendrive, não remova"

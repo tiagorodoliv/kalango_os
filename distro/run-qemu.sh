@@ -1,7 +1,8 @@
 #!/bin/sh
 # Testa a ISO do Kalango OS no QEMU (com KVM).
 #
-# Uso:  distro/run-qemu.sh [--uefi | --secureboot] [--gl] [--disco | --so-disco] [--dev pasta] [caminho.iso]
+# Uso:  distro/run-qemu.sh [--uefi | --secureboot] [--gl] [--disco | --so-disco] [--pendrive]
+#                          [--dev pasta] [caminho.iso]
 #   --uefi      dá boot por UEFI (OVMF) em vez de BIOS.
 #   --secureboot UEFI com Secure Boot ligado (chaves da Microsoft, como num PC
 #               com Windows). As variáveis da UEFI (entradas de boot) ficam em
@@ -11,6 +12,9 @@
 #   --disco     liga também um disco virtual de 20 GB (distro/out/disco-teste.qcow2,
 #               criado na primeira vez) para testar o instalador.
 #   --so-disco  dá boot pelo disco virtual, sem a ISO (sistema já instalado).
+#   --pendrive  liga um pendrive USB de 1 GB (distro/out/pendrive-teste.img, FAT32)
+#               que grava a 2 MB/s, lento como um pendrive barato: para testar a
+#               cópia que não pode terminar antes da gravação (src/usb.rs).
 #   --dev pasta compartilha a pasta com a VM (9p, "kalango-dev"): a ISO live
 #               aplica o shell e as configs dela no boot (distro/testar-vm.sh).
 # Sem caminho, usa a ISO mais recente em distro/out/.
@@ -21,6 +25,7 @@ FIRMWARE=""
 MACHINE="q35,vmport=off"
 DISCO=""
 DEV=""
+PENDRIVE=""
 ISO_ARGS="yes"
 # Padrão: janela GTK sem OpenGL. É o caminho mais testado do QEMU. Com
 # "gtk,gl=on" num desktop Wayland (GNOME) o mouse sai invertido e a imagem
@@ -56,6 +61,19 @@ while [ $# -gt 0 ]; do
 		[ "$1" = "--so-disco" ] && ISO_ARGS=""
 		shift
 		;;
+	--pendrive)
+		PEN="$DISTRO/out/pendrive-teste.img"
+		mkdir -p "$DISTRO/out"
+		if [ ! -f "$PEN" ]; then
+			truncate -s 1G "$PEN"
+			# Uma partição FAT32 ocupando o disco, como vem de fábrica.
+			echo 'type=c' | sfdisk -q "$PEN"
+			mkfs.vfat -F 32 -n PENDRIVE --offset 2048 "$PEN" >/dev/null
+		fi
+		PENDRIVE="-drive if=none,id=pendrive,format=raw,file=$PEN,throttling.bps-write=2000000
+			-device usb-storage,drive=pendrive,removable=on"
+		shift
+		;;
 	--dev)
 		DEV="-virtfs local,path=$2,mount_tag=kalango-dev,security_model=none,readonly=on"
 		shift 2
@@ -80,4 +98,4 @@ exec qemu-system-x86_64 \
 	$VIDEO \
 	-device qemu-xhci -device usb-tablet \
 	-nic user,model=virtio-net-pci \
-	$DISCO $DEV $ISO_ARGS
+	$DISCO $PENDRIVE $DEV $ISO_ARGS

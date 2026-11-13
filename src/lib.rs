@@ -14,7 +14,8 @@
 //! - [`labwc`]: ajustes do compositor feitos pelo shell (margem da dock);
 //! - [`greeter`]: tela de login de verdade, como greeter do greetd;
 //! - [`wallpaper`]: papel de parede da área de trabalho;
-//! - [`recent`]: arquivos recentes de verdade no menu de apps.
+//! - [`recent`]: arquivos recentes de verdade no menu de apps;
+//! - [`usb`]: grava logo nos pendrives e avisa na barra enquanto grava.
 //!
 //! A lógica fica na biblioteca (e não no `main.rs`) para poder ser reusada
 //! por testes e por ferramentas como um gerador de capturas das telas.
@@ -33,6 +34,7 @@ pub mod region;
 pub mod session;
 pub mod sharing;
 pub mod system;
+pub mod usb;
 pub mod wallpaper;
 
 pub use session::Mode;
@@ -83,6 +85,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     displays::install(&ui, mode);
     region::install(&ui, mode);
     sharing::install(&ui, mode);
+    usb::install(&ui, mode);
     timers.extend(wallpaper::install(&ui, mode));
     Ok((ui, timers))
 }
