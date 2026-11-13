@@ -208,7 +208,7 @@ pub fn is_admin(groups: &str) -> bool {
 /// O `nmcli` roda com `LC_ALL=C`: os estados ("connected") viriam traduzidos
 /// e a leitura depende deles. O `wpctl` mantém o idioma da sessão, porque o
 /// nome da saída de som aparece na tela.
-fn output(program: &str, args: &[&str]) -> Option<String> {
+pub(crate) fn output(program: &str, args: &[&str]) -> Option<String> {
     let mut cmd = Command::new(program);
     if program == "nmcli" {
         cmd.env("LC_ALL", "C");
@@ -223,7 +223,7 @@ fn output(program: &str, args: &[&str]) -> Option<String> {
 }
 
 /// Inicia um comando sem esperar (uma thread recolhe o processo ao terminar).
-fn spawn_detached(program: &str, args: &[&str]) {
+pub(crate) fn spawn_detached(program: &str, args: &[&str]) {
     let mut cmd = Command::new(program);
     cmd.args(args).stdin(Stdio::null());
     if let Some(home) = std::env::var_os("HOME") {

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Compartilhamento de pastas começa desligado: o Samba e o wsdd2 só sobem
+# quando a pessoa liga em Configurações → Compartilhamento
+# (/usr/local/sbin/kalango-compartilhar). As pastas escolhidas ficam em
+# /etc/samba/kalango.conf, incluído no fim do smb.conf do Debian (que já traz
+# "map to guest = bad user" para o acesso sem senha).
+set -e
+systemctl disable smbd.service nmbd.service wsdd2.service 2>/dev/null || true
+touch /etc/samba/kalango.conf
+# Só aparece na rede o que a pessoa escolheu: sem a pasta pessoal inteira
+# ([homes]) nem as impressoras ([printers], [print$]) do smb.conf do Debian.
+if ! grep -q '^include = /etc/samba/kalango.conf' /etc/samba/smb.conf; then
+	awk '/^\[/ { pula = ($0 == "[homes]" || $0 == "[printers]" || $0 == "[print$]") } !pula' \
+		/etc/samba/smb.conf >/etc/samba/smb.conf.kalango
+	printf '\n# Pastas compartilhadas pelo Kalango OS (Configurações → Compartilhamento).\ninclude = /etc/samba/kalango.conf\n' \
+		>>/etc/samba/smb.conf.kalango
+	mv /etc/samba/smb.conf.kalango /etc/samba/smb.conf
+fi

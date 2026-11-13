@@ -1,0 +1,76 @@
+#!/bin/sh
+# Compartilhamento de pastas do Kalango OS (Configurações → Compartilhamento).
+# Roda como root pelo pkexec (política org.kalango.compartilhar): o shell
+# nunca mexe no Samba diretamente.
+#
+#   kalango-compartilhar ligar                 liga o Samba e o wsdd2
+#   kalango-compartilhar desligar              desliga os dois
+#   kalango-compartilhar pastas SEM_SENHA PASTA...
+#       grava /etc/samba/kalango.conf com as pastas (do usuário que chamou)
+#       e recarrega o Samba. SEM_SENHA=1: visitantes entram sem senha e só
+#       leem; com a senha de rede (smbpasswd) o dono também altera.
+#
+# Só aceita pastas dentro da pasta pessoal de quem chamou (PKEXEC_UID).
+set -eu
+
+CONF=/etc/samba/kalango.conf
+
+erro() {
+	echo "kalango-compartilhar: $*" >&2
+	exit 1
+}
+
+case "${1:-}" in
+ligar)
+	systemctl enable --now smbd.service wsdd2.service
+	;;
+desligar)
+	systemctl disable --now smbd.service wsdd2.service
+	;;
+pastas)
+	[ -n "${PKEXEC_UID:-}" ] || erro "use pelo pkexec"
+	usuario=$(getent passwd "$PKEXEC_UID" | cut -d: -f1)
+	casa=$(getent passwd "$PKEXEC_UID" | cut -d: -f6)
+	[ -n "$usuario" ] && [ -d "$casa" ] || erro "usuário desconhecido"
+	sem_senha=$2
+	shift 2
+	tmp=$(mktemp)
+	{
+		echo "# Gerado pelo kalango-shell (Configurações → Compartilhamento)."
+		echo "# Incluído no fim do /etc/samba/smb.conf."
+	} >"$tmp"
+	for pasta in "$@"; do
+		real=$(realpath -e -- "$pasta") || erro "pasta não existe: $pasta"
+		case "$real" in
+		"$casa"/*) ;;
+		*) erro "só pastas dentro de $casa" ;;
+		esac
+		[ -d "$real" ] || erro "não é pasta: $real"
+		# Nome do compartilhamento = nome da pasta, só com caracteres seguros.
+		nome=$(basename "$real" | tr -cd '[:alnum:] ._-' | cut -c1-40)
+		[ -n "$nome" ] || nome=Pasta
+		{
+			echo
+			echo "[$nome]"
+			echo "   path = $real"
+			echo "   browseable = yes"
+			echo "   read only = yes"
+			echo "   write list = $usuario"
+			echo "   force user = $usuario"
+			if [ "$sem_senha" = 1 ]; then
+				echo "   guest ok = yes"
+			else
+				echo "   valid users = $usuario"
+			fi
+		} >>"$tmp"
+	done
+	install -m 0644 "$tmp" "$CONF"
+	rm -f "$tmp"
+	if systemctl -q is-active smbd.service; then
+		smbcontrol smbd reload-config >/dev/null 2>&1 || systemctl reload smbd.service
+	fi
+	;;
+*)
+	erro "uso: kalango-compartilhar ligar|desligar|pastas SEM_SENHA PASTA..."
+	;;
+esac

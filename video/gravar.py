@@ -34,7 +34,7 @@ FOLGA = 0.7  # silêncio entre uma fala e a próxima
 DOCK = {"files": (800, 1026), "terminal": (860, 1026), "browser": (920, 1026),
         "code": (980, 1026), "store": (1040, 1026), "settings": (1118, 1026)}
 LADO = {"network": 216, "appearance": 300, "taskbar": 342, "displays": 384, "sound": 426,
-        "power": 468, "region": 552, "updates": 594, "about": 636}
+        "power": 468, "sharing": 552, "region": 594, "updates": 636, "about": 678}
 
 
 class Diretor:

@@ -49,6 +49,21 @@ export struct DisplayOutput {
     rotation: int,
 }
 
+/// Uma pasta que pode ser compartilhada (Configurações → Compartilhamento).
+export struct SharedFolder {
+    /// Nome da pasta ("Public", "Documents"...).
+    name: string,
+    path: string,
+    shared: bool,
+}
+
+/// Um computador da rede local com pastas compartilhadas (achado pelo Avahi).
+export struct NetComputer {
+    name: string,
+    /// Nome na rede ("kalango.local") ou endereço.
+    host: string,
+}
+
 export global Device {
     // --- Sobre o sistema ---
 
@@ -149,5 +164,36 @@ export global Device {
     in property <int> keyboard-index: 0;
     in property <string> keyboard-message: "";
     callback set-language(int);
+
+    // --- Compartilhamento (src/sharing.rs) ---
+    /// Samba e o script de compartilhamento instalados (sessão real).
+    in property <bool> sharing-available: false;
+    in-out property <bool> sharing-enabled: false;
+    /// Esperando a senha do administrador ou o Samba.
+    in property <bool> sharing-busy: false;
+    /// Visitantes entram sem senha (só leitura).
+    in-out property <bool> sharing-guest: true;
+    /// Nome do computador na rede ("kalango").
+    in property <string> sharing-name: "kalango";
+    in property <[SharedFolder]> sharing-folders: [
+        { name: "Public", path: "~/Public", shared: true },
+        { name: "Documents", path: "~/Documents", shared: false },
+        { name: "Pictures", path: "~/Pictures", shared: false },
+        { name: "Music", path: "~/Music", shared: false },
+        { name: "Videos", path: "~/Videos", shared: false },
+        { name: "Downloads", path: "~/Downloads", shared: false },
+    ];
+    in-out property <string> sharing-message: "";
+    in property <[NetComputer]> computers: [];
+    in property <bool> computers-busy: false;
+    callback set-sharing(bool);
+    callback set-sharing-guest(bool);
+    callback toggle-shared-folder(int);
+    callback sharing-password();
+    callback refresh-computers();
+    callback open-computer(int);
+    callback browse-network();
+    /// Abre um endereço digitado ("192.168.0.10", "\\\\pc\\pasta", "sftp://...").
+    callback connect-server(string);
     callback set-keyboard(int);
 }

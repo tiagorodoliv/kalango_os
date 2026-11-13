@@ -31,6 +31,7 @@ pub mod labwc;
 pub mod recent;
 pub mod region;
 pub mod session;
+pub mod sharing;
 pub mod system;
 pub mod wallpaper;
 
@@ -77,6 +78,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     timers.extend(device::install(&ui, mode));
     displays::install(&ui, mode);
     region::install(&ui, mode);
+    sharing::install(&ui, mode);
     timers.extend(wallpaper::install(&ui, mode));
     Ok((ui, timers))
 }

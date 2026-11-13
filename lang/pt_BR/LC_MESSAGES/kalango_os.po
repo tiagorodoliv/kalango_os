@@ -25,7 +25,7 @@ msgstr "Não foi possível abrir o menu de apps"
 msgid "Could not open the file"
 msgstr "Não foi possível abrir o arquivo"
 
-#: ui/app_window.slint:56 ui/components/desktop_menu.slint:76 ui/globals.slint:56 ui/screens/settings.slint:414
+#: ui/app_window.slint:56 ui/components/desktop_menu.slint:76 ui/globals.slint:56 ui/screens/settings.slint:415
 msgid "Settings"
 msgstr "Configurações"
 
@@ -41,7 +41,7 @@ msgstr "Mudar papel de parede"
 msgid "Adjust the dock"
 msgstr "Ajustar a dock"
 
-#: ui/components/desktop_menu.slint:71 ui/screens/settings.slint:388 ui/screens/settings_pages.slint:765
+#: ui/components/desktop_menu.slint:71 ui/screens/settings.slint:388 ui/screens/settings_pages.slint:990
 msgid "Displays"
 msgstr "Monitores"
 
@@ -53,39 +53,39 @@ msgstr "Abrir terminal"
 msgid "Open Files"
 msgstr "Abrir Arquivos"
 
-#: ui/device.slint:103 ui/screens/settings_pages.slint:538
+#: ui/device.slint:118 ui/screens/settings_pages.slint:538
 msgid "No battery"
 msgstr "Sem bateria"
 
-#: ui/device.slint:127
+#: ui/device.slint:142
 msgid "90° (portrait)"
 msgstr "90° (em pé)"
 
-#: ui/device.slint:127
+#: ui/device.slint:142
 msgid "180° (upside down)"
 msgstr "180° (de ponta-cabeça)"
 
-#: ui/device.slint:127
+#: ui/device.slint:142
 msgid "270° (portrait)"
 msgstr "270° (em pé)"
 
-#: ui/device.slint:147
+#: ui/device.slint:162
 msgid "English (US)"
 msgstr "Inglês (EUA)"
 
-#: ui/device.slint:57
+#: ui/device.slint:72
 msgid "Version"
 msgstr "Versão"
 
-#: ui/device.slint:57
+#: ui/device.slint:72
 msgid "Kalango OS 0.1 (prototype)"
 msgstr "Kalango OS 0.1 (protótipo)"
 
-#: ui/device.slint:59
+#: ui/device.slint:74
 msgid "Session"
 msgstr "Sessão"
 
-#: ui/device.slint:67
+#: ui/device.slint:82
 msgid "No network information"
 msgstr "Sem informações de rede"
 
@@ -125,7 +125,7 @@ msgstr "Documentos"
 msgid "Calendar"
 msgstr "Agenda"
 
-#: ui/globals.slint:62 ui/screens/settings.slint:393
+#: ui/globals.slint:62 ui/screens/settings.slint:394
 msgid "Updates"
 msgstr "Atualizações"
 
@@ -262,16 +262,164 @@ msgid "Users"
 msgstr "Usuários"
 
 #: ui/screens/settings.slint:392
+msgid "Sharing"
+msgstr "Compartilhamento"
+
+#: ui/screens/settings.slint:393
 msgid "Language & Region"
 msgstr "Idioma e região"
 
-#: ui/screens/settings.slint:394
+#: ui/screens/settings.slint:395
 msgid "About"
 msgstr "Sobre o sistema"
 
-#: ui/screens/settings.slint:440
+#: ui/screens/settings.slint:441
 msgid "Search"
 msgstr "Buscar"
+
+#: ui/screens/settings_pages.slint:1031
+msgid "Resolution"
+msgstr "Resolução"
+
+#: ui/screens/settings_pages.slint:1044
+msgid "Refresh rate"
+msgstr "Taxa de atualização"
+
+#: ui/screens/settings_pages.slint:1054
+msgid "Scale"
+msgstr "Escala"
+
+#: ui/screens/settings_pages.slint:1055
+msgid "Makes text and windows larger"
+msgstr "Aumenta textos e janelas"
+
+#: ui/screens/settings_pages.slint:1055
+msgid "Too large for this resolution"
+msgstr "Grande demais para esta resolução"
+
+#: ui/screens/settings_pages.slint:1065
+msgid "Rotation"
+msgstr "Rotação"
+
+#: ui/screens/settings_pages.slint:1083
+msgid "Keep this configuration?"
+msgstr "Manter esta configuração?"
+
+#: ui/screens/settings_pages.slint:1084
+msgid "Reverting to the previous one in {} s"
+msgstr "Voltando à anterior em {} s"
+
+#: ui/screens/settings_pages.slint:1092
+msgid "Revert"
+msgstr "Voltar"
+
+#: ui/screens/settings_pages.slint:1097
+msgid "Keep"
+msgstr "Manter"
+
+#: ui/screens/settings_pages.slint:1109
+msgid "Apply"
+msgstr "Aplicar"
+
+#: ui/screens/settings_pages.slint:1118
+msgid "Undo"
+msgstr "Desfazer"
+
+#: ui/screens/settings_pages.slint:1149
+msgid "TOP BAR"
+msgstr "BARRA SUPERIOR"
+
+#: ui/screens/settings_pages.slint:1154
+msgid "Date"
+msgstr "Data"
+
+#: ui/screens/settings_pages.slint:1155
+msgid "The day before the time ({})"
+msgstr "O dia antes da hora ({})"
+
+#: ui/screens/settings_pages.slint:1160
+msgid "Seconds"
+msgstr "Segundos"
+
+#: ui/screens/settings_pages.slint:1161
+msgid "Clock with seconds ({}:{})"
+msgstr "Relógio com segundos ({}:{})"
+
+#: ui/screens/settings_pages.slint:1165
+msgid "CPU usage"
+msgstr "Uso de CPU"
+
+#: ui/screens/settings_pages.slint:1166
+msgid "How much of the processor is in use"
+msgstr "Quanto do processador está em uso"
+
+#: ui/screens/settings_pages.slint:1171
+msgid "Charge as a percentage (only on computers with a battery)"
+msgstr "Carga em porcentagem (só em computadores com bateria)"
+
+#: ui/screens/settings_pages.slint:1182
+msgid "Position"
+msgstr "Posição"
+
+#: ui/screens/settings_pages.slint:1186
+msgid "Bottom"
+msgstr "Embaixo"
+
+#: ui/screens/settings_pages.slint:1186
+msgid "Left"
+msgstr "Esquerda"
+
+#: ui/screens/settings_pages.slint:1186
+msgid "Right"
+msgstr "Direita"
+
+#: ui/screens/settings_pages.slint:1192
+msgid "Style"
+msgstr "Estilo"
+
+#: ui/screens/settings_pages.slint:1193
+msgid "Bar along the edge, end to end"
+msgstr "Barra encostada na borda, de ponta a ponta"
+
+#: ui/screens/settings_pages.slint:1193
+msgid "Floating and centered"
+msgstr "Flutuante e centralizada"
+
+#: ui/screens/settings_pages.slint:1196
+msgid "Bar"
+msgstr "Barra"
+
+#: ui/screens/settings_pages.slint:1202
+msgid "Always visible"
+msgstr "Sempre visível"
+
+#: ui/screens/settings_pages.slint:1203
+msgid "Off: appears when the mouse reaches the screen edge"
+msgstr "Desligado: aparece com o mouse na borda da tela"
+
+#: ui/screens/settings_pages.slint:1207
+msgid "Size"
+msgstr "Tamanho"
+
+#: ui/screens/settings_pages.slint:1210
+msgid "Small"
+msgstr "Pequena"
+
+#: ui/screens/settings_pages.slint:1210
+msgid "Medium"
+msgstr "Média"
+
+#: ui/screens/settings_pages.slint:1210
+msgid "Large"
+msgstr "Grande"
+
+#: ui/screens/settings_pages.slint:1219
+msgid "DOCK APPS"
+msgstr "APPS NA DOCK"
+
+#: ui/screens/settings_pages.slint:1222
+msgid "Click to add or remove · in this order"
+msgstr "Clique para pôr ou tirar · nesta ordem"
 
 #: ui/screens/settings_pages.slint:279
 msgid "Network manager unavailable"
@@ -293,7 +441,7 @@ msgstr "Avançado"
 msgid "On"
 msgstr "Ligado"
 
-#: ui/screens/settings_pages.slint:298
+#: ui/screens/settings_pages.slint:298 ui/screens/settings_pages.slint:642
 msgid "Off"
 msgstr "Desligado"
 
@@ -305,11 +453,11 @@ msgstr "Nenhuma placa Wi-Fi encontrada neste computador."
 msgid "AVAILABLE NETWORKS"
 msgstr "REDES DISPONÍVEIS"
 
-#: ui/screens/settings_pages.slint:322
+#: ui/screens/settings_pages.slint:322 ui/screens/settings_pages.slint:640 ui/screens/settings_pages.slint:732
 msgid "Please wait..."
 msgstr "Aguarde..."
 
-#: ui/screens/settings_pages.slint:322
+#: ui/screens/settings_pages.slint:322 ui/screens/settings_pages.slint:732
 msgid "Refresh"
 msgstr "Atualizar"
 
@@ -325,7 +473,7 @@ msgstr "Conectada"
 msgid "Password for {}"
 msgstr "Senha de {}"
 
-#: ui/screens/settings_pages.slint:430
+#: ui/screens/settings_pages.slint:430 ui/screens/settings_pages.slint:821
 msgid "Connect"
 msgstr "Conectar"
 
@@ -361,7 +509,7 @@ msgstr "Silencia a saída padrão"
 msgid "More sound options"
 msgstr "Mais opções de som"
 
-#: ui/screens/settings_pages.slint:537 ui/screens/settings_pages.slint:945
+#: ui/screens/settings_pages.slint:537 ui/screens/settings_pages.slint:1170
 msgid "Battery"
 msgstr "Bateria"
 
@@ -405,217 +553,141 @@ msgstr "usuário padrão"
 msgid "Change password"
 msgstr "Alterar senha"
 
-#: ui/screens/settings_pages.slint:604 ui/screens/settings_pages.slint:658
+#: ui/screens/settings_pages.slint:604 ui/screens/settings_pages.slint:883
 msgid "Log out"
 msgstr "Sair da sessão"
 
-#: ui/screens/settings_pages.slint:627
+#: ui/screens/settings_pages.slint:630
+msgid "File sharing is not installed"
+msgstr "Compartilhamento de arquivos não instalado"
+
+#: ui/screens/settings_pages.slint:631
+msgid "Sharing folders works in the Kalango OS session, with Samba installed."
+msgstr "Compartilhar pastas funciona na sessão do Kalango OS, com o Samba instalado."
+
+#: ui/screens/settings_pages.slint:634
+msgid "FILE SHARING"
+msgstr "COMPARTILHAMENTO DE ARQUIVOS"
+
+#: ui/screens/settings_pages.slint:639
+msgid "Share folders on the network"
+msgstr "Compartilhar pastas na rede"
+
+#: ui/screens/settings_pages.slint:641
+msgid "Visible as {} on the local network"
+msgstr "Aparece como {} na rede local"
+
+#: ui/screens/settings_pages.slint:651
+msgid "Access without a password"
+msgstr "Acesso sem senha"
+
+#: ui/screens/settings_pages.slint:652
+msgid "Visitors can open and copy files, but not change them"
+msgstr "Visitantes abrem e copiam arquivos, mas não alteram"
+
+#: ui/screens/settings_pages.slint:660
+msgid "Network password"
+msgstr "Senha de rede"
+
+#: ui/screens/settings_pages.slint:661
+msgid "To change files from another computer, sign in as {}"
+msgstr "Para alterar arquivos de outro computador, entre como {}"
+
+#: ui/screens/settings_pages.slint:664
+msgid "Set password"
+msgstr "Definir senha"
+
+#: ui/screens/settings_pages.slint:672
+msgid "SHARED FOLDERS"
+msgstr "PASTAS COMPARTILHADAS"
+
+#: ui/screens/settings_pages.slint:675
+msgid "Click to share or stop sharing"
+msgstr "Clique para compartilhar ou parar"
+
+#: ui/screens/settings_pages.slint:728
+msgid "COMPUTERS ON THE NETWORK"
+msgstr "COMPUTADORES NA REDE"
+
+#: ui/screens/settings_pages.slint:741
+msgid "Looking for computers..."
+msgstr "Procurando computadores..."
+
+#: ui/screens/settings_pages.slint:742
+msgid "No computers sharing files were found. Try the address below."
+msgstr "Nenhum computador compartilhando arquivos foi encontrado. Tente o endereço abaixo."
+
+#: ui/screens/settings_pages.slint:802
+msgid "Server address, e.g. 192.168.0.10 or \\\\pc\\folder"
+msgstr "Endereço do servidor, ex.: 192.168.0.10 ou \\\\pc\\pasta"
+
+#: ui/screens/settings_pages.slint:828
+msgid "Browse network"
+msgstr "Procurar na rede"
+
+#: ui/screens/settings_pages.slint:852
 msgid "Language"
 msgstr "Idioma"
 
-#: ui/screens/settings_pages.slint:628
+#: ui/screens/settings_pages.slint:853
 msgid "Menus, settings and apps"
 msgstr "Menus, configurações e apps"
 
-#: ui/screens/settings_pages.slint:638
+#: ui/screens/settings_pages.slint:863
 msgid "Keyboard"
 msgstr "Teclado"
 
-#: ui/screens/settings_pages.slint:639
+#: ui/screens/settings_pages.slint:864
 msgid "Layout of the keys"
 msgstr "Disposição das teclas"
 
-#: ui/screens/settings_pages.slint:653
+#: ui/screens/settings_pages.slint:878
 msgid "Sign out to change the language"
 msgstr "Saia da sessão para trocar o idioma"
 
-#: ui/screens/settings_pages.slint:654
+#: ui/screens/settings_pages.slint:879
 msgid "Open apps keep the current language until then"
 msgstr "Os apps abertos continuam no idioma atual até lá"
 
-#: ui/screens/settings_pages.slint:682
+#: ui/screens/settings_pages.slint:907
 msgid "System updates"
 msgstr "Atualizações do sistema"
 
-#: ui/screens/settings_pages.slint:683
+#: ui/screens/settings_pages.slint:908
 msgid "Downloads and installs new versions of Kalango OS and your apps"
 msgstr "Baixa e instala as versões novas do Kalango OS e dos apps"
 
-#: ui/screens/settings_pages.slint:687
+#: ui/screens/settings_pages.slint:912
 msgid "Check now"
 msgstr "Procurar agora"
 
-#: ui/screens/settings_pages.slint:694
+#: ui/screens/settings_pages.slint:919
 msgid "The update runs in a terminal and asks for your password."
 msgstr "A atualização roda num terminal e pede a sua senha."
 
-#: ui/screens/settings_pages.slint:711
+#: ui/screens/settings_pages.slint:936
 msgid "Bluetooth is not available yet"
 msgstr "Bluetooth ainda não disponível"
 
-#: ui/screens/settings_pages.slint:711
+#: ui/screens/settings_pages.slint:936
 msgid "No Bluetooth adapter"
 msgstr "Nenhum adaptador Bluetooth"
 
-#: ui/screens/settings_pages.slint:713
+#: ui/screens/settings_pages.slint:938
 msgid "Device pairing is coming in a future version of Kalango OS."
 msgstr "O pareamento de dispositivos chega numa próxima versão do Kalango OS."
 
-#: ui/screens/settings_pages.slint:714
+#: ui/screens/settings_pages.slint:939
 msgid "This computer has no Bluetooth, or it is turned off."
 msgstr "Este computador não tem Bluetooth, ou ele está desligado."
 
-#: ui/screens/settings_pages.slint:767
+#: ui/screens/settings_pages.slint:992
 msgid "Could not read the displays (wlr-randr did not respond)."
 msgstr "Não foi possível ler os monitores (o wlr-randr não respondeu)."
 
-#: ui/screens/settings_pages.slint:768
+#: ui/screens/settings_pages.slint:993
 msgid "Resolution, scale and rotation can be changed in the Kalango OS session."
 msgstr "Ajustar resolução, escala e rotação funciona na sessão do Kalango OS."
-
-#: ui/screens/settings_pages.slint:806
-msgid "Resolution"
-msgstr "Resolução"
-
-#: ui/screens/settings_pages.slint:819
-msgid "Refresh rate"
-msgstr "Taxa de atualização"
-
-#: ui/screens/settings_pages.slint:829
-msgid "Scale"
-msgstr "Escala"
-
-#: ui/screens/settings_pages.slint:830
-msgid "Makes text and windows larger"
-msgstr "Aumenta textos e janelas"
-
-#: ui/screens/settings_pages.slint:830
-msgid "Too large for this resolution"
-msgstr "Grande demais para esta resolução"
-
-#: ui/screens/settings_pages.slint:840
-msgid "Rotation"
-msgstr "Rotação"
-
-#: ui/screens/settings_pages.slint:858
-msgid "Keep this configuration?"
-msgstr "Manter esta configuração?"
-
-#: ui/screens/settings_pages.slint:859
-msgid "Reverting to the previous one in {} s"
-msgstr "Voltando à anterior em {} s"
-
-#: ui/screens/settings_pages.slint:867
-msgid "Revert"
-msgstr "Voltar"
-
-#: ui/screens/settings_pages.slint:872
-msgid "Keep"
-msgstr "Manter"
-
-#: ui/screens/settings_pages.slint:884
-msgid "Apply"
-msgstr "Aplicar"
-
-#: ui/screens/settings_pages.slint:893
-msgid "Undo"
-msgstr "Desfazer"
-
-#: ui/screens/settings_pages.slint:924
-msgid "TOP BAR"
-msgstr "BARRA SUPERIOR"
-
-#: ui/screens/settings_pages.slint:929
-msgid "Date"
-msgstr "Data"
-
-#: ui/screens/settings_pages.slint:930
-msgid "The day before the time ({})"
-msgstr "O dia antes da hora ({})"
-
-#: ui/screens/settings_pages.slint:935
-msgid "Seconds"
-msgstr "Segundos"
-
-#: ui/screens/settings_pages.slint:936
-msgid "Clock with seconds ({}:{})"
-msgstr "Relógio com segundos ({}:{})"
-
-#: ui/screens/settings_pages.slint:940
-msgid "CPU usage"
-msgstr "Uso de CPU"
-
-#: ui/screens/settings_pages.slint:941
-msgid "How much of the processor is in use"
-msgstr "Quanto do processador está em uso"
-
-#: ui/screens/settings_pages.slint:946
-msgid "Charge as a percentage (only on computers with a battery)"
-msgstr "Carga em porcentagem (só em computadores com bateria)"
-
-#: ui/screens/settings_pages.slint:957
-msgid "Position"
-msgstr "Posição"
-
-#: ui/screens/settings_pages.slint:961
-msgid "Bottom"
-msgstr "Embaixo"
-
-#: ui/screens/settings_pages.slint:961
-msgid "Left"
-msgstr "Esquerda"
-
-#: ui/screens/settings_pages.slint:961
-msgid "Right"
-msgstr "Direita"
-
-#: ui/screens/settings_pages.slint:967
-msgid "Style"
-msgstr "Estilo"
-
-#: ui/screens/settings_pages.slint:968
-msgid "Bar along the edge, end to end"
-msgstr "Barra encostada na borda, de ponta a ponta"
-
-#: ui/screens/settings_pages.slint:968
-msgid "Floating and centered"
-msgstr "Flutuante e centralizada"
-
-#: ui/screens/settings_pages.slint:971
-msgid "Bar"
-msgstr "Barra"
-
-#: ui/screens/settings_pages.slint:977
-msgid "Always visible"
-msgstr "Sempre visível"
-
-#: ui/screens/settings_pages.slint:978
-msgid "Off: appears when the mouse reaches the screen edge"
-msgstr "Desligado: aparece com o mouse na borda da tela"
-
-#: ui/screens/settings_pages.slint:982
-msgid "Size"
-msgstr "Tamanho"
-
-#: ui/screens/settings_pages.slint:985
-msgid "Small"
-msgstr "Pequena"
-
-#: ui/screens/settings_pages.slint:985
-msgid "Medium"
-msgstr "Média"
-
-#: ui/screens/settings_pages.slint:985
-msgid "Large"
-msgstr "Grande"
-
-#: ui/screens/settings_pages.slint:994
-msgid "DOCK APPS"
-msgstr "APPS NA DOCK"
-
-#: ui/screens/settings_pages.slint:997
-msgid "Click to add or remove · in this order"
-msgstr "Clique para pôr ou tirar · nesta ordem"
 
 #: ui/theme.slint:58
 msgid "Circuits"

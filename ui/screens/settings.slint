@@ -8,7 +8,7 @@ import { Icons } from "../icons.slint";
 import { Shell } from "../globals.slint";
 import { SectionLabel, IconButton, Toggle, SliderBar } from "../components/widgets.slint";
 import {
-    NetworkPage, BluetoothPage, DisplaysPage, SoundPage, PowerPage, UsersPage, RegionPage, UpdatesPage, AboutPage,
+    NetworkPage, BluetoothPage, DisplaysPage, SoundPage, PowerPage, UsersPage, SharingPage, RegionPage, UpdatesPage, AboutPage,
     TaskbarPage,
 } from "settings_pages.slint";
 
@@ -389,6 +389,7 @@ export component SettingsScreen inherits Rectangle {
         { name: @tr("Sound"), icon: Icons.volume },
         { name: @tr("Power"), icon: Icons.battery },
         { name: @tr("Users"), icon: Icons.user },
+        { name: @tr("Sharing"), icon: Icons.folder },
         { name: @tr("Language & Region"), icon: Icons.globe },
         { name: @tr("Updates"), icon: Icons.download },
         { name: @tr("About"), icon: Icons.info },
@@ -494,9 +495,10 @@ export component SettingsScreen inherits Rectangle {
         if root.current == 5: SoundPage { }
         if root.current == 6: PowerPage { }
         if root.current == 7: UsersPage { }
-        if root.current == 8: RegionPage { }
-        if root.current == 9: UpdatesPage { }
-        if root.current == 10: AboutPage { }
+        if root.current == 8: SharingPage { }
+        if root.current == 9: RegionPage { }
+        if root.current == 10: UpdatesPage { }
+        if root.current == 11: AboutPage { }
     }
 
     // Fechar dentro da tela só no protótipo (lá as Configurações são uma tela

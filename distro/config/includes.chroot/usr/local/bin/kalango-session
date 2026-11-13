@@ -35,4 +35,7 @@ export QT_QPA_PLATFORM=wayland
 # por padrão, ou o que o sistema e o usuário escolheram.
 . /usr/local/lib/kalango/regiao.sh
 kalango_regiao
+# Os serviços da sessão iniciados pelo D-Bus/systemd --user (gvfs do Arquivos,
+# portais...) herdam o idioma do login, não o daqui: atualiza os dois.
+dbus-update-activation-environment --systemd LANG LANGUAGE 2>/dev/null || true
 exec labwc

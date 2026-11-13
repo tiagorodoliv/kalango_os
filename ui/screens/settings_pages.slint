@@ -609,6 +609,231 @@ export component UsersPage inherits Rectangle {
 }
 
 // ---------------------------------------------------------------------------
+// Compartilhamento
+// ---------------------------------------------------------------------------
+
+export component SharingPage inherits Rectangle {
+    // Com rolagem: pastas + computadores da rede passam da altura da janela.
+    Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: sharing-col.preferred-height + 36px;
+        sharing-col := VerticalLayout {
+            x: 0;
+            y: 12px;
+            width: min(Page.max-width, parent.width);
+            alignment: start;
+            spacing: 12px;
+
+            if !Device.sharing-available: EmptyNotice {
+                icon: Icons.folder;
+                title: @tr("File sharing is not installed");
+                text: @tr("Sharing folders works in the Kalango OS session, with Samba installed.");
+            }
+
+            if Device.sharing-available: SectionLabel { text: @tr("FILE SHARING"); }
+            if Device.sharing-available: Panel {
+                height: 3 * 67px;
+                VerticalLayout {
+                    Row {
+                        title: @tr("Share folders on the network");
+                        subtitle: Device.sharing-busy ? @tr("Please wait...")
+                            : Device.sharing-enabled ? @tr("Visible as {} on the local network", Device.sharing-name)
+                            : @tr("Off");
+                        divider: false;
+                        Toggle {
+                            x: parent.width - self.width - 20px;
+                            checked <=> Device.sharing-enabled;
+                            toggled(on) => { Device.set-sharing(on); }
+                        }
+                    }
+                    Row {
+                        title: @tr("Access without a password");
+                        subtitle: @tr("Visitors can open and copy files, but not change them");
+                        Toggle {
+                            x: parent.width - self.width - 20px;
+                            checked <=> Device.sharing-guest;
+                            toggled(on) => { Device.set-sharing-guest(on); }
+                        }
+                    }
+                    Row {
+                        title: @tr("Network password");
+                        subtitle: @tr("To change files from another computer, sign in as {}", Device.login);
+                        PillButton {
+                            x: parent.width - self.width - 20px;
+                            text: @tr("Set password");
+                            clicked => { Device.sharing-password(); }
+                        }
+                    }
+                }
+            }
+
+            if Device.sharing-available: HorizontalLayout {
+                SectionLabel { text: @tr("SHARED FOLDERS"); }
+                Text {
+                    horizontal-alignment: right;
+                    text: @tr("Click to share or stop sharing");
+                    color: Theme.text-muted;
+                    font-family: Theme.sans;
+                    font-size: 12.5px;
+                }
+            }
+            if Device.sharing-available: Rectangle {
+                height: ceil(Device.sharing-folders.length / 3) * (44px + 8px) - 8px;
+                for folder[i] in Device.sharing-folders: Rectangle {
+                    x: Math.mod(i, 3) * (parent.width + 8px) / 3;
+                    y: floor(i / 3) * (44px + 8px);
+                    width: (parent.width + 8px) / 3 - 8px;
+                    height: 44px;
+                    border-radius: Theme.radius-small;
+                    background: folder.shared ? Theme.accent-soft : folder-touch.has-hover ? Theme.tile-hover : Theme.tile;
+                    border-width: 1px;
+                    border-color: folder.shared ? Theme.accent.with-alpha(0.55) : Theme.border;
+                    opacity: Device.sharing-busy ? 0.6 : 1;
+                    Image {
+                        x: 12px;
+                        source: Icons.folder;
+                        colorize: folder.shared ? Theme.accent : Theme.text-muted;
+                        width: 18px;
+                        height: 18px;
+                    }
+                    Text {
+                        x: 40px;
+                        width: parent.width - 48px;
+                        text: folder.name;
+                        color: Theme.text;
+                        font-family: Theme.sans;
+                        font-size: 13.5px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                    folder-touch := TouchArea {
+                        enabled: !Device.sharing-busy;
+                        mouse-cursor: pointer;
+                        clicked => { Device.toggle-shared-folder(i); }
+                    }
+                }
+            }
+            if Device.sharing-message != "": Text {
+                text: Device.sharing-message;
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+                wrap: word-wrap;
+            }
+
+            // --- Computadores da rede ---
+            HorizontalLayout {
+                height: 24px;
+                SectionLabel { text: @tr("COMPUTERS ON THE NETWORK"); vertical-alignment: center; }
+                Rectangle { horizontal-stretch: 1; }
+                PillButton {
+                    height: 24px;
+                    text: Device.computers-busy ? @tr("Please wait...") : @tr("Refresh");
+                    enabled: !Device.computers-busy;
+                    clicked => { Device.refresh-computers(); }
+                }
+            }
+            Panel {
+                height: max(1, Device.computers.length) * 52px;
+                if Device.computers.length == 0: Text {
+                    x: 20px;
+                    text: Device.computers-busy ? @tr("Looking for computers...")
+                        : @tr("No computers sharing files were found. Try the address below.");
+                    color: Theme.text-muted;
+                    font-family: Theme.sans;
+                    font-size: 13.5px;
+                    vertical-alignment: center;
+                }
+                for pc[i] in Device.computers: Rectangle {
+                    y: i * 52px;
+                    height: 52px;
+                    background: pc-touch.has-hover ? Theme.tile : transparent;
+                    border-radius: Theme.radius;
+                    if i > 0: Rectangle { y: 0; height: 1px; background: Theme.border; }
+                    Image {
+                        x: 20px;
+                        source: Icons.monitor;
+                        colorize: Theme.accent;
+                        width: 18px;
+                        height: 18px;
+                    }
+                    Text {
+                        x: 52px;
+                        text: pc.name;
+                        color: Theme.text;
+                        font-family: Theme.sans;
+                        font-size: 14.5px;
+                        vertical-alignment: center;
+                    }
+                    Text {
+                        x: parent.width - self.width - 44px;
+                        text: pc.host;
+                        color: Theme.text-muted;
+                        font-family: Theme.mono;
+                        font-size: 12.5px;
+                        vertical-alignment: center;
+                    }
+                    Image {
+                        x: parent.width - 34px;
+                        source: Icons.chevron-right;
+                        colorize: Theme.text-muted;
+                        width: 16px;
+                        height: 16px;
+                    }
+                    pc-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { Device.open-computer(i); }
+                    }
+                }
+            }
+            Panel {
+                height: 67px;
+                Rectangle {
+                    x: 20px;
+                    width: parent.width - 40px - connect-btn.width - 10px - browse-btn.width - 10px;
+                    height: 38px;
+                    border-radius: Theme.radius-small;
+                    background: Theme.sunken;
+                    border-width: 1px;
+                    border-color: address.has-focus ? Theme.accent : Theme.border;
+                    if address.text == "": Text {
+                        x: 12px;
+                        text: @tr("Server address, e.g. 192.168.0.10 or \\\\pc\\folder");
+                        color: Theme.text-muted;
+                        font-family: Theme.sans;
+                        font-size: 14px;
+                        vertical-alignment: center;
+                    }
+                    address := TextInput {
+                        x: 12px;
+                        width: parent.width - 24px;
+                        height: parent.height;
+                        vertical-alignment: center;
+                        color: Theme.text;
+                        font-family: Theme.sans;
+                        font-size: 14px;
+                        accepted => { connect-btn.clicked(); }
+                    }
+                }
+                connect-btn := PillButton {
+                    x: parent.width - self.width - 20px - browse-btn.width - 10px;
+                    text: @tr("Connect");
+                    primary: true;
+                    enabled: address.text != "";
+                    clicked => { Device.connect-server(address.text); }
+                }
+                browse-btn := PillButton {
+                    x: parent.width - self.width - 20px;
+                    text: @tr("Browse network");
+                    clicked => { Device.browse-network(); }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Idioma e região
 // ---------------------------------------------------------------------------
 

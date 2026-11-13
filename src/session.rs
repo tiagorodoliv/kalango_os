@@ -125,18 +125,18 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
     Some(cmd)
 }
 
-/// Pasta de documentos do usuário (`XDG_DOCUMENTS_DIR`, em pt-BR "Documentos").
+/// Pasta de documentos do usuário (`XDG_DOCUMENTS_DIR`).
 fn documents_dir(home: &str) -> String {
-    xdg_dir(home, "XDG_DOCUMENTS_DIR", "Documentos")
+    xdg_dir(home, "XDG_DOCUMENTS_DIR", tr("Documents", "Documentos"))
 }
 
-/// Pasta de imagens do usuário (`XDG_PICTURES_DIR`, em pt-BR "Imagens").
+/// Pasta de imagens do usuário (`XDG_PICTURES_DIR`).
 fn pictures_dir(home: &str) -> String {
-    xdg_dir(home, "XDG_PICTURES_DIR", "Imagens")
+    xdg_dir(home, "XDG_PICTURES_DIR", tr("Pictures", "Imagens"))
 }
 
 /// Lê uma pasta de `~/.config/user-dirs.dirs`; se não houver, usa `home/padrão`.
-fn xdg_dir(home: &str, key: &str, fallback: &str) -> String {
+pub(crate) fn xdg_dir(home: &str, key: &str, fallback: &str) -> String {
     let file = Path::new(home).join(".config/user-dirs.dirs");
     fs::read_to_string(file)
         .ok()

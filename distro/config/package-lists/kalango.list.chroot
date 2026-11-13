@@ -69,3 +69,19 @@ locales
 keyboard-configuration
 fonts-inter
 fonts-jetbrains-mono
+
+# Rede local (Configurações → Compartilhamento e "Rede" no Arquivos):
+# gvfs-backends dá ao Thunar smb://, sftp://, a pasta "Rede" e celulares
+# (MTP); avahi + libnss-mdns acham e resolvem os computadores (nome.local);
+# avahi-utils lista os compartilhamentos achados (avahi-browse).
+gvfs-backends
+gvfs-fuse
+avahi-daemon
+avahi-utils
+libnss-mdns
+smbclient
+# Compartilhar pastas (começa desligado; ver hook 0120 e
+# /usr/local/sbin/kalango-compartilhar): Samba e o wsdd2, que faz o
+# computador aparecer na "Rede" do Windows 10/11.
+samba
+wsdd2

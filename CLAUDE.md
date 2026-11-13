@@ -72,6 +72,16 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   RECENTES do menu = `~/.local/share/recently-used.xbel` (`src/recent.rs`), abertos com `xdg-open`; na ISO live
   (`/run/live/medium` existe) o 1º item é "Instalar Kalango OS" (app `installer`).
   Sem a variável (dev no host, `examples/snapshot.rs`) continua o protótipo com as janelas de demonstração.
+- **Rede local e compartilhamento (2026-11-13):** Configurações → **Sharing** (`src/sharing.rs`, `SharingPage`).
+  Compartilhar = Samba + `wsdd2` (aparece na Rede do Windows), **desligado por padrão** (hook `0120` desliga
+  smbd/nmbd/wsdd2, tira `[homes]`/`[printers]`/`[print$]` do smb.conf e inclui `/etc/samba/kalango.conf`). Root só
+  por `pkexec /usr/local/sbin/kalango-compartilhar ligar|desligar|pastas SEM_SENHA PASTA...` (política
+  `org.kalango.compartilhar`, `auth_admin_keep`; só aceita pastas na casa de quem chamou). Shares: `read only` +
+  `write list = <usuário>` + `force user`; sem senha = `guest ok` (visitante só lê); senha de rede = `smbpasswd`
+  no foot. Escolha em `~/.config/kalango/compartilhamento.conf` (padrão: Public, sem senha). Computadores =
+  `avahi-browse -tpr _smb._tcp` (Linux/macOS/NAS; Windows não se anuncia: campo de endereço `\\pc\pasta` →
+  `smb://` e "Browse network" = `thunar network:///`), tudo pelo gvfs (`gvfs-backends`). Testado na VM: visitante
+  lê e não grava, com senha grava, Thunar lista as pastas e a Rede.
 - **Menu do botão direito na área de trabalho** (`ui/components/desktop_menu.slint`): papel de parede, dock,
   monitores, terminal, arquivos, Configurações. Desenhado **dentro** da janela (não `PopupWindow`): a área de
   trabalho é tela cheia e sempre atrás, e o labwc não entrega cliques a popups dela. Abre as Configurações
