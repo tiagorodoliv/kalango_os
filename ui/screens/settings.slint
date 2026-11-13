@@ -5,6 +5,7 @@
 
 import { Theme, ThemeMode } from "../theme.slint";
 import { Icons } from "../icons.slint";
+import { Shell } from "../globals.slint";
 import { SectionLabel, IconButton, Toggle, SliderBar } from "../components/widgets.slint";
 import {
     NetworkPage, BluetoothPage, DisplaysPage, SoundPage, PowerPage, UsersPage, UpdatesPage, AboutPage,
@@ -233,7 +234,7 @@ component AppearancePage inherits Rectangle {
         x: 0;
         y: 432px;
         width: min(721px, parent.width);
-        height: 4 * 67px;
+        height: 3 * 67px;
         border-radius: Theme.radius;
         background: Theme.panel;
         border-width: 1px;
@@ -268,14 +269,6 @@ component AppearancePage inherits Rectangle {
                 }
             }
             OptionRow {
-                title: "Dock sempre visível";
-                subtitle: "Desligado: aparece com o mouse na borda de baixo";
-                Toggle {
-                    x: parent.width - self.width - 20px;
-                    checked <=> Theme.dock-always-visible;
-                }
-            }
-            OptionRow {
                 title: "Reduzir animações";
                 subtitle: "Transições instantâneas";
                 Toggle {
@@ -284,6 +277,50 @@ component AppearancePage inherits Rectangle {
                 }
             }
         }
+    }
+
+    // --- Papel de parede (a dock fica em Barra de tarefas) ---
+    SectionLabel { x: 0; y: 657px; text: "PAPEL DE PAREDE"; }
+    for nome[i] in Theme.wallpaper-names: Rectangle {
+        x: i * (80px + 10px);
+        y: 681px;
+        width: 80px;
+        height: 45px;
+        border-radius: 6px;
+        clip: true;
+        background: Theme.background;
+        // Circuitos (sem miniatura): linha e nó na cor de destaque.
+        if i == 0: Rectangle {
+            Rectangle { x: 8px; y: 30px; width: 40px; height: 1.5px; background: Theme.circuit; }
+            Rectangle { x: 47px; y: 14px; width: 1.5px; height: 17px; background: Theme.circuit; }
+            Rectangle {
+                x: 43px; y: 9px; width: 10px; height: 10px; border-radius: 5px;
+                border-width: 1.5px; border-color: Theme.accent; background: transparent;
+            }
+        }
+        if i > 0 && i < Shell.wallpaper-thumbs.length: Image {
+            width: parent.width;
+            height: parent.height;
+            source: Shell.wallpaper-thumbs[i];
+            image-fit: cover;
+        }
+        Rectangle {
+            border-radius: 6px;
+            border-width: Theme.wallpaper == i ? 2px : 1px;
+            border-color: Theme.wallpaper == i ? Theme.accent : Theme.border;
+        }
+        TouchArea {
+            mouse-cursor: pointer;
+            clicked => { Theme.wallpaper = i; }
+        }
+    }
+    Text {
+        x: 0;
+        y: 734px;
+        text: Theme.wallpaper-names[Theme.wallpaper];
+        color: Theme.text-muted;
+        font-family: Theme.sans;
+        font-size: 13px;
     }
 }
 

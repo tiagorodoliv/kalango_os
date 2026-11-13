@@ -9,4 +9,9 @@ if systemd-detect-virt -q; then
 	export WLR_RENDERER=pixman
 	export WLR_NO_HARDWARE_CURSORS=1
 fi
+# O labwc só procura a pasta de configuração do usuário ao iniciar: sem ela,
+# o rc.xml que o shell grava depois (margens da dock, src/labwc.rs) nunca é
+# lido, nem com `labwc --reconfigure`. Vazia, não muda nada: cada arquivo que
+# falta continua vindo de /etc/xdg/labwc.
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/labwc"
 exec labwc

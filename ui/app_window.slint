@@ -214,21 +214,33 @@ export component AppWindow inherits Window {
                 close => { root.terminal-open = false; root.focused-app = "files"; }
             }
 
-            // Dock: com "Dock sempre visível" desligado, só aparece quando o
-            // mouse chega na faixa inferior da tela.
+            // Dock: embaixo, à esquerda ou à direita, flutuante ou como barra.
+            // Com "Sempre visível" desligado, só aparece quando o mouse chega
+            // na faixa daquela borda.
             if !root.launcher-open: dock-zone := TouchArea {
-                y: parent.height - 110px;
-                height: 110px;
-                z: 3;
+                property <int> pos: Theme.dock-position;
+                property <length> gap: Theme.dock-style == 1 ? 0 : 18px;
+                property <length> zone: Theme.dock-thickness + self.gap + 22px;
                 property <bool> show: Theme.dock-always-visible || self.has-hover;
+                x: self.pos == 2 ? parent.width - self.zone : 0;
+                y: self.pos == 0 ? parent.height - self.zone : Theme.bar-height;
+                width: self.pos == 0 ? parent.width : self.zone;
+                height: self.pos == 0 ? self.zone : parent.height - Theme.bar-height;
+                z: 3;
 
                 Dock {
-                    y: show ? parent.height - self.height - 18px : parent.height + 4px;
+                    bar-length: dock-zone.pos == 0 ? dock-zone.width : dock-zone.height;
+                    x: dock-zone.pos == 0 ? (parent.width - self.width) / 2
+                        : dock-zone.pos == 1 ? (dock-zone.show ? dock-zone.gap : -self.width - 4px)
+                        : (dock-zone.show ? parent.width - self.width - dock-zone.gap : parent.width + 4px);
+                    y: dock-zone.pos == 0
+                        ? (dock-zone.show ? parent.height - self.height - dock-zone.gap : parent.height + 4px)
+                        : (parent.height - self.height) / 2;
                     files-open: root.files-open;
                     terminal-open: root.terminal-open;
                     focused-app: root.focused-app;
                     launch(id) => { root.launch(id); }
-                    animate y { duration: Theme.anim; easing: ease-out; }
+                    animate x, y { duration: Theme.anim; easing: ease-out; }
                 }
             }
         }

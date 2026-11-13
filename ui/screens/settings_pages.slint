@@ -853,109 +853,134 @@ export component DisplaysPage inherits Rectangle {
 // ---------------------------------------------------------------------------
 
 export component TaskbarPage inherits Rectangle {
-    VerticalLayout {
-        x: 0;
-        y: Page.top;
-        width: min(Page.max-width, parent.width);
-        alignment: start;
-        spacing: 12px;
+    // Com rolagem: a página é mais alta que a janela maximizada.
+    Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: taskbar-col.preferred-height + 36px;
+        taskbar-col := VerticalLayout {
+            x: 0;
+            y: 12px;
+            width: min(Page.max-width, parent.width);
+            alignment: start;
+            spacing: 12px;
 
-        SectionLabel { text: "BARRA SUPERIOR"; }
-        Panel {
-            height: 4 * 67px;
-            VerticalLayout {
-                Row {
-                    title: "Data";
-                    subtitle: "O dia antes da hora (" + Shell.bar-day + ")";
-                    divider: false;
-                    Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-date; }
-                }
-                Row {
-                    title: "Segundos";
-                    subtitle: "Relógio com segundos (" + Shell.bar-time + ":" + Shell.bar-seconds + ")";
-                    Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-seconds; }
-                }
-                Row {
-                    title: "Uso de CPU";
-                    subtitle: "Quanto do processador está em uso";
-                    Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-cpu; }
-                }
-                Row {
-                    title: "Bateria";
-                    subtitle: "Carga em porcentagem (só em computadores com bateria)";
-                    Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-battery; }
-                }
-            }
-        }
-
-        SectionLabel { text: "DOCK"; }
-        Panel {
-            height: 2 * 67px;
-            VerticalLayout {
-                Row {
-                    title: "Sempre visível";
-                    subtitle: "Desligado: aparece com o mouse na borda de baixo";
-                    divider: false;
-                    Toggle { x: parent.width - self.width - 20px; checked <=> Theme.dock-always-visible; }
-                }
-                Row {
-                    title: "Tamanho";
-                    Segmented {
-                        x: parent.width - self.width - 20px;
-                        options: ["Pequena", "Média", "Grande"];
-                        selected: Theme.dock-size;
-                        chosen(i) => { Theme.dock-size = i; }
+            SectionLabel { text: "BARRA SUPERIOR"; }
+            Panel {
+                height: 4 * 67px;
+                VerticalLayout {
+                    Row {
+                        title: "Data";
+                        subtitle: "O dia antes da hora (" + Shell.bar-day + ")";
+                        divider: false;
+                        Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-date; }
+                    }
+                    Row {
+                        title: "Segundos";
+                        subtitle: "Relógio com segundos (" + Shell.bar-time + ":" + Shell.bar-seconds + ")";
+                        Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-seconds; }
+                    }
+                    Row {
+                        title: "Uso de CPU";
+                        subtitle: "Quanto do processador está em uso";
+                        Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-cpu; }
+                    }
+                    Row {
+                        title: "Bateria";
+                        subtitle: "Carga em porcentagem (só em computadores com bateria)";
+                        Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-battery; }
                     }
                 }
             }
-        }
 
-        HorizontalLayout {
-            SectionLabel { text: "APPS NA DOCK"; }
-            Text {
-                horizontal-alignment: right;
-                text: "Clique para pôr ou tirar · nesta ordem";
-                color: Theme.text-muted;
-                font-family: Theme.sans;
-                font-size: 12.5px;
-            }
-        }
-        // Grade 6×2 dos apps fixados; Configurações fica sempre na dock.
-        Rectangle {
-            height: 2 * 44px + 8px;
-            for app[i] in Apps.pinned: Rectangle {
-                property <bool> fixed: app.id == "settings";
-                property <bool> on: self.fixed || Shell.dock-has(Theme.dock-apps, app.id);
-                x: Math.mod(i, 6) * (parent.width + 8px) / 6;
-                y: floor(i / 6) * (44px + 8px);
-                width: (parent.width + 8px) / 6 - 8px;
-                height: 44px;
-                border-radius: Theme.radius-small;
-                background: self.on ? Theme.accent-soft : chip-touch.has-hover ? Theme.tile-hover : Theme.tile;
-                border-width: 1px;
-                border-color: self.on ? Theme.accent.with-alpha(0.55) : Theme.border;
-                opacity: self.fixed ? 0.6 : 1;
-                Image {
-                    x: 10px;
-                    source: app.icon;
-                    colorize: app.tint == transparent ? transparent : app.id == "files" ? Theme.accent : app.tint;
-                    width: app.tint == transparent ? 20px : 17px;
-                    height: self.width;
+            SectionLabel { text: "DOCK"; }
+            Panel {
+                height: 4 * 67px;
+                VerticalLayout {
+                    Row {
+                        title: "Posição";
+                        divider: false;
+                        Segmented {
+                            x: parent.width - self.width - 20px;
+                            options: ["Embaixo", "Esquerda", "Direita"];
+                            selected: Theme.dock-position;
+                            chosen(i) => { Theme.dock-position = i; }
+                        }
+                    }
+                    Row {
+                        title: "Estilo";
+                        subtitle: Theme.dock-style == 1 ? "Barra encostada na borda, de ponta a ponta" : "Flutuante e centralizada";
+                        Segmented {
+                            x: parent.width - self.width - 20px;
+                            options: ["Dock", "Barra"];
+                            selected: Theme.dock-style;
+                            chosen(i) => { Theme.dock-style = i; }
+                        }
+                    }
+                    Row {
+                        title: "Sempre visível";
+                        subtitle: "Desligado: aparece com o mouse na borda da tela";
+                        Toggle { x: parent.width - self.width - 20px; checked <=> Theme.dock-always-visible; }
+                    }
+                    Row {
+                        title: "Tamanho";
+                        Segmented {
+                            x: parent.width - self.width - 20px;
+                            options: ["Pequena", "Média", "Grande"];
+                            selected: Theme.dock-size;
+                            chosen(i) => { Theme.dock-size = i; }
+                        }
+                    }
                 }
+            }
+
+            HorizontalLayout {
+                SectionLabel { text: "APPS NA DOCK"; }
                 Text {
-                    x: 34px;
-                    width: parent.width - 40px;
-                    text: app.name;
-                    color: Theme.text;
+                    horizontal-alignment: right;
+                    text: "Clique para pôr ou tirar · nesta ordem";
+                    color: Theme.text-muted;
                     font-family: Theme.sans;
                     font-size: 12.5px;
-                    vertical-alignment: center;
-                    overflow: elide;
                 }
-                chip-touch := TouchArea {
-                    enabled: !parent.fixed;
-                    mouse-cursor: pointer;
-                    clicked => { Theme.dock-apps = Shell.dock-toggle(Theme.dock-apps, app.id); }
+            }
+            // Grade 6×2 dos apps fixados; Configurações fica sempre na dock.
+            Rectangle {
+                height: 2 * 44px + 8px;
+                for app[i] in Apps.pinned: Rectangle {
+                    property <bool> fixed: app.id == "settings";
+                    property <bool> on: self.fixed || Shell.dock-has(Theme.dock-apps, app.id);
+                    x: Math.mod(i, 6) * (parent.width + 8px) / 6;
+                    y: floor(i / 6) * (44px + 8px);
+                    width: (parent.width + 8px) / 6 - 8px;
+                    height: 44px;
+                    border-radius: Theme.radius-small;
+                    background: self.on ? Theme.accent-soft : chip-touch.has-hover ? Theme.tile-hover : Theme.tile;
+                    border-width: 1px;
+                    border-color: self.on ? Theme.accent.with-alpha(0.55) : Theme.border;
+                    opacity: self.fixed ? 0.6 : 1;
+                    Image {
+                        x: 10px;
+                        source: app.icon;
+                        colorize: app.tint == transparent ? transparent : app.id == "files" ? Theme.accent : app.tint;
+                        width: app.tint == transparent ? 20px : 17px;
+                        height: self.width;
+                    }
+                    Text {
+                        x: 34px;
+                        width: parent.width - 40px;
+                        text: app.name;
+                        color: Theme.text;
+                        font-family: Theme.sans;
+                        font-size: 12.5px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                    chip-touch := TouchArea {
+                        enabled: !parent.fixed;
+                        mouse-cursor: pointer;
+                        clicked => { Theme.dock-apps = Shell.dock-toggle(Theme.dock-apps, app.id); }
+                    }
                 }
             }
         }

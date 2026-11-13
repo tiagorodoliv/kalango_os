@@ -74,6 +74,8 @@ fn main() {
     let (ui, _timers) = kalango_os::build().expect("criar UI");
     ui.show().expect("mostrar UI");
 
+    // Fundo de circuitos, como nas telas de referência (sem papel de parede).
+    ui.global::<Theme>().set_wallpaper(0);
     ui.set_screen(Screen::Login);
     save(&window, &out.join("login.png"));
 

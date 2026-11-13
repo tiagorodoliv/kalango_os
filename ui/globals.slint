@@ -87,6 +87,12 @@ export global Shell {
     in property <string> bar-time: "--:--";
     /// Segundos da hora atual, "05" (opção "Mostrar segundos").
     in property <string> bar-seconds: "00";
+    /// Papel de parede escolhido (`Theme.wallpaper`), já carregado pelo Rust
+    /// na resolução da tela (`src/wallpaper.rs`). Vazio = circuitos.
+    in property <image> wallpaper;
+    /// Miniaturas dos papéis de parede (ordem de `Theme.wallpaper-names`;
+    /// a 1ª, dos circuitos, fica vazia).
+    in property <[image]> wallpaper-thumbs;
     /// Uso de CPU, "12%" ou "--" fora do Linux.
     in property <string> cpu: "--";
     /// Carga da bateria, "78%" ou "--" sem bateria.

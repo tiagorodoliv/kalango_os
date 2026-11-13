@@ -31,7 +31,12 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     `Apps.dock` = `Shell.dock-entries`). A área de trabalho ajusta a margem do labwc gerando
     `~/.config/labwc/rc.xml` (cópia do de /etc com a marca "Gerado pelo kalango-shell" e o `bottom` trocado;
     sem a marca, nunca sobrescreve) + `labwc --reconfigure` (`src/labwc.rs`); janelas já maximizadas só se
-    ajustam ao maximizar de novo. **Monitores** (`src/displays.rs`): `wlr-randr` (texto, não `--json`),
+    ajustam ao maximizar de novo. **O labwc só enxerga `~/.config/labwc` se a pasta já existir quando ele inicia**
+    (por isso o `kalango-session` faz `mkdir -p` antes do `exec labwc`). A dock vai embaixo/esquerda/direita
+    (`Theme.dock-position`) e como dock flutuante ou barra de ponta a ponta (`Theme.dock-style`); as margens
+    viram `bottom`/`left`/`right` no `<margin>`. Papel de parede: `Theme.wallpaper` (0 = circuitos, padrão
+    1 = PretoAzul), arquivos em `/usr/share/backgrounds/kalango` (copiados pelo `build.sh`), carregados por
+    `src/wallpaper.rs` na menor resolução que cobre a tela; escolha com miniaturas na Aparência. **Monitores** (`src/displays.rs`): `wlr-randr` (texto, não `--json`),
     resolução/taxa/escala/rotação, confirmação de 15 s que volta sozinha, salvo em
     `~/.config/kalango/monitores.conf` e reaplicado pela área de trabalho ao entrar. Escala só se sobrar
     ≥ 1024×600 lógicos para o shell. `--mode` precisa da taxa exatamente como o wlr-randr escreve.

@@ -40,7 +40,18 @@ pub struct Prefs {
     pub dock_size: i32,
     /// Ids dos apps da dock, separados por vírgula.
     pub dock_apps: String,
+    /// 0 = embaixo, 1 = esquerda, 2 = direita.
+    pub dock_position: i32,
+    /// 0 = dock flutuante, 1 = barra encostada na borda.
+    pub dock_style: i32,
+    /// 0 = circuitos; 1 em diante, os modelos de [`crate::wallpaper::MODELS`].
+    pub wallpaper: i32,
 }
+
+/// Nomes da borda da dock no arquivo (índice = `dock_position`).
+const DOCK_POSITIONS: [&str; 3] = ["embaixo", "esquerda", "direita"];
+/// Nomes do estilo da dock no arquivo (índice = `dock_style`).
+const DOCK_STYLES: [&str; 2] = ["dock", "barra"];
 
 /// As 6 cores de destaque (mesma ordem de `Theme.accents` em ui/theme.slint).
 pub const ACCENTS: [&str; 6] = ["#3dd6f5", "#a78bfa", "#7ea6f7", "#5fd38d", "#e8b04b", "#f28b95"];
@@ -116,8 +127,8 @@ fn sync_gtk_accent(accent_index: i32) {
 /// faz, um processo por sessão): margem da dock no labwc, destaque do GTK e
 /// cor das pastas (tema de ícones).
 fn sync_system(now: &Prefs, before: Option<&Prefs>) {
-    if before.is_none_or(|b| b.dock_margin() != now.dock_margin()) {
-        crate::labwc::set_dock_margin(now.dock_margin());
+    if before.is_none_or(|b| b.dock_margins() != now.dock_margins()) {
+        crate::labwc::set_dock_margins(now.dock_margins());
     }
     if before.is_none_or(|b| b.accent_index != now.accent_index) {
         sync_gtk_accent(now.accent_index);
@@ -145,6 +156,9 @@ impl Prefs {
             bar_show_battery: t.get_bar_show_battery(),
             dock_size: t.get_dock_size(),
             dock_apps: t.get_dock_apps().into(),
+            dock_position: t.get_dock_position(),
+            dock_style: t.get_dock_style(),
+            wallpaper: t.get_wallpaper(),
         }
     }
 
@@ -163,21 +177,32 @@ impl Prefs {
         t.set_bar_show_battery(self.bar_show_battery);
         t.set_dock_size(self.dock_size);
         t.set_dock_apps(self.dock_apps.clone().into());
+        t.set_dock_position(self.dock_position);
+        t.set_dock_style(self.dock_style);
+        t.set_wallpaper(self.wallpaper);
     }
 
-    /// Margem inferior que o labwc reserva para a dock: o botão, a borda da
-    /// dock (2 × 9 px) e a distância até o rodapé (18 px). Com a dock
-    /// escondida, nenhuma (os apps maximizados ocupam até o rodapé).
-    pub fn dock_margin(&self) -> u32 {
+    /// Margens que o labwc reserva para a dock na borda dela: a espessura da
+    /// dock (botão + respiro de 9 px de cada lado; 6 px na barra) e, na dock
+    /// flutuante, a distância de 18 px até a borda. Com a dock escondida,
+    /// nenhuma (os apps maximizados ocupam a tela toda).
+    pub fn dock_margins(&self) -> crate::labwc::Margins {
+        let mut m = crate::labwc::Margins::default();
         if !self.dock_always_visible {
-            return 0;
+            return m;
         }
         let item = match self.dock_size {
             0 => 44,
             2 => 60,
             _ => 52,
         };
-        item + 18 + 18
+        let size = if self.dock_style == 1 { item + 12 } else { item + 18 + 18 };
+        match self.dock_position {
+            1 => m.left = size,
+            2 => m.right = size,
+            _ => m.bottom = size,
+        }
+        m
     }
 
     /// Texto do arquivo (`chave=valor`, uma por linha).
@@ -193,7 +218,8 @@ impl Prefs {
              dock-sempre-visivel={}\nreduzir-animacoes={}\n\
              # Barra de tarefas\n\
              barra-data={}\nbarra-segundos={}\nbarra-cpu={}\nbarra-bateria={}\n\
-             dock-tamanho={}\ndock-apps={}\n",
+             dock-tamanho={}\ndock-apps={}\ndock-posicao={}\ndock-estilo={}\n\
+             papel-de-parede={}\n",
             self.accent_index,
             mode,
             self.transparency,
@@ -205,7 +231,10 @@ impl Prefs {
             self.bar_show_cpu,
             self.bar_show_battery,
             DOCK_SIZES[self.dock_size.clamp(0, 2) as usize],
-            self.dock_apps
+            self.dock_apps,
+            DOCK_POSITIONS[self.dock_position.clamp(0, 2) as usize],
+            DOCK_STYLES[self.dock_style.clamp(0, 1) as usize],
+            crate::wallpaper::name(self.wallpaper),
         )
     }
 
@@ -253,6 +282,21 @@ impl Prefs {
                 "dock-tamanho" => {
                     if let Some(i) = DOCK_SIZES.iter().position(|s| *s == value) {
                         p.dock_size = i as i32;
+                    }
+                }
+                "dock-posicao" => {
+                    if let Some(i) = DOCK_POSITIONS.iter().position(|s| *s == value) {
+                        p.dock_position = i as i32;
+                    }
+                }
+                "dock-estilo" => {
+                    if let Some(i) = DOCK_STYLES.iter().position(|s| *s == value) {
+                        p.dock_style = i as i32;
+                    }
+                }
+                "papel-de-parede" => {
+                    if let Some(i) = crate::wallpaper::index(value) {
+                        p.wallpaper = i;
                     }
                 }
                 "dock-apps" => {
@@ -354,6 +398,9 @@ mod tests {
             bar_show_battery: true,
             dock_size: 1,
             dock_apps: "files,terminal,browser,code,store".into(),
+            dock_position: 0,
+            dock_style: 0,
+            wallpaper: 1,
         }
     }
 
@@ -372,6 +419,9 @@ mod tests {
             bar_show_battery: false,
             dock_size: 2,
             dock_apps: "files,music,calendar".into(),
+            dock_position: 1,
+            dock_style: 1,
+            wallpaper: 0,
         };
         assert_eq!(Prefs::parse(&p.to_text(), &padrao()), p);
     }
@@ -400,14 +450,19 @@ mod tests {
     }
 
     #[test]
-    fn margem_da_dock() {
+    fn margens_da_dock() {
+        use crate::labwc::Margins;
         let mut p = padrao();
-        assert_eq!(p.dock_margin(), 88);
+        assert_eq!(p.dock_margins(), Margins { bottom: 88, left: 0, right: 0 });
         p.dock_size = 0;
-        assert_eq!(p.dock_margin(), 80);
+        assert_eq!(p.dock_margins().bottom, 80);
         p.dock_size = 2;
-        assert_eq!(p.dock_margin(), 96);
+        p.dock_position = 1;
+        assert_eq!(p.dock_margins(), Margins { bottom: 0, left: 96, right: 0 });
+        p.dock_style = 1;
+        p.dock_position = 2;
+        assert_eq!(p.dock_margins(), Margins { bottom: 0, left: 0, right: 72 });
         p.dock_always_visible = false;
-        assert_eq!(p.dock_margin(), 0);
+        assert_eq!(p.dock_margins(), Margins::default());
     }
 }

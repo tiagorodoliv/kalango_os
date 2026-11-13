@@ -13,6 +13,7 @@
 //! - [`appearance`]: aparência salva em disco e compartilhada entre processos;
 //! - [`labwc`]: ajustes do compositor feitos pelo shell (margem da dock);
 //! - [`greeter`]: tela de login de verdade, como greeter do greetd;
+//! - [`wallpaper`]: papel de parede da área de trabalho;
 //! - [`recent`]: arquivos recentes de verdade no menu de apps.
 //!
 //! A lógica fica na biblioteca (e não no `main.rs`) para poder ser reusada
@@ -29,6 +30,7 @@ pub mod labwc;
 pub mod recent;
 pub mod session;
 pub mod system;
+pub mod wallpaper;
 
 pub use session::Mode;
 
@@ -70,6 +72,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     timers.extend(appearance::install(&ui, mode));
     timers.extend(device::install(&ui, mode));
     displays::install(&ui, mode);
+    timers.extend(wallpaper::install(&ui, mode));
     Ok((ui, timers))
 }
 

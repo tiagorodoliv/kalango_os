@@ -43,6 +43,15 @@ export global Theme {
     in-out property <bool> bar-show-battery: true;
     /// Tamanho da dock: 0 = pequena, 1 = média (padrão), 2 = grande.
     in-out property <int> dock-size: 1;
+    /// Borda da dock: 0 = embaixo (padrão), 1 = esquerda, 2 = direita.
+    in-out property <int> dock-position: 0;
+    /// Estilo: 0 = dock flutuante centralizada, 1 = barra encostada na borda,
+    /// ocupando a largura (ou altura) toda, como uma barra de tarefas.
+    in-out property <int> dock-style: 0;
+    /// Papel de parede: 0 = circuitos (desenho do próprio shell); 1 em diante,
+    /// as imagens de `wallpaper-names` (arquivos em src/wallpaper.rs).
+    in-out property <int> wallpaper: 1;
+    out property <[string]> wallpaper-names: ["Circuitos", "Preto e azul", "Preto", "Azul", "Verde", "Roxo", "Laranja", "Branco"];
     /// Ids dos apps da dock, separados por vírgula, na ordem exibida
     /// (Configurações fica sempre no fim, depois do separador).
     in-out property <string> dock-apps: "files,terminal,browser,code,store";
@@ -103,6 +112,8 @@ export global Theme {
     out property <length> radius-small: 8px;
     /// Lado do botão de app da dock, conforme `dock-size`.
     out property <length> dock-item: dock-size == 0 ? 44px : dock-size == 2 ? 60px : 52px;
+    /// Espessura da dock (o botão mais o respiro dos dois lados).
+    out property <length> dock-thickness: dock-item + (dock-style == 1 ? 12px : 18px);
     /// Lado do ícone dentro do botão da dock.
     out property <length> dock-icon: dock-size == 0 ? 20px : dock-size == 2 ? 28px : 24px;
 

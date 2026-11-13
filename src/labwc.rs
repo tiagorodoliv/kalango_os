@@ -1,10 +1,11 @@
 //! Ajustes do compositor (labwc) feitos pelo shell na sessão real.
 //!
-//! O labwc reserva a faixa da dock com `<margin bottom="...">` no `rc.xml`,
-//! para apps maximizados não ficarem por cima dela. Quando a dock muda de
-//! tamanho ou passa a se esconder (Configurações → Barra de tarefas), o shell
-//! gera `~/.config/labwc/rc.xml`: uma cópia do arquivo do sistema
-//! (`/etc/xdg/labwc/rc.xml`) só com a margem trocada, e pede ao labwc para
+//! O labwc reserva a faixa da dock com `<margin bottom/left/right="...">` no
+//! `rc.xml`, para apps maximizados não ficarem por cima dela. Quando a dock
+//! muda de tamanho, de borda, de estilo ou passa a se esconder
+//! (Configurações → Barra de tarefas), o shell gera `~/.config/labwc/rc.xml`:
+//! uma cópia do arquivo do sistema (`/etc/xdg/labwc/rc.xml`) só com as
+//! margens trocadas, e pede ao labwc para
 //! reler a configuração (`labwc --reconfigure`).
 //!
 //! A cópia leva uma marca na primeira linha. Um `rc.xml` do usuário sem a
@@ -18,23 +19,67 @@ use std::process::{Command, Stdio};
 /// Marca da cópia gerada pelo shell (primeira linha depois do `<?xml ?>`).
 pub const MARK: &str = "<!-- Gerado pelo kalango-shell (Configurações → Barra de tarefas). -->";
 
-/// Troca o atributo `bottom` da tag `<margin>` do `rc.xml`. `None` se o
-/// arquivo não tem a tag com esse atributo.
-pub fn replace_margin(xml: &str, bottom: u32) -> Option<String> {
-    let tag_start = xml.find("<margin")?;
-    let tag_end = tag_start + xml[tag_start..].find('>')?;
-    let attr = tag_start + xml[tag_start..tag_end].find("bottom=\"")? + "bottom=\"".len();
-    let value_end = attr + xml[attr..].find('"')?;
-    Some(format!("{}{bottom}{}", &xml[..attr], &xml[value_end..]))
+/// Margens que o labwc reserva nas bordas (a de cima é sempre a da barra).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Margins {
+    pub bottom: u32,
+    pub left: u32,
+    pub right: u32,
 }
 
-/// Lê o valor de `bottom` da tag `<margin>`.
-pub fn margin_of(xml: &str) -> Option<u32> {
-    let tag_start = xml.find("<margin")?;
-    let tag_end = tag_start + xml[tag_start..].find('>')?;
-    let attr = tag_start + xml[tag_start..tag_end].find("bottom=\"")? + "bottom=\"".len();
-    let value_end = attr + xml[attr..].find('"')?;
-    xml[attr..value_end].trim().parse().ok()
+impl Margins {
+    fn get(&self, attr: &str) -> u32 {
+        match attr {
+            "bottom" => self.bottom,
+            "left" => self.left,
+            _ => self.right,
+        }
+    }
+}
+
+/// Posição (início, fim) da tag `<margin ...>` no texto.
+fn margin_tag(xml: &str) -> Option<(usize, usize)> {
+    let start = xml.find("<margin")?;
+    Some((start, start + xml[start..].find('>')?))
+}
+
+/// Troca (ou acrescenta) um atributo numérico da tag `<margin>`.
+fn set_attr(xml: &str, attr: &str, value: u32) -> Option<String> {
+    let (start, end) = margin_tag(xml)?;
+    let key = format!(" {attr}=\"");
+    match xml[start..end].find(&key) {
+        Some(pos) => {
+            let from = start + pos + key.len();
+            let to = from + xml[from..].find('"')?;
+            Some(format!("{}{value}{}", &xml[..from], &xml[to..]))
+        }
+        None => {
+            let at = start + "<margin".len();
+            Some(format!("{}{key}{value}\"{}", &xml[..at], &xml[at..]))
+        }
+    }
+}
+
+/// Troca as margens de baixo, da esquerda e da direita da tag `<margin>`
+/// do `rc.xml`. `None` se o arquivo não tem a tag.
+pub fn replace_margins(xml: &str, m: Margins) -> Option<String> {
+    ["bottom", "left", "right"]
+        .iter()
+        .try_fold(xml.to_string(), |text, attr| set_attr(&text, attr, m.get(attr)))
+}
+
+/// Lê as margens da tag `<margin>` (atributo ausente = 0).
+pub fn margins_of(xml: &str) -> Option<Margins> {
+    let (start, end) = margin_tag(xml)?;
+    let tag = &xml[start..end];
+    let read = |attr: &str| {
+        let key = format!(" {attr}=\"");
+        tag.find(&key)
+            .and_then(|p| tag[p + key.len()..].split('"').next())
+            .and_then(|v| v.trim().parse().ok())
+            .unwrap_or(0)
+    };
+    Some(Margins { bottom: read("bottom"), left: read("left"), right: read("right") })
 }
 
 /// Põe a marca da cópia gerada logo depois da declaração `<?xml ?>`.
@@ -66,10 +111,10 @@ fn user_rc() -> Option<PathBuf> {
     Some(base.join("labwc/rc.xml"))
 }
 
-/// Ajusta a margem da dock no labwc e pede para ele reler a configuração.
+/// Ajusta as margens da dock no labwc e pede para ele reler a configuração.
 /// Não faz nada fora do labwc (`$LABWC_PID` ausente) ou se o usuário tem um
 /// `rc.xml` próprio.
-pub fn set_dock_margin(bottom: u32) {
+pub fn set_dock_margins(margins: Margins) {
     if std::env::var_os("LABWC_PID").is_none() {
         return;
     }
@@ -85,11 +130,11 @@ pub fn set_dock_margin(bottom: u32) {
         return;
     }
 
-    let wanted = if margin_of(&system_xml) == Some(bottom) {
+    let wanted = if margins_of(&system_xml) == Some(margins) {
         // Igual ao sistema: sem cópia (atualizações do rc.xml do sistema valem).
         None
     } else {
-        match replace_margin(&system_xml, bottom) {
+        match replace_margins(&system_xml, margins) {
             Some(xml) => Some(with_mark(&xml)),
             None => return,
         }
@@ -121,12 +166,13 @@ mod tests {
     const RC: &str = "<?xml version=\"1.0\"?>\n<labwc_config>\n  <margin top=\"35\" bottom=\"88\" />\n</labwc_config>\n";
 
     #[test]
-    fn troca_so_a_margem_de_baixo() {
-        let xml = replace_margin(RC, 0).unwrap();
-        assert!(xml.contains("<margin top=\"35\" bottom=\"0\" />"));
-        assert_eq!(margin_of(&xml), Some(0));
-        assert_eq!(margin_of(RC), Some(88));
-        assert!(replace_margin("<labwc_config/>", 10).is_none());
+    fn troca_as_margens_e_acrescenta_as_que_faltam() {
+        let m = Margins { bottom: 0, left: 70, right: 0 };
+        let xml = replace_margins(RC, m).unwrap();
+        assert!(xml.contains("<margin right=\"0\" left=\"70\" top=\"35\" bottom=\"0\" />"));
+        assert_eq!(margins_of(&xml), Some(m));
+        assert_eq!(margins_of(RC), Some(Margins { bottom: 88, left: 0, right: 0 }));
+        assert!(replace_margins("<labwc_config/>", m).is_none());
     }
 
     #[test]

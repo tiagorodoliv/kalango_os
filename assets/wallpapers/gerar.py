@@ -11,6 +11,7 @@ Uso (precisa de numpy e Pillow):
     python3 assets/wallpapers/gerar.py [pasta_de_saída]
     python3 assets/wallpapers/gerar.py --previa [pasta]   (só 1920x1080, rápido)
 Saída padrão: assets/wallpapers/16x9/Kalango_<Modelo>_<largura>x<altura>.png
+(+ Kalango_<Modelo>_miniatura.png, 384x216, para as Configurações)
 """
 
 import math
@@ -261,6 +262,9 @@ def main():
             arq = saida / f"Kalango_{nome}_{w}x{h}.png"
             final.save(arq, optimize=True)
             print("gerado", arq)
+        # Miniatura para a escolha em Configurações → Aparência.
+        mini = saida / f"Kalango_{nome}_miniatura.png"
+        img.resize((384, 216), Image.LANCZOS).save(mini, optimize=True)
 
 
 if __name__ == "__main__":

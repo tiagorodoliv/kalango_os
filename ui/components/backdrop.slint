@@ -5,6 +5,7 @@
 
 import { Theme } from "../theme.slint";
 import { Brand } from "../brand.slint";
+import { Shell } from "../globals.slint";
 
 /// Qual desenho de circuito mostrar.
 export enum BackdropVariant {
@@ -101,5 +102,16 @@ export component Backdrop inherits Rectangle {
         x: root.width * (1570 / 2000) - self.width / 2;
         y: root.height * (652 / 1250) - self.height / 2;
         opacity: 0.35;
+    }
+
+    // Papel de parede escolhido: cobre a grade e os circuitos (área de
+    // trabalho e launcher; o login fica sempre com os circuitos).
+    if root.variant == BackdropVariant.desktop && Theme.wallpaper > 0 && Shell.wallpaper.width > 0: Image {
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: root.height;
+        source: Shell.wallpaper;
+        image-fit: cover;
     }
 }

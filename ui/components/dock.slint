@@ -1,4 +1,7 @@
-// Dock inferior centralizada: apps da dock | Configurações.
+// Dock: apps da dock | Configurações. Fica embaixo, à esquerda ou à direita
+// (`Theme.dock-position`), flutuante e centralizada ou como barra encostada
+// na borda (`Theme.dock-style`). Os itens são posicionados pelo índice, assim
+// o mesmo componente serve na horizontal e na vertical.
 
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
@@ -12,6 +15,9 @@ component DockItem inherits Rectangle {
     in property <bool> running: false;
     /// App em foco: traço de destaque embaixo (mais forte que `running`).
     in property <bool> active: false;
+    /// Borda da dock (mesmos valores de `Theme.dock-position`): o indicador
+    /// fica do lado de dentro da tela.
+    in property <int> edge: 0;
     callback clicked();
 
     /// Ícone colorido do tema de ícones (sessão real): desenhado grande e sem
@@ -33,9 +39,12 @@ component DockItem inherits Rectangle {
 
     // Indicador: traço quando ativo, ponto quando só aberto.
     if root.active || root.running: Rectangle {
-        y: parent.height - 6px;
-        width: root.active ? 14px : 4px;
-        height: root.active ? 3px : 4px;
+        // Embaixo: traço horizontal sob o ícone; nas laterais, vertical e
+        // encostado no lado de fora.
+        x: root.edge == 1 ? 1px : root.edge == 2 ? parent.width - self.width - 1px : (parent.width - self.width) / 2;
+        y: root.edge == 0 ? parent.height - 6px : (parent.height - self.height) / 2;
+        width: root.edge == 0 ? (root.active ? 14px : 4px) : (root.active ? 3px : 4px);
+        height: root.edge == 0 ? (root.active ? 3px : 4px) : (root.active ? 14px : 4px);
         border-radius: 2px;
         background: root.active ? Theme.accent : Theme.text;
     }
@@ -51,46 +60,68 @@ export component Dock inherits Rectangle {
     in property <bool> files-open;
     in property <bool> terminal-open;
     in property <string> focused-app;
+    /// Estilo barra: comprimento da borda da tela (largura ou altura).
+    in property <length> bar-length;
     callback launch(string);
 
-    width: row.preferred-width;
-    height: row.preferred-height;
-    border-radius: 14px;
-    background: Theme.panel;
-    border-width: 1px;
+    property <bool> vertical: Theme.dock-position != 0;
+    property <bool> bar: Theme.dock-style == 1;
+    property <length> pad: (Theme.dock-thickness - Theme.dock-item) / 2;
+    property <length> step: Theme.dock-item + 8px;
+    property <int> count: Apps.dock.length;
+    /// Comprimento dos itens: apps, separador e Configurações.
+    property <length> run: root.count * root.step + 17px + Theme.dock-item;
+    property <length> along: root.bar ? root.bar-length : root.run + 2 * root.pad;
+    /// Onde o primeiro item começa (na barra, os itens ficam centralizados).
+    property <length> start: root.bar ? (root.bar-length - root.run) / 2 : root.pad;
+
+    width: root.vertical ? Theme.dock-thickness : root.along;
+    height: root.vertical ? root.along : Theme.dock-thickness;
+    border-radius: root.bar ? 0 : 14px;
+    background: root.bar ? Theme.bar : Theme.panel;
+    border-width: root.bar ? 0 : 1px;
     border-color: Theme.border;
-    drop-shadow-blur: 24px;
+    drop-shadow-blur: root.bar ? 0 : 24px;
     drop-shadow-color: #00000070;
 
-    row := HorizontalLayout {
-        padding: 9px;
-        spacing: 8px;
+    // Barra: linha na borda virada para dentro da tela.
+    if root.bar: Rectangle {
+        x: Theme.dock-position == 1 ? root.width - 1px : 0;
+        y: 0;
+        width: root.vertical ? 1px : root.width;
+        height: root.vertical ? root.height : 1px;
+        background: Theme.border;
+    }
 
-        for app in Apps.dock: DockItem {
-            app: app;
-            // Sessão real: apps abertos de verdade (o shell não sabe qual está
-            // em foco, então só mostra o ponto). Protótipo: janelas de demonstração.
-            running: Shell.native
-                ? (app.id == "files" && Shell.files-running) || (app.id == "terminal" && Shell.terminal-running)
-                  || (app.id == "browser" && Shell.browser-running) || (app.id == "code" && Shell.code-running)
-                : (app.id == "files" && root.files-open) || (app.id == "terminal" && root.terminal-open);
-            active: !Shell.native && app.id == root.focused-app && self.running;
-            clicked => { root.launch(app.id); }
-        }
+    for app[i] in Apps.dock: DockItem {
+        x: root.vertical ? root.pad : root.start + i * root.step;
+        y: root.vertical ? root.start + i * root.step : root.pad;
+        app: app;
+        edge: Theme.dock-position;
+        // Sessão real: apps abertos de verdade (o shell não sabe qual está
+        // em foco, então só mostra o ponto). Protótipo: janelas de demonstração.
+        running: Shell.native
+            ? (app.id == "files" && Shell.files-running) || (app.id == "terminal" && Shell.terminal-running)
+              || (app.id == "browser" && Shell.browser-running) || (app.id == "code" && Shell.code-running)
+            : (app.id == "files" && root.files-open) || (app.id == "terminal" && root.terminal-open);
+        active: !Shell.native && app.id == root.focused-app && self.running;
+        clicked => { root.launch(app.id); }
+    }
 
-        // Separador antes de Configurações
-        Rectangle {
-            width: 9px;
-            Rectangle {
-                width: 1px;
-                height: Theme.dock-item * 0.62;
-                background: Theme.border;
-            }
-        }
+    // Separador antes de Configurações
+    Rectangle {
+        x: root.vertical ? (root.width - self.width) / 2 : root.start + root.count * root.step + 4px;
+        y: root.vertical ? root.start + root.count * root.step + 4px : (root.height - self.height) / 2;
+        width: root.vertical ? Theme.dock-item * 0.62 : 1px;
+        height: root.vertical ? 1px : Theme.dock-item * 0.62;
+        background: Theme.border;
+    }
 
-        DockItem {
-            app: Apps.pinned[5];
-            clicked => { root.launch("settings"); }
-        }
+    DockItem {
+        x: root.vertical ? root.pad : root.start + root.count * root.step + 17px;
+        y: root.vertical ? root.start + root.count * root.step + 17px : root.pad;
+        app: Apps.pinned[5];
+        edge: Theme.dock-position;
+        clicked => { root.launch("settings"); }
     }
 }
