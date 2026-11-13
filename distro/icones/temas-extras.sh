@@ -24,10 +24,12 @@ CORES="Ciano Roxo Azul Verde Ambar Rosa"
 # baixar <nome> <url> <sha256>: baixa para o cache (uma vez) e confere.
 baixar() {
 	arq="$CACHE/$1.tar.gz"
-	if ! echo "$3  $arq" | sha256sum -c --status 2>/dev/null; then
-		echo ">> Baixando $1"
+	# Só o caminho vai para a saída (quem chama usa $(baixar ...)); o resto
+	# vai para o stderr.
+	if ! echo "$3  $arq" | sha256sum -c --status >/dev/null 2>&1; then
+		echo ">> Baixando $1" >&2
 		curl -fsSL -o "$arq.part" "$2"
-		echo "$3  $arq.part" | sha256sum -c --status || {
+		echo "$3  $arq.part" | sha256sum -c --status >/dev/null 2>&1 || {
 			echo "$1: SHA-256 não confere" >&2
 			rm -f "$arq.part"
 			exit 1
