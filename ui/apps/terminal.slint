@@ -14,9 +14,9 @@ component InfoLine inherits HorizontalLayout {
     Text { text: root.value; color: Theme.text; font-family: Theme.mono; font-size: 13px; }
 }
 
-/// Prompt "usuario@kalango ~ $ " em verde.
+/// Prompt "user@kalango ~ $ " em verde.
 component Prompt inherits Text {
-    text: "usuario@kalango ~ $ ";
+    text: "user@kalango ~ $ ";
     color: Theme.success;
     font-family: Theme.mono;
     font-size: 13px;
@@ -72,12 +72,12 @@ export component TerminalWindow inherits AppFrame {
                 Prompt { }
                 Text { text: "fastfetch"; color: Theme.text; font-family: Theme.mono; font-size: 13px; }
             }
-            Text { text: "usuario@kalango"; color: Theme.accent; font-family: Theme.mono; font-size: 13px; font-weight: 700; }
+            Text { text: "user@kalango"; color: Theme.accent; font-family: Theme.mono; font-size: 13px; font-weight: 700; }
             Text { text: "---------------"; color: Theme.text-muted; font-family: Theme.mono; font-size: 13px; }
-            InfoLine { label: "SO"; value: "Kalango OS 0.1"; }
+            InfoLine { label: "OS"; value: "Kalango OS 0.1"; }
             InfoLine { label: "Kernel"; value: "Linux 6.12"; }
             InfoLine { label: "Base"; value: "Debian 13 \"trixie\""; }
-            InfoLine { label: "Sessão"; value: "Wayland"; }
+            InfoLine { label: "Session"; value: "Wayland"; }
             InfoLine { label: "Shell"; value: "Kalango Shell"; }
             InfoLine { label: "Terminal"; value: "kalango-term"; }
 

@@ -54,9 +54,9 @@ export global Device {
 
     /// Ficha do sistema: versão, base, kernel, processador, memória, disco...
     in property <[InfoItem]> about: [
-        { label: "Versão", value: "Kalango OS 0.1 (protótipo)" },
+        { label: @tr("Version"), value: @tr("Kalango OS 0.1 (prototype)") },
         { label: "Base", value: "Debian 13 \"trixie\"" },
-        { label: "Sessão", value: "Wayland" },
+        { label: @tr("Session"), value: "Wayland" },
     ];
 
     // --- Rede (NetworkManager) ---
@@ -64,7 +64,7 @@ export global Device {
     /// O NetworkManager respondeu (`nmcli` existe e o serviço está rodando).
     in property <bool> network-available: false;
     /// Resumo da conexão atual ("Conectado por cabo", "Conectado a Casa"...).
-    in property <string> network-status: "Sem informações de rede";
+    in property <string> network-status: @tr("No network information");
     /// Existe uma placa Wi-Fi.
     in property <bool> wifi-present: false;
     /// Rádio Wi-Fi ligado.
@@ -100,7 +100,7 @@ export global Device {
     // --- Energia e usuário ---
 
     /// Carga da bateria ("78%") ou "Sem bateria".
-    in property <string> battery: "Sem bateria";
+    in property <string> battery: @tr("No battery");
     /// Carregando (ligado na tomada).
     in property <bool> charging: false;
     /// Login do usuário (`$USER`).
@@ -124,7 +124,7 @@ export global Device {
     out property <[string]> display-scales: ["100%", "125%", "150%", "175%", "200%"];
     out property <[float]> display-scale-values: [1.0, 1.25, 1.5, 1.75, 2.0];
     /// Rotações (mesma ordem de `TRANSFORMS` no Rust).
-    out property <[string]> display-rotations: ["Normal", "90° (em pé)", "180° (de ponta-cabeça)", "270° (em pé)"];
+    out property <[string]> display-rotations: ["Normal", @tr("90° (portrait)"), @tr("180° (upside down)"), @tr("270° (portrait)")];
     /// Uma mudança foi aplicada e espera "Manter" (senão volta sozinha).
     in property <bool> display-confirm: false;
     /// Segundos até voltar à configuração anterior.
@@ -137,4 +137,17 @@ export global Device {
     callback keep-display();
     /// Volta à configuração anterior.
     callback revert-display();
+
+    // --- Idioma e região (src/region.rs) ---
+    /// Idiomas, cada um no próprio idioma ("English", "Português (Brasil)").
+    in property <[string]> languages: ["English", "Português (Brasil)"];
+    in property <int> language-index: 0;
+    /// O idioma escolhido não é o da sessão: vale depois de sair e entrar.
+    in property <bool> language-pending: false;
+    in property <[string]> keyboard-layouts: [@tr("English (US)")];
+    /// Layout atual (-1 = um que não está na lista).
+    in property <int> keyboard-index: 0;
+    in property <string> keyboard-message: "";
+    callback set-language(int);
+    callback set-keyboard(int);
 }

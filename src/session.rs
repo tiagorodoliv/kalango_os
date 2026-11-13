@@ -8,9 +8,10 @@
 //!
 //! O menu e as Configurações são processos próprios porque, sem layer-shell,
 //! uma janela "sempre atrás" não consegue mostrar nada por cima dos apps.
-//! A variável `KALANGO_SESSION=1` (definida em `/etc/xdg/labwc/environment`)
+//! A variável `KALANGO_SESSION=1` (exportada pelo `kalango-session`)
 //! liga o modo real: abrir apps de verdade, desligar pelo systemd etc.
 
+use crate::i18n::tr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -101,7 +102,7 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
         "music" => vec!["parole".into()],
         "monitor" => vec!["foot".into(), "--title=Monitor".into(), "htop".into()],
         // Ícones de Wi-Fi e volume da barra superior.
-        "network" => vec!["foot".into(), "--title=Rede e Wi-Fi".into(), "nmtui".into()],
+        "network" => vec!["foot".into(), format!("--title={}", tr("Network & Wi-Fi", "Rede e Wi-Fi")), "nmtui".into()],
         "sound" => vec!["pavucontrol".into()],
         // Rodapé do menu de apps. O swaylock usa o protocolo de bloqueio do
         // Wayland (ext-session-lock): nenhuma janela aparece por cima dele.
@@ -110,12 +111,14 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
         "logout" => vec!["labwc".into(), "--exit".into()],
         "updates" => vec![
             "foot".into(),
-            "--title=Atualizações".into(),
+            format!("--title={}", tr("Updates", "Atualizações")),
             "sh".into(),
             "-c".into(),
             "sudo apt-get update && sudo apt-get full-upgrade; \
-             echo; read -p 'Enter para fechar ' _"
-                .into(),
+             echo; read -p '"
+                .to_string()
+                + tr("Press Enter to close ", "Enter para fechar ")
+                + "' _",
         ],
         _ => return None,
     };

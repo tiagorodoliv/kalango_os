@@ -118,7 +118,10 @@ pub fn parse(path: &Path, content: &str) -> Option<DesktopApp> {
         }
     }
 
-    let name = name_pt_br.or(name_pt).or(name)?;
+    let name = match crate::i18n::lang() {
+        crate::i18n::Lang::Portuguese => name_pt_br.or(name_pt).or(name)?,
+        crate::i18n::Lang::English => name?,
+    };
     let argv = parse_exec(&exec?);
     if argv.is_empty() {
         return None;
@@ -449,9 +452,10 @@ Exec=gimp-2.10 --new
 ";
 
     #[test]
-    fn le_nome_em_portugues_e_comando() {
+    fn le_nome_no_idioma_e_comando() {
         let app = parse(Path::new("/x/gimp.desktop"), GIMP).unwrap();
-        assert_eq!(app.name, "Programa de Manipulação de Imagens GNU");
+        let nome = crate::i18n::tr("GNU Image Manipulation Program", "Programa de Manipulação de Imagens GNU");
+        assert_eq!(app.name, nome);
         assert_eq!(app.argv, ["gimp-2.10"]);
         assert_eq!(app.icon, "gimp");
         assert_eq!(app.id(), "desktop:/x/gimp.desktop");

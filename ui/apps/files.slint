@@ -76,7 +76,7 @@ component NavButton inherits Rectangle {
 }
 
 export component FilesWindow inherits AppFrame {
-    property <string> place: "Projetos";
+    property <string> place: "Projects";
 
     title-height: 45px;
     buttons: FrameButtons.neutral;
@@ -99,7 +99,7 @@ export component FilesWindow inherits AppFrame {
             background: Theme.sunken;
             Text {
                 x: 10px;
-                text: root.place == "Pasta pessoal" ? "~" : "~/" + root.place;
+                text: root.place == "Home" ? "~" : "~/" + root.place;
                 color: Theme.text;
                 font-family: Theme.mono;
                 font-size: 13px;
@@ -127,15 +127,15 @@ export component FilesWindow inherits AppFrame {
             spacing: 0;
             alignment: start;
 
-            SectionLabel { text: "LOCAIS"; height: 26px; vertical-alignment: top; }
-            for p in ["Pasta pessoal", "Documentos", "Downloads", "Imagens", "Projetos"]: SideItem {
+            SectionLabel { text: "PLACES"; height: 26px; vertical-alignment: top; }
+            for p in ["Home", "Documents", "Downloads", "Pictures", "Projects"]: SideItem {
                 label: p;
                 selected: root.place == p;
                 clicked => { root.place = p; }
             }
             Rectangle { height: 14px; }
-            SectionLabel { text: "DISPOSITIVOS"; height: 26px; vertical-alignment: top; }
-            for p in ["Sistema", "Pendrive"]: SideItem {
+            SectionLabel { text: "DEVICES"; height: 26px; vertical-alignment: top; }
+            for p in ["System", "USB drive"]: SideItem {
                 label: p;
                 selected: root.place == p;
                 clicked => { root.place = p; }
@@ -143,8 +143,8 @@ export component FilesWindow inherits AppFrame {
         }
     }
 
-    // --- Conteúdo: só "Projetos" tem itens no mock ---
-    if root.place == "Projetos": HorizontalLayout {
+    // --- Conteúdo: só "Projects" tem itens no mock ---
+    if root.place == "Projects": HorizontalLayout {
         x: 190px + 24px;
         y: 45px + 22px;
         height: 110px;
@@ -179,12 +179,12 @@ export component FilesWindow inherits AppFrame {
         }
     }
 
-    if root.place != "Projetos": Text {
+    if root.place != "Projects": Text {
         x: 190px;
         y: 45px;
         width: root.width - 190px;
         height: root.height - 45px;
-        text: "Pasta vazia";
+        text: "Empty folder";
         color: Theme.text-muted;
         font-family: Theme.sans;
         font-size: 14px;

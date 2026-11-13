@@ -9,6 +9,7 @@
 //! O que foi mantido vai para `~/.config/kalango/monitores.conf`, e a área de
 //! trabalho reaplica o arquivo a cada início de sessão (o labwc não guarda).
 
+use crate::i18n::tr;
 use std::cell::RefCell;
 use std::fs;
 use std::path::PathBuf;
@@ -451,15 +452,17 @@ fn finish(ui: &AppWindow, state: &Rc<RefCell<State>>, keep: bool) {
                 let _ = fs::create_dir_all(dir);
             }
             match fs::write(&path, merge_config(&text, &setting)) {
-                Ok(()) => device.set_display_message("Configuração do monitor salva.".into()),
-                Err(err) => device.set_display_message(format!("Não foi possível salvar: {err}").into()),
+                Ok(()) => device.set_display_message(tr("Display configuration saved.", "Configuração do monitor salva.").into()),
+                Err(err) => device.set_display_message(format!("{}: {err}", tr("Could not save", "Não foi possível salvar")).into()),
             }
         }
     } else {
         if let Some(setting) = previous {
             let _ = wlr_randr(&setting.args());
         }
-        device.set_display_message("O monitor voltou à configuração anterior.".into());
+        device.set_display_message(
+            tr("The display went back to the previous configuration.", "O monitor voltou à configuração anterior.").into(),
+        );
     }
     let outputs = read_outputs();
     show(ui, &mut st, outputs);
@@ -506,7 +509,9 @@ pub fn install(ui: &AppWindow, mode: Mode) {
             return;
         }
         if wlr_randr(&setting.args()).is_none() {
-            device.set_display_message("O monitor não aceitou essa configuração.".into());
+            device.set_display_message(
+                tr("The display did not accept this configuration.", "O monitor não aceitou essa configuração.").into(),
+            );
             return;
         }
         s.previous = Some(out.current_setting());

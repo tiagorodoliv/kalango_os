@@ -20,10 +20,10 @@ build.rs               compila ui/app_window.slint em código Rust
 src/
   main.rs              ponto de entrada (só chama kalango_os::run)
   lib.rs               monta a janela e liga os serviços
-  clock.rs             data/hora local em pt-BR
+  clock.rs             data/hora local (inglês ou português)
   system.rs            CPU (/proc/stat) e bateria (/sys/class/power_supply)
   apps.rs              busca do launcher (ignora acentos e maiúsculas) e "Todos os apps"
-  desktop.rs           apps instalados, lidos dos arquivos .desktop (nome pt-BR, ícone, Exec)
+  desktop.rs           apps instalados, lidos dos arquivos .desktop (nome no idioma, ícone, Exec)
   session.rs           sessão real: abrir apps, menu e Configurações como janelas próprias, desligar
   appearance.rs        aparência salva em ~/.config/kalango e compartilhada entre os processos
   greeter.rs           tela de login de verdade (greeter do greetd, senha conferida no PAM)
@@ -31,6 +31,9 @@ src/
   device.rs            Configurações reais: Wi-Fi (nmcli), som (wpctl), energia e ficha do sistema
   displays.rs          Configurações → Monitores: resolução, escala e rotação (wlr-randr)
   labwc.rs             margem da dock no labwc (Configurações → Barra de tarefas)
+  i18n.rs              idioma da interface (inglês padrão, português pelo LANG)
+  region.rs            Configurações → Idioma e região: idioma e teclado
+lang/pt_BR/LC_MESSAGES/kalango_os.po   tradução para o português (textos @tr dos .slint)
 examples/
   snapshot.rs          gera PNG de cada tela em target/snapshots/
 ui/

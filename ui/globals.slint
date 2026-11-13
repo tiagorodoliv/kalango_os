@@ -48,18 +48,18 @@ export global Apps {
     /// Na sessão real, o Rust troca os ícones de traço pelos do tema de ícones
     /// (`tint` transparente = ícone colorido próprio).
     in-out property <[AppEntry]> pinned: [
-        { id: "files", name: "Arquivos", icon: Icons.folder, tint: #3dd6f5 },
+        { id: "files", name: @tr("Files"), icon: Icons.folder, tint: #3dd6f5 },
         { id: "terminal", name: "Terminal", icon: Icons.terminal, tint: #3dd6f5 },
-        { id: "browser", name: "Navegador", icon: Icons.globe, tint: #7ea6f7 },
-        { id: "code", name: "Código", icon: Icons.code, tint: #a78bfa },
-        { id: "store", name: "Loja", icon: Icons.bag, tint: #e8b04b },
-        { id: "settings", name: "Configurações", icon: Icons.settings, tint: #9aa5b1 },
-        { id: "images", name: "Imagens", icon: Icons.image, tint: #f28b95 },
-        { id: "music", name: "Música", icon: Icons.music, tint: #5fd38d },
-        { id: "documents", name: "Documentos", icon: Icons.file-text, tint: #7ea6f7 },
-        { id: "calendar", name: "Agenda", icon: Icons.calendar, tint: #e8b04b },
+        { id: "browser", name: @tr("Browser"), icon: Icons.globe, tint: #7ea6f7 },
+        { id: "code", name: @tr("Code"), icon: Icons.code, tint: #a78bfa },
+        { id: "store", name: @tr("Store"), icon: Icons.bag, tint: #e8b04b },
+        { id: "settings", name: @tr("Settings"), icon: Icons.settings, tint: #9aa5b1 },
+        { id: "images", name: @tr("Images"), icon: Icons.image, tint: #f28b95 },
+        { id: "music", name: @tr("Music"), icon: Icons.music, tint: #5fd38d },
+        { id: "documents", name: @tr("Documents"), icon: Icons.file-text, tint: #7ea6f7 },
+        { id: "calendar", name: @tr("Calendar"), icon: Icons.calendar, tint: #e8b04b },
         { id: "monitor", name: "Monitor", icon: Icons.activity, tint: #3dd6f5 },
-        { id: "updates", name: "Atualizações", icon: Icons.download, tint: #9aa5b1 },
+        { id: "updates", name: @tr("Updates"), icon: Icons.download, tint: #9aa5b1 },
     ];
 
     /// Todos os apps instalados (página "Todos os apps" do menu), em ordem
@@ -74,8 +74,8 @@ export global Apps {
     /// Protótipo: os dois arquivos do layout. Sessão real: o Rust preenche com
     /// os recentes de verdade (`src/recent.rs`) e o atalho do instalador.
     in-out property <[RecentEntry]> recents: [
-        { name: "README.md", path: "~/Projetos/distro", kind: "file" },
-        { name: "main.cpp", path: "~/Projetos/firmware", kind: "code" },
+        { name: "README.md", path: "~/Projects/distro", kind: "file" },
+        { name: "main.cpp", path: "~/Projects/firmware", kind: "code" },
     ];
 }
 
@@ -105,7 +105,7 @@ export global Shell {
     /// Carga da bateria, "78%" ou "--" sem bateria.
     in property <string> battery: "--";
     /// Nome exibido do usuário.
-    in property <string> user-name: "Usuário";
+    in property <string> user-name: @tr("User");
     /// Letra do avatar (inicial do nome).
     in property <string> user-initial: "U";
 

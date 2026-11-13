@@ -66,13 +66,13 @@ export component DesktopMenu inherits Rectangle {
 
     col := VerticalLayout {
         padding: 5px;
-        MenuItem { icon: Icons.image; text: "Mudar papel de parede"; clicked => { root.settings(2); } }
-        MenuItem { icon: Icons.dock; text: "Ajustar a dock"; clicked => { root.settings(3); } }
-        MenuItem { icon: Icons.monitor; text: "Monitores"; clicked => { root.settings(4); } }
+        MenuItem { icon: Icons.image; text: @tr("Change wallpaper"); clicked => { root.settings(2); } }
+        MenuItem { icon: Icons.dock; text: @tr("Adjust the dock"); clicked => { root.settings(3); } }
+        MenuItem { icon: Icons.monitor; text: @tr("Displays"); clicked => { root.settings(4); } }
         MenuSeparator { }
-        MenuItem { icon: Icons.terminal; text: "Abrir terminal"; clicked => { root.launch("terminal"); } }
-        MenuItem { icon: Icons.folder; text: "Abrir Arquivos"; clicked => { root.launch("files"); } }
+        MenuItem { icon: Icons.terminal; text: @tr("Open terminal"); clicked => { root.launch("terminal"); } }
+        MenuItem { icon: Icons.folder; text: @tr("Open Files"); clicked => { root.launch("files"); } }
         MenuSeparator { }
-        MenuItem { icon: Icons.settings; text: "Configurações"; clicked => { root.launch("settings"); } }
+        MenuItem { icon: Icons.settings; text: @tr("Settings"); clicked => { root.launch("settings"); } }
     }
 }

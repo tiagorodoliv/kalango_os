@@ -14,6 +14,7 @@
 //!
 //! Sem `$GREETD_SOCK` (desenvolvimento) qualquer senha não vazia entra.
 
+use crate::i18n::tr;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
@@ -251,7 +252,7 @@ pub fn install(ui: &AppWindow) {
     let (user, name) = std::fs::read_to_string("/etc/passwd")
         .ok()
         .and_then(|p| first_human_user(&p))
-        .unwrap_or_else(|| ("user".into(), "Usuário".into()));
+        .unwrap_or_else(|| ("user".into(), tr("User", "Usuário").into()));
     shell.set_login_user(user.into());
     shell.set_user_initial(initial(&name).into());
     shell.set_user_name(name.into());
@@ -280,10 +281,10 @@ pub fn install(ui: &AppWindow) {
                     Ok(()) => {
                         let _ = slint::quit_event_loop();
                     }
-                    Err(LoginError::Denied) => shell.set_login_error("Senha incorreta".into()),
+                    Err(LoginError::Denied) => shell.set_login_error(tr("Wrong password", "Senha incorreta").into()),
                     Err(LoginError::Failed(msg)) => {
                         eprintln!("kalango-shell: login: {msg}");
-                        shell.set_login_error("Não foi possível entrar".into());
+                        shell.set_login_error(tr("Could not sign in", "Não foi possível entrar").into());
                     }
                 }
             });

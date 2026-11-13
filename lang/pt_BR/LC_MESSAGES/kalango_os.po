@@ -1,0 +1,662 @@
+# Tradução do Kalango OS (shell) para o português do Brasil.
+# Os textos originais (msgid) são os @tr("...") dos arquivos ui/*.slint.
+# Gerado por um script e revisado à mão; para um texto novo, acrescente msgid/msgstr.
+msgid ""
+msgstr ""
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: ui/app_window.slint:119
+msgid "This app does not exist in the prototype yet"
+msgstr "Este app ainda não existe no protótipo"
+
+#: ui/app_window.slint:128
+msgid "Could not open Settings"
+msgstr "Não foi possível abrir as Configurações"
+
+#: ui/app_window.slint:146
+msgid "Could not open the app menu"
+msgstr "Não foi possível abrir o menu de apps"
+
+#: ui/app_window.slint:368
+msgid "Could not open the file"
+msgstr "Não foi possível abrir o arquivo"
+
+#: ui/app_window.slint:56 ui/components/desktop_menu.slint:76 ui/globals.slint:56 ui/screens/settings.slint:414
+msgid "Settings"
+msgstr "Configurações"
+
+#: ui/app_window.slint:97
+msgid "This app is not available yet"
+msgstr "Este app ainda não está disponível"
+
+#: ui/components/desktop_menu.slint:69
+msgid "Change wallpaper"
+msgstr "Mudar papel de parede"
+
+#: ui/components/desktop_menu.slint:70
+msgid "Adjust the dock"
+msgstr "Ajustar a dock"
+
+#: ui/components/desktop_menu.slint:71 ui/screens/settings.slint:388 ui/screens/settings_pages.slint:765
+msgid "Displays"
+msgstr "Monitores"
+
+#: ui/components/desktop_menu.slint:73
+msgid "Open terminal"
+msgstr "Abrir terminal"
+
+#: ui/components/desktop_menu.slint:74
+msgid "Open Files"
+msgstr "Abrir Arquivos"
+
+#: ui/device.slint:103 ui/screens/settings_pages.slint:538
+msgid "No battery"
+msgstr "Sem bateria"
+
+#: ui/device.slint:127
+msgid "90° (portrait)"
+msgstr "90° (em pé)"
+
+#: ui/device.slint:127
+msgid "180° (upside down)"
+msgstr "180° (de ponta-cabeça)"
+
+#: ui/device.slint:127
+msgid "270° (portrait)"
+msgstr "270° (em pé)"
+
+#: ui/device.slint:147
+msgid "English (US)"
+msgstr "Inglês (EUA)"
+
+#: ui/device.slint:57
+msgid "Version"
+msgstr "Versão"
+
+#: ui/device.slint:57
+msgid "Kalango OS 0.1 (prototype)"
+msgstr "Kalango OS 0.1 (protótipo)"
+
+#: ui/device.slint:59
+msgid "Session"
+msgstr "Sessão"
+
+#: ui/device.slint:67
+msgid "No network information"
+msgstr "Sem informações de rede"
+
+#: ui/globals.slint:108
+msgid "User"
+msgstr "Usuário"
+
+#: ui/globals.slint:51
+msgid "Files"
+msgstr "Arquivos"
+
+#: ui/globals.slint:53
+msgid "Browser"
+msgstr "Navegador"
+
+#: ui/globals.slint:54
+msgid "Code"
+msgstr "Código"
+
+#: ui/globals.slint:55
+msgid "Store"
+msgstr "Loja"
+
+#: ui/globals.slint:57
+msgid "Images"
+msgstr "Imagens"
+
+#: ui/globals.slint:58
+msgid "Music"
+msgstr "Música"
+
+#: ui/globals.slint:59
+msgid "Documents"
+msgstr "Documentos"
+
+#: ui/globals.slint:60
+msgid "Calendar"
+msgstr "Agenda"
+
+#: ui/globals.slint:62 ui/screens/settings.slint:393
+msgid "Updates"
+msgstr "Atualizações"
+
+#: ui/screens/launcher.slint:141
+msgid "Search apps, files, commands..."
+msgstr "Buscar apps, arquivos, comandos..."
+
+#: ui/screens/launcher.slint:185
+msgid "RESULTS"
+msgstr "RESULTADOS"
+
+#: ui/screens/launcher.slint:185
+msgid "ALL APPS"
+msgstr "TODOS OS APPS"
+
+#: ui/screens/launcher.slint:185
+msgid "PINNED"
+msgstr "FIXADOS"
+
+#: ui/screens/launcher.slint:190
+msgid "Back to pinned"
+msgstr "Voltar aos fixados"
+
+#: ui/screens/launcher.slint:190
+msgid "All apps"
+msgstr "Todos os apps"
+
+#: ui/screens/launcher.slint:226
+msgid "No apps found for \"{}\""
+msgstr "Nenhum app encontrado para \"{}\""
+
+#: ui/screens/launcher.slint:236
+msgid "RECENT"
+msgstr "RECENTES"
+
+#: ui/screens/launcher.slint:282
+msgid "No recently opened files"
+msgstr "Nenhum arquivo aberto recentemente"
+
+#: ui/screens/login.slint:138
+msgid "Password"
+msgstr "Senha"
+
+#: ui/screens/login.slint:194
+msgid "Signing in…"
+msgstr "Entrando…"
+
+#: ui/screens/login.slint:203
+msgid "Other user"
+msgstr "Outro usuário"
+
+#: ui/screens/login.slint:253
+msgid "EN"
+msgstr "PT-BR"
+
+#: ui/screens/login.slint:34 ui/screens/login.slint:46
+msgid "Enter your password"
+msgstr "Digite a senha"
+
+#: ui/screens/settings.slint:184
+msgid "THEME"
+msgstr "TEMA"
+
+#: ui/screens/settings.slint:190
+msgid "Dark (glass)"
+msgstr "Escuro (vidro)"
+
+#: ui/screens/settings.slint:199
+msgid "Solid dark (OLED)"
+msgstr "Escuro sólido (OLED)"
+
+#: ui/screens/settings.slint:208
+msgid "Light"
+msgstr "Claro"
+
+#: ui/screens/settings.slint:219
+msgid "ACCENT COLOR"
+msgstr "COR DE DESTAQUE"
+
+#: ui/screens/settings.slint:256
+msgid "Window transparency"
+msgstr "Transparência das janelas"
+
+#: ui/screens/settings.slint:257
+msgid "How much of the background shows through the glass"
+msgstr "Quanto do fundo aparece através do vidro"
+
+#: ui/screens/settings.slint:275
+msgid "Background blur"
+msgstr "Desfoque do fundo"
+
+#: ui/screens/settings.slint:276
+msgid "Turning it off saves GPU on older hardware"
+msgstr "Desligar economiza GPU em hardware mais antigo"
+
+#: ui/screens/settings.slint:283
+msgid "Reduce animations"
+msgstr "Reduzir animações"
+
+#: ui/screens/settings.slint:284
+msgid "Instant transitions"
+msgstr "Transições instantâneas"
+
+#: ui/screens/settings.slint:294
+msgid "WALLPAPER"
+msgstr "PAPEL DE PAREDE"
+
+#: ui/screens/settings.slint:338
+msgid "ICONS"
+msgstr "ÍCONES"
+
+#: ui/screens/settings.slint:384
+msgid "Network & Wi-Fi"
+msgstr "Rede e Wi-Fi"
+
+#: ui/screens/settings.slint:386
+msgid "Appearance"
+msgstr "Aparência"
+
+#: ui/screens/settings.slint:387
+msgid "Taskbar"
+msgstr "Barra de tarefas"
+
+#: ui/screens/settings.slint:389
+msgid "Sound"
+msgstr "Som"
+
+#: ui/screens/settings.slint:390
+msgid "Power"
+msgstr "Energia"
+
+#: ui/screens/settings.slint:391
+msgid "Users"
+msgstr "Usuários"
+
+#: ui/screens/settings.slint:392
+msgid "Language & Region"
+msgstr "Idioma e região"
+
+#: ui/screens/settings.slint:394
+msgid "About"
+msgstr "Sobre o sistema"
+
+#: ui/screens/settings.slint:440
+msgid "Search"
+msgstr "Buscar"
+
+#: ui/screens/settings_pages.slint:279
+msgid "Network manager unavailable"
+msgstr "Gerenciador de rede indisponível"
+
+#: ui/screens/settings_pages.slint:280
+msgid "NetworkManager did not respond. Check that the service is running."
+msgstr "O NetworkManager não respondeu. Confira se o serviço está rodando."
+
+#: ui/screens/settings_pages.slint:287
+msgid "Connection"
+msgstr "Conexão"
+
+#: ui/screens/settings_pages.slint:292
+msgid "Advanced"
+msgstr "Avançado"
+
+#: ui/screens/settings_pages.slint:298
+msgid "On"
+msgstr "Ligado"
+
+#: ui/screens/settings_pages.slint:298
+msgid "Off"
+msgstr "Desligado"
+
+#: ui/screens/settings_pages.slint:309
+msgid "No Wi-Fi adapter was found on this computer."
+msgstr "Nenhuma placa Wi-Fi encontrada neste computador."
+
+#: ui/screens/settings_pages.slint:318
+msgid "AVAILABLE NETWORKS"
+msgstr "REDES DISPONÍVEIS"
+
+#: ui/screens/settings_pages.slint:322
+msgid "Please wait..."
+msgstr "Aguarde..."
+
+#: ui/screens/settings_pages.slint:322
+msgid "Refresh"
+msgstr "Atualizar"
+
+#: ui/screens/settings_pages.slint:331
+msgid "No networks found"
+msgstr "Nenhuma rede encontrada"
+
+#: ui/screens/settings_pages.slint:358
+msgid "Connected"
+msgstr "Conectada"
+
+#: ui/screens/settings_pages.slint:400
+msgid "Password for {}"
+msgstr "Senha de {}"
+
+#: ui/screens/settings_pages.slint:430
+msgid "Connect"
+msgstr "Conectar"
+
+#: ui/screens/settings_pages.slint:441
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: ui/screens/settings_pages.slint:469
+msgid "No sound output"
+msgstr "Nenhuma saída de som"
+
+#: ui/screens/settings_pages.slint:470
+msgid "The sound server (PipeWire) found no speakers or headphones."
+msgstr "O servidor de som (PipeWire) não encontrou alto-falantes ou fones."
+
+#: ui/screens/settings_pages.slint:477
+msgid "Output"
+msgstr "Saída"
+
+#: ui/screens/settings_pages.slint:492
+msgid "muted"
+msgstr "mudo"
+
+#: ui/screens/settings_pages.slint:501
+msgid "Mute"
+msgstr "Sem som"
+
+#: ui/screens/settings_pages.slint:502
+msgid "Silences the default output"
+msgstr "Silencia a saída padrão"
+
+#: ui/screens/settings_pages.slint:515
+msgid "More sound options"
+msgstr "Mais opções de som"
+
+#: ui/screens/settings_pages.slint:537 ui/screens/settings_pages.slint:945
+msgid "Battery"
+msgstr "Bateria"
+
+#: ui/screens/settings_pages.slint:538
+msgid "Computer running on AC power"
+msgstr "Computador ligado direto na tomada"
+
+#: ui/screens/settings_pages.slint:539
+msgid "Charging"
+msgstr "Carregando"
+
+#: ui/screens/settings_pages.slint:539
+msgid "On battery"
+msgstr "Usando a bateria"
+
+#: ui/screens/settings_pages.slint:546
+msgid "SHUT DOWN"
+msgstr "DESLIGAR"
+
+#: ui/screens/settings_pages.slint:551
+msgid "Suspend"
+msgstr "Suspender"
+
+#: ui/screens/settings_pages.slint:555
+msgid "Restart"
+msgstr "Reiniciar"
+
+#: ui/screens/settings_pages.slint:559
+msgid "Shut down"
+msgstr "Desligar"
+
+#: ui/screens/settings_pages.slint:592
+msgid "administrator"
+msgstr "administrador"
+
+#: ui/screens/settings_pages.slint:592
+msgid "standard user"
+msgstr "usuário padrão"
+
+#: ui/screens/settings_pages.slint:600
+msgid "Change password"
+msgstr "Alterar senha"
+
+#: ui/screens/settings_pages.slint:604 ui/screens/settings_pages.slint:658
+msgid "Log out"
+msgstr "Sair da sessão"
+
+#: ui/screens/settings_pages.slint:627
+msgid "Language"
+msgstr "Idioma"
+
+#: ui/screens/settings_pages.slint:628
+msgid "Menus, settings and apps"
+msgstr "Menus, configurações e apps"
+
+#: ui/screens/settings_pages.slint:638
+msgid "Keyboard"
+msgstr "Teclado"
+
+#: ui/screens/settings_pages.slint:639
+msgid "Layout of the keys"
+msgstr "Disposição das teclas"
+
+#: ui/screens/settings_pages.slint:653
+msgid "Sign out to change the language"
+msgstr "Saia da sessão para trocar o idioma"
+
+#: ui/screens/settings_pages.slint:654
+msgid "Open apps keep the current language until then"
+msgstr "Os apps abertos continuam no idioma atual até lá"
+
+#: ui/screens/settings_pages.slint:682
+msgid "System updates"
+msgstr "Atualizações do sistema"
+
+#: ui/screens/settings_pages.slint:683
+msgid "Downloads and installs new versions of Kalango OS and your apps"
+msgstr "Baixa e instala as versões novas do Kalango OS e dos apps"
+
+#: ui/screens/settings_pages.slint:687
+msgid "Check now"
+msgstr "Procurar agora"
+
+#: ui/screens/settings_pages.slint:694
+msgid "The update runs in a terminal and asks for your password."
+msgstr "A atualização roda num terminal e pede a sua senha."
+
+#: ui/screens/settings_pages.slint:711
+msgid "Bluetooth is not available yet"
+msgstr "Bluetooth ainda não disponível"
+
+#: ui/screens/settings_pages.slint:711
+msgid "No Bluetooth adapter"
+msgstr "Nenhum adaptador Bluetooth"
+
+#: ui/screens/settings_pages.slint:713
+msgid "Device pairing is coming in a future version of Kalango OS."
+msgstr "O pareamento de dispositivos chega numa próxima versão do Kalango OS."
+
+#: ui/screens/settings_pages.slint:714
+msgid "This computer has no Bluetooth, or it is turned off."
+msgstr "Este computador não tem Bluetooth, ou ele está desligado."
+
+#: ui/screens/settings_pages.slint:767
+msgid "Could not read the displays (wlr-randr did not respond)."
+msgstr "Não foi possível ler os monitores (o wlr-randr não respondeu)."
+
+#: ui/screens/settings_pages.slint:768
+msgid "Resolution, scale and rotation can be changed in the Kalango OS session."
+msgstr "Ajustar resolução, escala e rotação funciona na sessão do Kalango OS."
+
+#: ui/screens/settings_pages.slint:806
+msgid "Resolution"
+msgstr "Resolução"
+
+#: ui/screens/settings_pages.slint:819
+msgid "Refresh rate"
+msgstr "Taxa de atualização"
+
+#: ui/screens/settings_pages.slint:829
+msgid "Scale"
+msgstr "Escala"
+
+#: ui/screens/settings_pages.slint:830
+msgid "Makes text and windows larger"
+msgstr "Aumenta textos e janelas"
+
+#: ui/screens/settings_pages.slint:830
+msgid "Too large for this resolution"
+msgstr "Grande demais para esta resolução"
+
+#: ui/screens/settings_pages.slint:840
+msgid "Rotation"
+msgstr "Rotação"
+
+#: ui/screens/settings_pages.slint:858
+msgid "Keep this configuration?"
+msgstr "Manter esta configuração?"
+
+#: ui/screens/settings_pages.slint:859
+msgid "Reverting to the previous one in {} s"
+msgstr "Voltando à anterior em {} s"
+
+#: ui/screens/settings_pages.slint:867
+msgid "Revert"
+msgstr "Voltar"
+
+#: ui/screens/settings_pages.slint:872
+msgid "Keep"
+msgstr "Manter"
+
+#: ui/screens/settings_pages.slint:884
+msgid "Apply"
+msgstr "Aplicar"
+
+#: ui/screens/settings_pages.slint:893
+msgid "Undo"
+msgstr "Desfazer"
+
+#: ui/screens/settings_pages.slint:924
+msgid "TOP BAR"
+msgstr "BARRA SUPERIOR"
+
+#: ui/screens/settings_pages.slint:929
+msgid "Date"
+msgstr "Data"
+
+#: ui/screens/settings_pages.slint:930
+msgid "The day before the time ({})"
+msgstr "O dia antes da hora ({})"
+
+#: ui/screens/settings_pages.slint:935
+msgid "Seconds"
+msgstr "Segundos"
+
+#: ui/screens/settings_pages.slint:936
+msgid "Clock with seconds ({}:{})"
+msgstr "Relógio com segundos ({}:{})"
+
+#: ui/screens/settings_pages.slint:940
+msgid "CPU usage"
+msgstr "Uso de CPU"
+
+#: ui/screens/settings_pages.slint:941
+msgid "How much of the processor is in use"
+msgstr "Quanto do processador está em uso"
+
+#: ui/screens/settings_pages.slint:946
+msgid "Charge as a percentage (only on computers with a battery)"
+msgstr "Carga em porcentagem (só em computadores com bateria)"
+
+#: ui/screens/settings_pages.slint:957
+msgid "Position"
+msgstr "Posição"
+
+#: ui/screens/settings_pages.slint:961
+msgid "Bottom"
+msgstr "Embaixo"
+
+#: ui/screens/settings_pages.slint:961
+msgid "Left"
+msgstr "Esquerda"
+
+#: ui/screens/settings_pages.slint:961
+msgid "Right"
+msgstr "Direita"
+
+#: ui/screens/settings_pages.slint:967
+msgid "Style"
+msgstr "Estilo"
+
+#: ui/screens/settings_pages.slint:968
+msgid "Bar along the edge, end to end"
+msgstr "Barra encostada na borda, de ponta a ponta"
+
+#: ui/screens/settings_pages.slint:968
+msgid "Floating and centered"
+msgstr "Flutuante e centralizada"
+
+#: ui/screens/settings_pages.slint:971
+msgid "Bar"
+msgstr "Barra"
+
+#: ui/screens/settings_pages.slint:977
+msgid "Always visible"
+msgstr "Sempre visível"
+
+#: ui/screens/settings_pages.slint:978
+msgid "Off: appears when the mouse reaches the screen edge"
+msgstr "Desligado: aparece com o mouse na borda da tela"
+
+#: ui/screens/settings_pages.slint:982
+msgid "Size"
+msgstr "Tamanho"
+
+#: ui/screens/settings_pages.slint:985
+msgid "Small"
+msgstr "Pequena"
+
+#: ui/screens/settings_pages.slint:985
+msgid "Medium"
+msgstr "Média"
+
+#: ui/screens/settings_pages.slint:985
+msgid "Large"
+msgstr "Grande"
+
+#: ui/screens/settings_pages.slint:994
+msgid "DOCK APPS"
+msgstr "APPS NA DOCK"
+
+#: ui/screens/settings_pages.slint:997
+msgid "Click to add or remove · in this order"
+msgstr "Clique para pôr ou tirar · nesta ordem"
+
+#: ui/theme.slint:58
+msgid "Circuits"
+msgstr "Circuitos"
+
+#: ui/theme.slint:58
+msgid "Black and blue"
+msgstr "Preto e azul"
+
+#: ui/theme.slint:58
+msgid "Black"
+msgstr "Preto"
+
+#: ui/theme.slint:58 ui/theme.slint:70
+msgid "Blue"
+msgstr "Azul"
+
+#: ui/theme.slint:58 ui/theme.slint:70
+msgid "Green"
+msgstr "Verde"
+
+#: ui/theme.slint:58 ui/theme.slint:70
+msgid "Purple"
+msgstr "Roxo"
+
+#: ui/theme.slint:58
+msgid "Orange"
+msgstr "Laranja"
+
+#: ui/theme.slint:58
+msgid "White"
+msgstr "Branco"
+
+#: ui/theme.slint:70
+msgid "Cyan"
+msgstr "Ciano"
+
+#: ui/theme.slint:70
+msgid "Amber"
+msgstr "Âmbar"
+
+#: ui/theme.slint:70
+msgid "Pink"
+msgstr "Rosa"

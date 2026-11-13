@@ -10,6 +10,7 @@
 //! Kalango OS (desenvolvimento), comando que não existe só deixa a página no
 //! estado "indisponível".
 
+use crate::i18n::tr;
 use std::fs;
 use std::process::{Command, Stdio};
 use std::rc::Rc;
@@ -123,9 +124,9 @@ pub fn parse_devices(text: &str) -> NetStatus {
         }
     }
     let summary = match (wifi, wired) {
-        (Some(ssid), _) => format!("Conectado ao Wi-Fi {ssid}"),
-        (None, Some(_)) => "Conectado por cabo".to_string(),
-        (None, None) => "Sem conexão".to_string(),
+        (Some(ssid), _) => format!("{} {ssid}", tr("Connected to Wi-Fi", "Conectado ao Wi-Fi")),
+        (None, Some(_)) => tr("Connected by cable", "Conectado por cabo").to_string(),
+        (None, None) => tr("Not connected", "Sem conexão").to_string(),
     };
     NetStatus { summary, wifi_present }
 }
@@ -248,7 +249,7 @@ fn now_ms() -> u64 {
 
 /// Ficha do sistema (lida uma vez, ao abrir).
 fn about_items() -> Vec<(String, String)> {
-    let mut items = vec![("Versão".to_string(), format!("Kalango OS {}", env!("CARGO_PKG_VERSION")))];
+    let mut items = vec![(tr("Version", "Versão").to_string(), format!("Kalango OS {}", env!("CARGO_PKG_VERSION")))];
     let read = |p: &str| fs::read_to_string(p).ok();
 
     if let Some(name) = read("/etc/os-release").and_then(|t| os_release_value(&t, "PRETTY_NAME")) {
@@ -261,24 +262,30 @@ fn about_items() -> Vec<(String, String)> {
     let product = read("/sys/class/dmi/id/product_name").unwrap_or_default();
     let machine = format!("{} {}", vendor.trim(), product.trim()).trim().to_string();
     if !machine.is_empty() {
-        items.push(("Computador".into(), machine));
+        items.push((tr("Computer", "Computador").into(), machine));
     }
     if let Some(model) = read("/proc/cpuinfo").and_then(|t| cpu_model(&t)) {
         let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
-        let label = if cores == 1 { "núcleo" } else { "núcleos" };
-        items.push(("Processador".into(), format!("{model} · {cores} {label}")));
+        let label = match cores {
+            1 => tr("core", "núcleo"),
+            _ => tr("cores", "núcleos"),
+        };
+        items.push((tr("Processor", "Processador").into(), format!("{model} · {cores} {label}")));
     }
     if let Some(mem) = read("/proc/meminfo").and_then(|t| mem_total(&t)) {
-        items.push(("Memória".into(), human_size(mem)));
+        items.push((tr("Memory", "Memória").into(), human_size(mem)));
     }
     if let Some((size, avail)) = output("df", &["-B1", "--output=size,avail", "/"]).and_then(|t| parse_df(&t)) {
-        items.push(("Disco".into(), format!("{} livres de {}", human_size(avail), human_size(size))));
+        items.push((
+            tr("Disk", "Disco").into(),
+            format!("{} {} {}", human_size(avail), tr("free of", "livres de"), human_size(size)),
+        ));
     }
     if let Some(host) = read("/proc/sys/kernel/hostname") {
-        items.push(("Nome do computador".into(), host.trim().to_string()));
+        items.push((tr("Computer name", "Nome do computador").into(), host.trim().to_string()));
     }
     if std::env::var_os("WAYLAND_DISPLAY").is_some() {
-        items.push(("Sessão".into(), "Wayland".into()));
+        items.push((tr("Session", "Sessão").into(), "Wayland".into()));
     }
     items
 }
@@ -320,7 +327,7 @@ fn read_snapshot(rescan: bool) -> Snapshot {
     {
         let name = output("wpctl", &["inspect", "@DEFAULT_AUDIO_SINK@"])
             .and_then(|t| parse_wpctl_description(&t))
-            .unwrap_or_else(|| "Saída padrão".into());
+            .unwrap_or_else(|| tr("Default output", "Saída padrão").into());
         s.sound = Some((vol, muted, name));
     }
     if let Some(path) = crate::system::battery_path() {
@@ -403,7 +410,7 @@ fn apply(ui: &AppWindow, s: Snapshot, hold_volume: bool, rescan: bool) {
             d.set_battery(format!("{cap}%").into());
             d.set_charging(charging);
         }
-        None => d.set_battery("Sem bateria".into()),
+        None => d.set_battery(tr("No battery", "Sem bateria").into()),
     }
 }
 
@@ -416,7 +423,7 @@ fn connect(weak: Weak<AppWindow>, shared: Arc<Shared>, ssid: SharedString, passw
     if let Some(ui) = weak.upgrade() {
         let d = ui.global::<Device>();
         d.set_network_busy(true);
-        d.set_network_message(format!("Conectando a {ssid}...").into());
+        d.set_network_message(format!("{} {ssid}...", tr("Connecting to", "Conectando a")).into());
     }
     std::thread::spawn(move || {
         let mut args = vec!["device", "wifi", "connect", ssid.as_str()];
@@ -433,11 +440,15 @@ fn connect(weak: Weak<AppWindow>, shared: Arc<Shared>, ssid: SharedString, passw
             forget_network(&ssid);
         }
         let message = if ok {
-            format!("Conectado a {ssid}")
+            format!("{} {ssid}", tr("Connected to", "Conectado a"))
         } else if password.is_empty() {
-            format!("Não foi possível conectar a {ssid}")
+            format!("{} {ssid}", tr("Could not connect to", "Não foi possível conectar a"))
         } else {
-            format!("Não foi possível conectar a {ssid}. Confira a senha.")
+            format!(
+                "{} {ssid}. {}",
+                tr("Could not connect to", "Não foi possível conectar a"),
+                tr("Check the password.", "Confira a senha.")
+            )
         };
         let weak2 = weak.clone();
         let _ = slint::invoke_from_event_loop(move || {
@@ -589,11 +600,11 @@ mod tests {
     #[test]
     fn resume_dispositivos() {
         let s = parse_devices("ethernet:connected:Wired connection 1\nloopback:connected (externally):lo\n");
-        assert_eq!(s, NetStatus { summary: "Conectado por cabo".into(), wifi_present: false });
+        assert_eq!(s, NetStatus { summary: tr("Connected by cable", "Conectado por cabo").into(), wifi_present: false });
         let s = parse_devices("wifi:connected:Casa\nethernet:unavailable:\n");
-        assert_eq!(s.summary, "Conectado ao Wi-Fi Casa");
+        assert_eq!(s.summary, format!("{} Casa", tr("Connected to Wi-Fi", "Conectado ao Wi-Fi")));
         assert!(s.wifi_present);
-        assert_eq!(parse_devices("wifi:disconnected:\n").summary, "Sem conexão");
+        assert_eq!(parse_devices("wifi:disconnected:\n").summary, tr("Not connected", "Sem conexão"));
     }
 
     #[test]

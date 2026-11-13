@@ -138,7 +138,7 @@ export component Launcher inherits Rectangle {
 
             if search.text == "": Text {
                 x: 53px;
-                text: "Buscar apps, arquivos, comandos...";
+                text: @tr("Search apps, files, commands...");
                 color: Theme.text-muted;
                 font-family: Theme.sans;
                 font-size: 17px;
@@ -182,12 +182,12 @@ export component Launcher inherits Rectangle {
         SectionLabel {
             x: 29px;
             y: 112px;
-            text: root.query != "" ? "RESULTADOS" : root.all-view ? "TODOS OS APPS" : "FIXADOS";
+            text: root.query != "" ? @tr("RESULTS") : root.all-view ? @tr("ALL APPS") : @tr("PINNED");
         }
         if root.query == "": LinkText {
             x: parent.width - self.width - 29px;
             y: 110px;
-            text: root.all-view ? "Voltar aos fixados" : "Todos os apps";
+            text: root.all-view ? @tr("Back to pinned") : @tr("All apps");
             clicked => {
                 root.all-view = !root.all-view;
                 search.focus();
@@ -223,7 +223,7 @@ export component Launcher inherits Rectangle {
 
         if root.shown.length == 0: Text {
             y: 180px;
-            text: "Nenhum app encontrado para \"" + root.query + "\"";
+            text: @tr("No apps found for \"{}\"", root.query);
             color: Theme.text-muted;
             font-family: Theme.sans;
             font-size: 14px;
@@ -233,7 +233,7 @@ export component Launcher inherits Rectangle {
         if !root.tall-grid: SectionLabel {
             x: 29px;
             y: 381px;
-            text: "RECENTES";
+            text: @tr("RECENT");
         }
         for r[i] in root.tall-grid ? [] : Apps.recents: Rectangle {
             x: 29px + i * (346px + 9px);
@@ -279,7 +279,7 @@ export component Launcher inherits Rectangle {
         if !root.tall-grid && Apps.recents.length == 0: Text {
             x: 29px;
             y: 421px;
-            text: "Nenhum arquivo aberto recentemente";
+            text: @tr("No recently opened files");
             color: Theme.text-muted;
             font-family: Theme.sans;
             font-size: 13px;

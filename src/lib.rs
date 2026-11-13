@@ -26,8 +26,10 @@ pub mod desktop;
 pub mod device;
 pub mod displays;
 pub mod greeter;
+pub mod i18n;
 pub mod labwc;
 pub mod recent;
+pub mod region;
 pub mod session;
 pub mod system;
 pub mod wallpaper;
@@ -59,6 +61,8 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     // Slint) e antes de mostrá-la (quando a janela nativa é criada).
     let ui = AppWindow::new()?;
     slint::set_xdg_app_id(mode.app_id())?;
+    // Idioma da interface (inglês ou português, pelo LANG do ambiente).
+    i18n::apply();
     let shell = ui.global::<Shell>();
 
     // Protótipo: qualquer senha não vazia entra. No sistema real a
@@ -72,6 +76,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     timers.extend(appearance::install(&ui, mode));
     timers.extend(device::install(&ui, mode));
     displays::install(&ui, mode);
+    region::install(&ui, mode);
     timers.extend(wallpaper::install(&ui, mode));
     Ok((ui, timers))
 }

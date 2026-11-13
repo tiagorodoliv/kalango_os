@@ -276,26 +276,26 @@ export component NetworkPage inherits Rectangle {
 
         if !Device.network-available: EmptyNotice {
             icon: Icons.wifi;
-            title: "Gerenciador de rede indisponível";
-            text: "O NetworkManager não respondeu. Confira se o serviço está rodando.";
+            title: @tr("Network manager unavailable");
+            text: @tr("NetworkManager did not respond. Check that the service is running.");
         }
 
         if Device.network-available: Panel {
             height: Device.wifi-present ? 2 * 67px : 67px;
             VerticalLayout {
                 Row {
-                    title: "Conexão";
+                    title: @tr("Connection");
                     subtitle: Device.network-status;
                     divider: false;
                     PillButton {
                         x: parent.width - self.width - 20px;
-                        text: "Avançado";
+                        text: @tr("Advanced");
                         clicked => { Shell.open-app("network"); }
                     }
                 }
                 if Device.wifi-present: Row {
                     title: "Wi-Fi";
-                    subtitle: Device.wifi-enabled ? "Ligado" : "Desligado";
+                    subtitle: Device.wifi-enabled ? @tr("On") : @tr("Off");
                     Toggle {
                         x: parent.width - self.width - 20px;
                         checked <=> Device.wifi-enabled;
@@ -306,7 +306,7 @@ export component NetworkPage inherits Rectangle {
         }
 
         if Device.network-available && !Device.wifi-present: Text {
-            text: "Nenhuma placa Wi-Fi encontrada neste computador.";
+            text: @tr("No Wi-Fi adapter was found on this computer.");
             color: Theme.text-muted;
             font-family: Theme.sans;
             font-size: 13.5px;
@@ -315,11 +315,11 @@ export component NetworkPage inherits Rectangle {
         // --- Lista de redes ---
         if Device.network-available && Device.wifi-present && Device.wifi-enabled: HorizontalLayout {
             height: 24px;
-            SectionLabel { text: "REDES DISPONÍVEIS"; vertical-alignment: center; }
+            SectionLabel { text: @tr("AVAILABLE NETWORKS"); vertical-alignment: center; }
             Rectangle { horizontal-stretch: 1; }
             PillButton {
                 height: 24px;
-                text: Device.network-busy ? "Aguarde..." : "Atualizar";
+                text: Device.network-busy ? @tr("Please wait...") : @tr("Refresh");
                 enabled: !Device.network-busy;
                 clicked => { Device.rescan(); }
             }
@@ -328,7 +328,7 @@ export component NetworkPage inherits Rectangle {
         if Device.network-available && Device.wifi-present && Device.wifi-enabled: Panel {
             height: max(1, Device.networks.length) * 52px;
             if Device.networks.length == 0: Text {
-                text: "Nenhuma rede encontrada";
+                text: @tr("No networks found");
                 color: Theme.text-muted;
                 font-family: Theme.sans;
                 font-size: 13.5px;
@@ -355,7 +355,7 @@ export component NetworkPage inherits Rectangle {
                     spacing: 10px;
                     alignment: end;
                     if net.active: Text {
-                        text: "Conectada";
+                        text: @tr("Connected");
                         color: Theme.accent;
                         font-family: Theme.sans;
                         font-size: 13px;
@@ -397,7 +397,7 @@ export component NetworkPage inherits Rectangle {
             Text {
                 x: 20px;
                 width: 200px;
-                text: "Senha de " + root.selected;
+                text: @tr("Password for {}", root.selected);
                 color: Theme.text;
                 font-family: Theme.sans;
                 font-size: 14px;
@@ -427,7 +427,7 @@ export component NetworkPage inherits Rectangle {
             }
             connect-btn := PillButton {
                 x: parent.width - self.width - 20px - cancel-btn.width - 10px;
-                text: "Conectar";
+                text: @tr("Connect");
                 primary: true;
                 enabled: password.text != "" && !Device.network-busy;
                 clicked => {
@@ -438,7 +438,7 @@ export component NetworkPage inherits Rectangle {
             }
             cancel-btn := PillButton {
                 x: parent.width - self.width - 20px;
-                text: "Cancelar";
+                text: @tr("Cancel");
                 clicked => { root.selected = ""; }
             }
         }
@@ -466,15 +466,15 @@ export component SoundPage inherits Rectangle {
 
         if !Device.sound-available: EmptyNotice {
             icon: Icons.volume;
-            title: "Nenhuma saída de som";
-            text: "O servidor de som (PipeWire) não encontrou alto-falantes ou fones.";
+            title: @tr("No sound output");
+            text: @tr("The sound server (PipeWire) found no speakers or headphones.");
         }
 
         if Device.sound-available: Panel {
             height: 3 * 67px;
             VerticalLayout {
                 Row {
-                    title: "Saída";
+                    title: @tr("Output");
                     divider: false;
                     value: Device.sound-output;
                 }
@@ -489,7 +489,7 @@ export component SoundPage inherits Rectangle {
                     Text {
                         x: parent.width - self.width - 20px;
                         width: 42px;
-                        text: Device.muted ? "mudo" : round(Device.volume * 100) + "%";
+                        text: Device.muted ? @tr("muted") : round(Device.volume * 100) + "%";
                         color: Theme.text;
                         font-family: Theme.mono;
                         font-size: 13px;
@@ -498,8 +498,8 @@ export component SoundPage inherits Rectangle {
                     }
                 }
                 Row {
-                    title: "Sem som";
-                    subtitle: "Silencia a saída padrão";
+                    title: @tr("Mute");
+                    subtitle: @tr("Silences the default output");
                     Toggle {
                         x: parent.width - self.width - 20px;
                         checked <=> Device.muted;
@@ -512,7 +512,7 @@ export component SoundPage inherits Rectangle {
         HorizontalLayout {
             alignment: start;
             PillButton {
-                text: "Mais opções de som";
+                text: @tr("More sound options");
                 clicked => { Shell.open-app("sound"); }
             }
         }
@@ -534,29 +534,29 @@ export component PowerPage inherits Rectangle {
         Panel {
             height: 67px;
             Row {
-                title: "Bateria";
-                subtitle: Device.battery == "Sem bateria" ? "Computador ligado direto na tomada"
-                    : Device.charging ? "Carregando" : "Usando a bateria";
+                title: @tr("Battery");
+                subtitle: Device.battery == @tr("No battery") ? @tr("Computer running on AC power")
+                    : Device.charging ? @tr("Charging") : @tr("On battery");
                 divider: false;
                 value: Device.battery;
                 value-strong: true;
             }
         }
 
-        SectionLabel { text: "DESLIGAR"; }
+        SectionLabel { text: @tr("SHUT DOWN"); }
         HorizontalLayout {
             alignment: start;
             spacing: 12px;
             PillButton {
-                text: "Suspender";
+                text: @tr("Suspend");
                 clicked => { Device.power-action("suspend"); }
             }
             PillButton {
-                text: "Reiniciar";
+                text: @tr("Restart");
                 clicked => { Device.power-action("reboot"); }
             }
             PillButton {
-                text: "Desligar";
+                text: @tr("Shut down");
                 danger: true;
                 clicked => { Shell.power-off(); }
             }
@@ -589,7 +589,7 @@ export component UsersPage inherits Rectangle {
                 alignment: center;
                 spacing: 4px;
                 Text { text: Shell.user-name; color: Theme.text; font-family: Theme.sans; font-size: 17px; font-weight: 600; }
-                Text { text: Device.login + (Device.admin ? " · administrador" : " · usuário padrão"); color: Theme.text-muted; font-family: Theme.mono; font-size: 13px; }
+                Text { text: Device.login + " · " + (Device.admin ? @tr("administrator") : @tr("standard user")); color: Theme.text-muted; font-family: Theme.mono; font-size: 13px; }
             }
         }
 
@@ -597,12 +597,68 @@ export component UsersPage inherits Rectangle {
             alignment: start;
             spacing: 12px;
             PillButton {
-                text: "Alterar senha";
+                text: @tr("Change password");
                 clicked => { Device.change-password(); }
             }
             PillButton {
-                text: "Sair da sessão";
+                text: @tr("Log out");
                 clicked => { Shell.open-app("logout"); }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Idioma e região
+// ---------------------------------------------------------------------------
+
+export component RegionPage inherits Rectangle {
+    VerticalLayout {
+        x: 0;
+        y: Page.top;
+        width: min(Page.max-width, parent.width);
+        alignment: start;
+        spacing: 16px;
+
+        Panel {
+            height: 2 * 67px;
+            VerticalLayout {
+                Row {
+                    title: @tr("Language");
+                    subtitle: @tr("Menus, settings and apps");
+                    divider: false;
+                    Dropdown {
+                        x: parent.width - self.width - 20px;
+                        options: Device.languages;
+                        selected: Device.language-index;
+                        chosen(i) => { Device.set-language(i); }
+                    }
+                }
+                Row {
+                    title: @tr("Keyboard");
+                    subtitle: Device.keyboard-message != "" ? Device.keyboard-message : @tr("Layout of the keys");
+                    Dropdown {
+                        x: parent.width - self.width - 20px;
+                        options: Device.keyboard-layouts;
+                        selected: Device.keyboard-index;
+                        chosen(i) => { Device.set-keyboard(i); }
+                    }
+                }
+            }
+        }
+
+        if Device.language-pending: Panel {
+            height: 67px;
+            Row {
+                title: @tr("Sign out to change the language");
+                subtitle: @tr("Open apps keep the current language until then");
+                divider: false;
+                PillButton {
+                    x: parent.width - self.width - 20px;
+                    text: @tr("Log out");
+                    primary: true;
+                    clicked => { Shell.open-app("logout"); }
+                }
             }
         }
     }
@@ -623,19 +679,19 @@ export component UpdatesPage inherits Rectangle {
         Panel {
             height: 67px;
             Row {
-                title: "Atualizações do sistema";
-                subtitle: "Baixa e instala as versões novas do Kalango OS e dos apps";
+                title: @tr("System updates");
+                subtitle: @tr("Downloads and installs new versions of Kalango OS and your apps");
                 divider: false;
                 PillButton {
                     x: parent.width - self.width - 20px;
-                    text: "Procurar agora";
+                    text: @tr("Check now");
                     primary: true;
                     clicked => { Shell.open-app("updates"); }
                 }
             }
         }
         Text {
-            text: "A atualização roda num terminal e pede a sua senha.";
+            text: @tr("The update runs in a terminal and asks for your password.");
             color: Theme.text-muted;
             font-family: Theme.sans;
             font-size: 13.5px;
@@ -652,10 +708,10 @@ export component BluetoothPage inherits Rectangle {
         x: 0;
         y: Page.top;
         icon: Icons.bluetooth;
-        title: Device.bluetooth-present ? "Bluetooth ainda não disponível" : "Nenhum adaptador Bluetooth";
+        title: Device.bluetooth-present ? @tr("Bluetooth is not available yet") : @tr("No Bluetooth adapter");
         text: Device.bluetooth-present
-            ? "O pareamento de dispositivos chega numa próxima versão do Kalango OS."
-            : "Este computador não tem Bluetooth, ou ele está desligado.";
+            ? @tr("Device pairing is coming in a future version of Kalango OS.")
+            : @tr("This computer has no Bluetooth, or it is turned off.");
     }
 }
 
@@ -706,10 +762,10 @@ export component DisplaysPage inherits Rectangle {
         x: 0;
         y: Page.top;
         icon: Icons.monitor;
-        title: "Monitores";
+        title: @tr("Displays");
         text: Shell.native
-            ? "Não foi possível ler os monitores (o wlr-randr não respondeu)."
-            : "Ajustar resolução, escala e rotação funciona na sessão do Kalango OS.";
+            ? @tr("Could not read the displays (wlr-randr did not respond).")
+            : @tr("Resolution, scale and rotation can be changed in the Kalango OS session.");
     }
 
     if Device.displays-available: VerticalLayout {
@@ -747,7 +803,7 @@ export component DisplaysPage inherits Rectangle {
                     }
                 }
                 Row {
-                    title: "Resolução";
+                    title: @tr("Resolution");
                     Dropdown {
                         x: parent.width - self.width - 20px;
                         options: root.out.resolution-labels;
@@ -760,7 +816,7 @@ export component DisplaysPage inherits Rectangle {
                     }
                 }
                 Row {
-                    title: "Taxa de atualização";
+                    title: @tr("Refresh rate");
                     Dropdown {
                         x: parent.width - self.width - 20px;
                         options: root.mode.rates;
@@ -770,8 +826,8 @@ export component DisplaysPage inherits Rectangle {
                     }
                 }
                 Row {
-                    title: "Escala";
-                    subtitle: root.fits ? "Aumenta textos e janelas" : "Grande demais para esta resolução";
+                    title: @tr("Scale");
+                    subtitle: root.fits ? @tr("Makes text and windows larger") : @tr("Too large for this resolution");
                     Dropdown {
                         x: parent.width - self.width - 20px;
                         options: Device.display-scales;
@@ -781,7 +837,7 @@ export component DisplaysPage inherits Rectangle {
                     }
                 }
                 Row {
-                    title: "Rotação";
+                    title: @tr("Rotation");
                     Dropdown {
                         x: parent.width - self.width - 20px;
                         options: Device.display-rotations;
@@ -799,8 +855,8 @@ export component DisplaysPage inherits Rectangle {
             border-color: Theme.accent.with-alpha(0.6);
             Row {
                 divider: false;
-                title: "Manter esta configuração?";
-                subtitle: "Voltando à anterior em " + Device.display-countdown + " s";
+                title: @tr("Keep this configuration?");
+                subtitle: @tr("Reverting to the previous one in {} s", Device.display-countdown);
                 HorizontalLayout {
                     x: parent.width - self.width - 20px;
                     width: self.preferred-width;
@@ -808,12 +864,12 @@ export component DisplaysPage inherits Rectangle {
                     spacing: 10px;
                     PillButton {
                         y: (67px - self.height) / 2;
-                        text: "Voltar";
+                        text: @tr("Revert");
                         clicked => { Device.revert-display(); }
                     }
                     PillButton {
                         y: (67px - self.height) / 2;
-                        text: "Manter";
+                        text: @tr("Keep");
                         primary: true;
                         clicked => { Device.keep-display(); }
                     }
@@ -825,7 +881,7 @@ export component DisplaysPage inherits Rectangle {
             alignment: start;
             spacing: 10px;
             PillButton {
-                text: "Aplicar";
+                text: @tr("Apply");
                 primary: true;
                 enabled: root.changed && root.fits;
                 clicked => {
@@ -834,7 +890,7 @@ export component DisplaysPage inherits Rectangle {
                 }
             }
             if root.changed: PillButton {
-                text: "Desfazer";
+                text: @tr("Undo");
                 clicked => { root.reset(); }
             }
         }
@@ -865,29 +921,29 @@ export component TaskbarPage inherits Rectangle {
             alignment: start;
             spacing: 12px;
 
-            SectionLabel { text: "BARRA SUPERIOR"; }
+            SectionLabel { text: @tr("TOP BAR"); }
             Panel {
                 height: 4 * 67px;
                 VerticalLayout {
                     Row {
-                        title: "Data";
-                        subtitle: "O dia antes da hora (" + Shell.bar-day + ")";
+                        title: @tr("Date");
+                        subtitle: @tr("The day before the time ({})", Shell.bar-day);
                         divider: false;
                         Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-date; }
                     }
                     Row {
-                        title: "Segundos";
-                        subtitle: "Relógio com segundos (" + Shell.bar-time + ":" + Shell.bar-seconds + ")";
+                        title: @tr("Seconds");
+                        subtitle: @tr("Clock with seconds ({}:{})", Shell.bar-time, Shell.bar-seconds);
                         Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-seconds; }
                     }
                     Row {
-                        title: "Uso de CPU";
-                        subtitle: "Quanto do processador está em uso";
+                        title: @tr("CPU usage");
+                        subtitle: @tr("How much of the processor is in use");
                         Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-cpu; }
                     }
                     Row {
-                        title: "Bateria";
-                        subtitle: "Carga em porcentagem (só em computadores com bateria)";
+                        title: @tr("Battery");
+                        subtitle: @tr("Charge as a percentage (only on computers with a battery)");
                         Toggle { x: parent.width - self.width - 20px; checked <=> Theme.bar-show-battery; }
                     }
                 }
@@ -898,35 +954,35 @@ export component TaskbarPage inherits Rectangle {
                 height: 4 * 67px;
                 VerticalLayout {
                     Row {
-                        title: "Posição";
+                        title: @tr("Position");
                         divider: false;
                         Segmented {
                             x: parent.width - self.width - 20px;
-                            options: ["Embaixo", "Esquerda", "Direita"];
+                            options: [@tr("Bottom"), @tr("Left"), @tr("Right")];
                             selected: Theme.dock-position;
                             chosen(i) => { Theme.dock-position = i; }
                         }
                     }
                     Row {
-                        title: "Estilo";
-                        subtitle: Theme.dock-style == 1 ? "Barra encostada na borda, de ponta a ponta" : "Flutuante e centralizada";
+                        title: @tr("Style");
+                        subtitle: Theme.dock-style == 1 ? @tr("Bar along the edge, end to end") : @tr("Floating and centered");
                         Segmented {
                             x: parent.width - self.width - 20px;
-                            options: ["Dock", "Barra"];
+                            options: ["Dock", @tr("Bar")];
                             selected: Theme.dock-style;
                             chosen(i) => { Theme.dock-style = i; }
                         }
                     }
                     Row {
-                        title: "Sempre visível";
-                        subtitle: "Desligado: aparece com o mouse na borda da tela";
+                        title: @tr("Always visible");
+                        subtitle: @tr("Off: appears when the mouse reaches the screen edge");
                         Toggle { x: parent.width - self.width - 20px; checked <=> Theme.dock-always-visible; }
                     }
                     Row {
-                        title: "Tamanho";
+                        title: @tr("Size");
                         Segmented {
                             x: parent.width - self.width - 20px;
-                            options: ["Pequena", "Média", "Grande"];
+                            options: [@tr("Small"), @tr("Medium"), @tr("Large")];
                             selected: Theme.dock-size;
                             chosen(i) => { Theme.dock-size = i; }
                         }
@@ -935,10 +991,10 @@ export component TaskbarPage inherits Rectangle {
             }
 
             HorizontalLayout {
-                SectionLabel { text: "APPS NA DOCK"; }
+                SectionLabel { text: @tr("DOCK APPS"); }
                 Text {
                     horizontal-alignment: right;
-                    text: "Clique para pôr ou tirar · nesta ordem";
+                    text: @tr("Click to add or remove · in this order");
                     color: Theme.text-muted;
                     font-family: Theme.sans;
                     font-size: 12.5px;

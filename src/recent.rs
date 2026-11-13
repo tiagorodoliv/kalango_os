@@ -5,6 +5,7 @@
 //! recentes que ainda existem. Na ISO live, o primeiro item é o atalho
 //! "Instalar Kalango OS".
 
+use crate::i18n::tr;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -128,7 +129,7 @@ pub fn install(ui: &AppWindow) {
     let mut items: Vec<RecentEntry> = Vec::new();
     if is_live() {
         items.push(RecentEntry {
-            name: "Instalar Kalango OS".into(),
+            name: tr("Install Kalango OS", "Instalar Kalango OS").into(),
             path: "Copiar o sistema para o disco".into(),
             kind: "install".into(),
             target: "".into(),

@@ -8,7 +8,7 @@ import { Icons } from "../icons.slint";
 import { Shell } from "../globals.slint";
 import { SectionLabel, IconButton, Toggle, SliderBar } from "../components/widgets.slint";
 import {
-    NetworkPage, BluetoothPage, DisplaysPage, SoundPage, PowerPage, UsersPage, UpdatesPage, AboutPage,
+    NetworkPage, BluetoothPage, DisplaysPage, SoundPage, PowerPage, UsersPage, RegionPage, UpdatesPage, AboutPage,
     TaskbarPage,
 } from "settings_pages.slint";
 
@@ -181,13 +181,13 @@ component AppearancePage inherits Rectangle {
         height: 910px;
 
         // --- Tema ---
-        SectionLabel { x: 0; y: 113px; text: "TEMA"; }
+        SectionLabel { x: 0; y: 113px; text: @tr("THEME"); }
         HorizontalLayout {
             x: 0;
             y: 135px;
             spacing: 17px;
             ThemeCard {
-                label: "Escuro (vidro)";
+                label: @tr("Dark (glass)");
                 mode: ThemeMode.glass;
                 preview-bg: #07090d;
                 preview-window: #17222b;
@@ -196,7 +196,7 @@ component AppearancePage inherits Rectangle {
                 clicked => { Theme.mode = ThemeMode.glass; }
             }
             ThemeCard {
-                label: "Escuro sólido (OLED)";
+                label: @tr("Solid dark (OLED)");
                 mode: ThemeMode.oled;
                 preview-bg: #000000;
                 preview-window: #0e0e0e;
@@ -205,7 +205,7 @@ component AppearancePage inherits Rectangle {
                 clicked => { Theme.mode = ThemeMode.oled; }
             }
             ThemeCard {
-                label: "Claro";
+                label: @tr("Light");
                 mode: ThemeMode.light;
                 preview-bg: #eef1f4;
                 preview-window: #ffffff;
@@ -216,7 +216,7 @@ component AppearancePage inherits Rectangle {
         }
 
         // --- Cor de destaque ---
-        SectionLabel { x: 0; y: 333px; text: "COR DE DESTAQUE"; }
+        SectionLabel { x: 0; y: 333px; text: @tr("ACCENT COLOR"); }
         for c[i] in Theme.accents: Rectangle {
             x: i * (44px + 14px);
             y: 355px;
@@ -253,8 +253,8 @@ component AppearancePage inherits Rectangle {
 
             VerticalLayout {
                 OptionRow {
-                    title: "Transparência das janelas";
-                    subtitle: "Quanto do fundo aparece através do vidro";
+                    title: @tr("Window transparency");
+                    subtitle: @tr("How much of the background shows through the glass");
                     divider: false;
                     SliderBar {
                         x: parent.width - self.width - 72px;
@@ -272,16 +272,16 @@ component AppearancePage inherits Rectangle {
                     }
                 }
                 OptionRow {
-                    title: "Desfoque do fundo";
-                    subtitle: "Desligar economiza GPU em hardware mais antigo";
+                    title: @tr("Background blur");
+                    subtitle: @tr("Turning it off saves GPU on older hardware");
                     Toggle {
                         x: parent.width - self.width - 20px;
                         checked <=> Theme.blur;
                     }
                 }
                 OptionRow {
-                    title: "Reduzir animações";
-                    subtitle: "Transições instantâneas";
+                    title: @tr("Reduce animations");
+                    subtitle: @tr("Instant transitions");
                     Toggle {
                         x: parent.width - self.width - 20px;
                         checked <=> Theme.reduce-motion;
@@ -291,7 +291,7 @@ component AppearancePage inherits Rectangle {
         }
 
         // --- Papel de parede (a dock fica em Barra de tarefas) ---
-        SectionLabel { x: 0; y: 657px; text: "PAPEL DE PAREDE"; }
+        SectionLabel { x: 0; y: 657px; text: @tr("WALLPAPER"); }
         for nome[i] in Theme.wallpaper-names: Rectangle {
             x: i * (80px + 10px);
             y: 681px;
@@ -335,7 +335,7 @@ component AppearancePage inherits Rectangle {
         }
 
         // --- Ícones (as pastas seguem a cor de destaque nos três) ---
-        SectionLabel { x: 0; y: 768px; text: "ÍCONES"; }
+        SectionLabel { x: 0; y: 768px; text: @tr("ICONS"); }
         for nome[i] in Theme.icon-theme-names: Rectangle {
             x: i * (229px + 17px);
             y: 792px;
@@ -381,16 +381,17 @@ export component SettingsScreen inherits Rectangle {
     callback close();
 
     property <[Section]> sections: [
-        { name: "Rede e Wi-Fi", icon: Icons.wifi },
+        { name: @tr("Network & Wi-Fi"), icon: Icons.wifi },
         { name: "Bluetooth", icon: Icons.bluetooth },
-        { name: "Aparência", icon: Icons.contrast },
-        { name: "Barra de tarefas", icon: Icons.dock },
-        { name: "Monitores", icon: Icons.monitor },
-        { name: "Som", icon: Icons.volume },
-        { name: "Energia", icon: Icons.battery },
-        { name: "Usuários", icon: Icons.user },
-        { name: "Atualizações", icon: Icons.download },
-        { name: "Sobre o sistema", icon: Icons.info },
+        { name: @tr("Appearance"), icon: Icons.contrast },
+        { name: @tr("Taskbar"), icon: Icons.dock },
+        { name: @tr("Displays"), icon: Icons.monitor },
+        { name: @tr("Sound"), icon: Icons.volume },
+        { name: @tr("Power"), icon: Icons.battery },
+        { name: @tr("Users"), icon: Icons.user },
+        { name: @tr("Language & Region"), icon: Icons.globe },
+        { name: @tr("Updates"), icon: Icons.download },
+        { name: @tr("About"), icon: Icons.info },
     ];
     /// Página aberta (índice em `sections`).
     in-out property <int> current: 2;
@@ -410,7 +411,7 @@ export component SettingsScreen inherits Rectangle {
         Text {
             x: 24px;
             y: 22px;
-            text: "Configurações";
+            text: @tr("Settings");
             color: Theme.text;
             font-family: Theme.sans;
             font-size: 22px;
@@ -436,7 +437,7 @@ export component SettingsScreen inherits Rectangle {
             }
             if sidebar-search.text == "": Text {
                 x: 39px;
-                text: "Buscar";
+                text: @tr("Search");
                 color: Theme.text-muted;
                 font-family: Theme.sans;
                 font-size: 14.5px;
@@ -493,8 +494,9 @@ export component SettingsScreen inherits Rectangle {
         if root.current == 5: SoundPage { }
         if root.current == 6: PowerPage { }
         if root.current == 7: UsersPage { }
-        if root.current == 8: UpdatesPage { }
-        if root.current == 9: AboutPage { }
+        if root.current == 8: RegionPage { }
+        if root.current == 9: UpdatesPage { }
+        if root.current == 10: AboutPage { }
     }
 
     // Fechar dentro da tela só no protótipo (lá as Configurações são uma tela
