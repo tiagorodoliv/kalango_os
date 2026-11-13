@@ -1,19 +1,22 @@
 #!/bin/sh
 # Testa a ISO do Kalango OS no QEMU (com KVM).
 #
-# Uso:  distro/run-qemu.sh [--uefi] [--gl] [--disco | --so-disco] [caminho.iso]
+# Uso:  distro/run-qemu.sh [--uefi] [--gl] [--disco | --so-disco] [--dev pasta] [caminho.iso]
 #   --uefi      dá boot por UEFI (OVMF) em vez de BIOS.
 #   --gl        GPU com aceleração 3D (virgl) numa janela SDL. Mais rápido, mas
 #               depende do driver de vídeo do host.
 #   --disco     liga também um disco virtual de 20 GB (distro/out/disco-teste.qcow2,
 #               criado na primeira vez) para testar o instalador.
 #   --so-disco  dá boot pelo disco virtual, sem a ISO (sistema já instalado).
+#   --dev pasta compartilha a pasta com a VM (9p, "kalango-dev"): a ISO live
+#               aplica o shell e as configs dela no boot (distro/testar-vm.sh).
 # Sem caminho, usa a ISO mais recente em distro/out/.
 set -eu
 
 DISTRO=$(cd "$(dirname "$0")" && pwd)
 FIRMWARE=""
 DISCO=""
+DEV=""
 ISO_ARGS="yes"
 # Padrão: janela GTK sem OpenGL. É o caminho mais testado do QEMU. Com
 # "gtk,gl=on" num desktop Wayland (GNOME) o mouse sai invertido e a imagem
@@ -38,6 +41,10 @@ while [ $# -gt 0 ]; do
 		[ "$1" = "--so-disco" ] && ISO_ARGS=""
 		shift
 		;;
+	--dev)
+		DEV="-virtfs local,path=$2,mount_tag=kalango-dev,security_model=none,readonly=on"
+		shift 2
+		;;
 	*) break ;;
 	esac
 done
@@ -58,4 +65,4 @@ exec qemu-system-x86_64 \
 	$VIDEO \
 	-device qemu-xhci -device usb-tablet \
 	-nic user,model=virtio-net-pci \
-	$DISCO $ISO_ARGS
+	$DISCO $DEV $ISO_ARGS

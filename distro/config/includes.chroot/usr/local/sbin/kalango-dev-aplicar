@@ -1,0 +1,44 @@
+#!/bin/sh
+# Modo de desenvolvimento do Kalango OS (usado por distro/testar-vm.sh).
+#
+# Na ISO live rodando no QEMU com a pasta compartilhada "kalango-dev" (9p),
+# aplica o que o computador de desenvolvimento preparou nela:
+#   kalango-shell  -> /usr/local/bin/kalango-shell
+#   raiz/          -> copiado por cima de / (configs da distro, ícones...)
+# Roda no boot pelo kalango-dev.service, antes da tela de login. Fora da ISO
+# live ou sem a pasta compartilhada, não faz nada.
+#
+# Uso manual (dentro da VM, depois de `distro/testar-vm.sh --so-preparar`):
+#   sudo kalango-dev-aplicar --reiniciar   (aplica e reinicia a sessão)
+set -eu
+
+TAG=kalango-dev
+PONTO=/run/kalango-dev
+
+[ -d /run/live/medium ] || exit 0
+modprobe 9pnet_virtio 2>/dev/null || true
+grep -qs "$TAG" /sys/bus/virtio/drivers/9pnet_virtio/*/mount_tag || exit 0
+
+mkdir -p "$PONTO"
+mountpoint -q "$PONTO" || mount -t 9p -o trans=virtio,version=9p2000.L,ro "$TAG" "$PONTO"
+
+if [ -d "$PONTO/raiz" ]; then
+	cp -r --no-preserve=ownership "$PONTO/raiz/." /
+	rm -f /usr/local/bin/.gitkeep
+	glib-compile-schemas /usr/share/glib-2.0/schemas
+fi
+if [ -d "$PONTO/raiz/usr/share/icons" ]; then
+	for tema in "$PONTO"/raiz/usr/share/icons/*/; do
+		gtk-update-icon-cache -q -f -t "/usr/share/icons/$(basename "$tema")" || true
+	done
+fi
+if [ -f "$PONTO/kalango-shell" ]; then
+	install -m 0755 "$PONTO/kalango-shell" /usr/local/bin/kalango-shell
+fi
+echo "kalango-dev: aplicado de $PONTO"
+
+if [ "${1:-}" = "--reiniciar" ]; then
+	# O greetd só faz o login automático uma vez por boot (marca em /run).
+	rm -f /run/greetd.run
+	systemctl restart greetd
+fi

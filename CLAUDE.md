@@ -95,7 +95,12 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (`gtk,gl=on` no GNOME/Wayland do host inverte o mouse e estraga a imagem); `--gl` usa virgl em janela SDL.
 - Em VM, `/usr/local/bin/kalango-session` exporta `WLR_RENDERER=pixman` e `WLR_NO_HARDWARE_CURSORS=1`: com o labwc
   em GL na GPU virtual aparecem blocos pretos no canto superior esquerdo.
-- Testar sem sudo/sem refazer a ISO: compilar contra o trixie com `bwrap --ro-bind distro/.cache/builder /` +
+- **Teste rápido: `distro/testar-vm.sh`** (sem sudo, sem ISO): compila com o perfil `vm` do Cargo.toml (sem LTO,
+  ~12 s incremental) dentro do builder via `bwrap`, monta `target/vm-dev/{kalango-shell,raiz/}` e chama
+  `run-qemu.sh --dev` (9p, tag `kalango-dev`). Na ISO live, `kalango-dev.service` (antes do greetd) roda
+  `/usr/local/sbin/kalango-dev-aplicar`, que só age com `/run/live/medium` + a tag 9p. `--so-preparar` + na VM
+  `sudo kalango-dev-aplicar --reiniciar` itera sem reiniciar a VM; `--tudo` leva papéis de parede e ícones.
+- Teste manual antigo: compilar contra o trixie com `bwrap --ro-bind distro/.cache/builder /` +
   toolchain do host (binário em `target/release/kalango_os`), passar para a VM por `-virtfs` (9p) e, dentro dela,
   copiar binário/configs, `rm /run/greetd.run` (o greetd só faz autologin uma vez por boot) e
   `systemctl restart greetd`. A VM live tem rede e sudo sem senha (dá para `apt install`).

@@ -79,6 +79,18 @@ distro/run-qemu.sh       # testa a ISO gerada em distro/out/ no QEMU
 `distro/run-qemu.sh --gl` usa aceleração 3D (janela SDL); `--uefi` dá boot por UEFI; `--disco` liga um disco
 virtual para testar o instalador e `--so-disco` dá boot pelo sistema instalado, sem a ISO.
 
+### Testar mudanças sem gerar a ISO
+
+```sh
+distro/testar-vm.sh            # compila o shell (~12 s depois da 1ª vez) e liga a VM já com ele
+distro/testar-vm.sh --tudo     # idem, levando também papéis de parede e ícones
+distro/testar-vm.sh --so-preparar   # com a VM ligada; depois, nela: sudo kalango-dev-aplicar --reiniciar
+```
+
+Não precisa de sudo: compila contra o Debian de build do `distro/build.sh` (precisa ter rodado uma vez) e
+compartilha `target/vm-dev/` com a VM; o `kalango-dev.service` da ISO live aplica o shell e as configs antes da
+tela de login. Pacotes novos e o instalador ainda precisam da ISO de verdade.
+
 Para instalar: menu de apps → RECENTES → **Instalar Kalango OS** (Calamares, com a marca do Kalango).
 
 A ISO entra direto na sessão: greetd → labwc → `kalango-shell`. Logs do shell: `journalctl -t kalango-shell`.

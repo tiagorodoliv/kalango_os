@@ -34,6 +34,14 @@ default = []
 # Uso: cargo build --release --features kms
 kms = ["slint/backend-linuxkms-noseat"]
 
+# Build rápido para testar na VM (distro/testar-vm.sh): otimizado, mas sem
+# LTO e com compilação incremental (segundos em vez de minutos).
+[profile.vm]
+inherits = "release"
+lto = false
+codegen-units = 16
+incremental = true
+
 [profile.release]
 # Binário menor e mais rápido para o alvo embarcado.
 lto = true
