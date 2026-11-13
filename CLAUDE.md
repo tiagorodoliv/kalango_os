@@ -13,6 +13,12 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
 - **Linguagem/UI:** Rust + Slint (resolvido para **slint 1.18.1** no Cargo.lock).
   - Dev: janela comum no macOS (backend winit, renderer femtovg).
   - Dispositivo: `cargo build --release --features kms` (desenha direto via DRM/KMS).
+  - **Renderer na sessão (decidido em 2026-11-13, máquinas antigas):** software por padrão
+    (`lib.rs::renderer_for`): em VM de 2 GB a área de trabalho caiu de 192 MB/1,4 s CPU por 30 s (femtovg pelo
+    llvmpipe, que carrega o libLLVM) para 32 MB/0,08 s. Exceção: o menu (`--launcher`) usa femtovg, porque o
+    renderer de software no Wayland não tem alfa (fundo preto). `KALANGO_RENDERER=gl|software` força;
+    `$SLINT_BACKEND` tem prioridade. O renderer de software pinta `Path` por cima de `Image`: com papel de parede
+    o `Backdrop` nem cria grade/circuitos. Sistema: zram (`systemd-zram-generator`) e `winbind` desligado.
 - **Compositor (decidido em 2026-11-11): labwc + shell em Slint.** A sessão é greetd → `kalango-session` → labwc
   → `kalango-shell`. Sem layer-shell (winit não suporta), o shell roda em 3 processos do mesmo binário
   (`src/session.rs`), cada um com seu app_id e regra em `etc/xdg/labwc/rc.xml`:

@@ -83,9 +83,57 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     Ok((ui, timers))
 }
 
+/// Renderer do Slint a usar, a partir de `$SLINT_BACKEND` e `$KALANGO_RENDERER`.
+///
+/// O padrão é o de software: o shell é quase todo parado, e ele redesenha só
+/// o que mudou, sem carregar o Mesa. Medido numa VM de 2 GB, a área de
+/// trabalho foi de 192 MB (OpenGL pelo llvmpipe, que traz o LLVM inteiro) para
+/// 31 MB, e de 1,4 s para 0,08 s de CPU a cada 30 s parada.
+/// O menu de apps é a exceção: ele é uma janela transparente por cima dos
+/// apps, e o renderer de software no Wayland não tem canal alfa (o fundo
+/// ficaria preto); como fica aberto pouco tempo, usa o OpenGL.
+/// `KALANGO_RENDERER=gl` ou `=software` força um dos dois em tudo. Com
+/// `$SLINT_BACKEND` definido, vale a escolha dele (`None`).
+pub fn renderer_for(
+    mode: Mode,
+    slint_backend: Option<&str>,
+    kalango_renderer: Option<&str>,
+) -> Option<&'static str> {
+    if slint_backend.is_some_and(|b| !b.is_empty()) {
+        return None;
+    }
+    match kalango_renderer {
+        Some("gl") | Some("femtovg") => Some("femtovg"),
+        Some("software") => Some("software"),
+        _ if mode == Mode::Launcher => Some("femtovg"),
+        _ => Some("software"),
+    }
+}
+
+/// Aplica a escolha de [`renderer_for`] (só no backend winit; o `kms` desenha
+/// direto na tela e escolhe sozinho).
+fn select_renderer(mode: Mode) {
+    if cfg!(feature = "kms") {
+        return;
+    }
+    let backend = std::env::var("SLINT_BACKEND").ok();
+    let wanted = std::env::var("KALANGO_RENDERER").ok();
+    let Some(renderer) = renderer_for(mode, backend.as_deref(), wanted.as_deref()) else {
+        return;
+    };
+    if let Err(err) = slint::BackendSelector::new()
+        .backend_name("winit".into())
+        .renderer_name(renderer.into())
+        .select()
+    {
+        eprintln!("kalango-shell: renderer {renderer} indisponível ({err}); usando o padrão do Slint");
+    }
+}
+
 /// Abre a janela do modo pedido nos argumentos e roda até ela ser fechada.
 pub fn run() -> Result<(), slint::PlatformError> {
     let mode = Mode::from_args(std::env::args());
+    select_renderer(mode);
     let page = session::page_from_args(std::env::args());
     // Super com o menu aberto: o novo processo fecha o antigo e sai.
     // Configurações já abertas: só pede a página a elas.
@@ -103,4 +151,23 @@ pub fn run() -> Result<(), slint::PlatformError> {
         timers.extend(session::watch_page_requests(&ui));
     }
     ui.run()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{renderer_for, Mode};
+
+    #[test]
+    fn renderer_de_software_por_padrao() {
+        assert_eq!(renderer_for(Mode::Desktop, None, None), Some("software"));
+        assert_eq!(renderer_for(Mode::Settings, Some(""), Some("outro")), Some("software"));
+        assert_eq!(renderer_for(Mode::Desktop, None, Some("gl")), Some("femtovg"));
+        assert_eq!(renderer_for(Mode::Desktop, Some("winit-femtovg"), None), None);
+    }
+
+    #[test]
+    fn menu_transparente_usa_opengl() {
+        assert_eq!(renderer_for(Mode::Launcher, None, None), Some("femtovg"));
+        assert_eq!(renderer_for(Mode::Launcher, None, Some("software")), Some("software"));
+    }
 }

@@ -6,6 +6,9 @@
 # "map to guest = bad user" para o acesso sem senha).
 set -e
 systemctl disable smbd.service nmbd.service wsdd2.service 2>/dev/null || true
+# O winbind (vem junto com o Samba) só serve para entrar num domínio do
+# Windows, o que o Kalango não faz; parado, economiza uns 20 MB de RAM.
+systemctl disable winbind.service 2>/dev/null || true
 touch /etc/samba/kalango.conf
 # Só aparece na rede o que a pessoa escolheu: sem a pasta pessoal inteira
 # ([homes]) nem as impressoras ([printers], [print$]) do smb.conf do Debian.

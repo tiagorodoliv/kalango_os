@@ -37,20 +37,30 @@ export component Backdrop inherits Rectangle {
     background: Theme.background;
     clip: true;
 
+    /// Papel de parede por cima de tudo (área de trabalho e launcher; o login
+    /// fica sempre com os circuitos). Com ele, grade e circuitos nem são
+    /// criados: ficariam escondidos, mas custariam para desenhar (e o
+    /// renderer de software pinta os traços de Path por cima da imagem).
+    property <bool> has-wallpaper: root.variant == BackdropVariant.desktop && Theme.wallpaper > 0 && Shell.wallpaper.width > 0;
+
     // Grade de 48px
-    for i in 64: Rectangle {
-        x: i * 48px;
-        y: 0;
-        width: 1px;
-        height: root.height;
-        background: Theme.grid;
-    }
-    for i in 40: Rectangle {
-        x: 0;
-        y: i * 48px;
+    if !root.has-wallpaper: Rectangle {
         width: root.width;
-        height: 1px;
-        background: Theme.grid;
+        height: root.height;
+        for i in 64: Rectangle {
+            x: i * 48px;
+            y: 0;
+            width: 1px;
+            height: root.height;
+            background: Theme.grid;
+        }
+        for i in 40: Rectangle {
+            x: 0;
+            y: i * 48px;
+            width: root.width;
+            height: 1px;
+            background: Theme.grid;
+        }
     }
 
     // Brilho difuso na cor de destaque (centro no login, à direita nas demais).
@@ -74,7 +84,7 @@ export component Backdrop inherits Rectangle {
             + "M1000 458 L1397 687 L1397 1147 L1000 1376 L603 1147 L603 687 Z";
     }
 
-    if root.variant == BackdropVariant.desktop: CircuitLines {
+    if root.variant == BackdropVariant.desktop && !root.has-wallpaper: CircuitLines {
         width: root.width;
         height: root.height;
         commands: "M0 222 L250 222 L332 305 L480 305 "
@@ -106,7 +116,7 @@ export component Backdrop inherits Rectangle {
 
     // Papel de parede escolhido: cobre a grade e os circuitos (área de
     // trabalho e launcher; o login fica sempre com os circuitos).
-    if root.variant == BackdropVariant.desktop && Theme.wallpaper > 0 && Shell.wallpaper.width > 0: Image {
+    if root.has-wallpaper: Image {
         x: 0;
         y: 0;
         width: root.width;

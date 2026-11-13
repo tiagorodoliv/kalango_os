@@ -13,12 +13,17 @@ labwc
 xwayland
 dbus-user-session
 
-# Gráficos e bibliotecas usadas pelo kalango-shell (Slint, backend winit/femtovg)
+# Gráficos e bibliotecas usadas pelo kalango-shell (Slint, backend winit; o
+# renderer padrão é o de software, o OpenGL só com KALANGO_RENDERER=gl)
 libgl1-mesa-dri
 libegl1
 libwayland-egl1
 libxkbcommon0
 libfontconfig1
+
+# Memória comprimida (zram) no lugar do swap em disco: metade da RAM, até
+# 4 GB (padrão do pacote). Faz muita diferença em máquina com 2–4 GB.
+systemd-zram-generator
 
 # Apps reais abertos pela dock e pelo menu (ver src/session.rs)
 thunar
