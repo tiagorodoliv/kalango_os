@@ -86,6 +86,8 @@ export global Device {
     in-out property <bool> wifi-enabled: false;
     /// Redes encontradas, da mais forte para a mais fraca (no máximo 8).
     in property <[WifiNetwork]> networks;
+    /// Nome da rede Wi-Fi conectada ("" sem conexão).
+    in property <string> wifi-name: "";
     /// Conectando ou procurando redes.
     in property <bool> network-busy: false;
     /// Resultado da última ação ("Conectado a Casa", "Senha incorreta"...).
@@ -111,6 +113,14 @@ export global Device {
 
     callback set-volume(float);
     callback set-muted(bool);
+
+    // --- Brilho da tela (notebooks: /sys/class/backlight) ---
+
+    /// Há uma tela com brilho ajustável (some no PC de mesa e na VM).
+    in property <bool> brightness-available: false;
+    /// Brilho, 0.0–1.0.
+    in-out property <float> brightness: 1.0;
+    callback set-brightness(float);
 
     // --- Energia e usuário ---
 

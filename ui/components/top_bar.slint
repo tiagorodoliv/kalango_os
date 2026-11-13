@@ -10,20 +10,13 @@ import { KalangoIcon } from "../brand.slint";
 component BarIcon inherits Rectangle {
     in property <image> icon;
     in property <length> size: 15px;
-    /// Ícone clicável (destaca ao passar o mouse e emite `clicked`).
-    in property <bool> clickable: false;
-    callback clicked();
+    in property <color> tint: Theme.text;
     width: root.size;
     Image {
         source: root.icon;
-        colorize: root.clickable && touch.has-hover ? Theme.accent : Theme.text;
+        colorize: root.tint;
         width: root.size;
         height: root.size;
-    }
-    touch := TouchArea {
-        enabled: root.clickable;
-        mouse-cursor: root.clickable ? pointer : default;
-        clicked => { root.clicked(); }
     }
 }
 
@@ -36,11 +29,11 @@ export component TopBar inherits Rectangle {
     /// parte do shell que nunca fica atrás das janelas dos apps).
     in property <string> message;
     callback pill-clicked();
-    callback power-clicked();
-    /// Wi-Fi e volume clicáveis (sessão real: abrem os ajustes de rede e som).
-    in property <bool> status-clickable: false;
-    callback network-clicked();
-    callback sound-clicked();
+    /// Painel rápido aberto: o bloco de status fica destacado.
+    in property <bool> quick-open: false;
+    /// Clique no bloco de status (Wi-Fi, volume, bateria, energia): abre o
+    /// painel rápido (`ui/screens/quick_settings.slint`).
+    callback status-clicked();
 
     height: Theme.bar-height;
     background: Theme.bar;
@@ -113,14 +106,14 @@ export component TopBar inherits Rectangle {
         vertical-alignment: center;
     }
 
-    // --- Direita: CPU, wifi, volume, bateria, power ---
+    // --- Direita: CPU e o bloco de status (abre o painel rápido) ---
     if !root.compact: HorizontalLayout {
         // Largura explícita: sem ela o layout ocupa a barra inteira e, com o
         // deslocamento em x, os itens ficam fora da tela.
         width: self.preferred-width;
-        x: parent.width - self.width - 14px;
+        x: parent.width - self.width - 6px;
         height: parent.height;
-        spacing: 14px;
+        spacing: 8px;
         alignment: end;
 
         if Theme.bar-show-cpu: Text {
@@ -130,37 +123,40 @@ export component TopBar inherits Rectangle {
             font-family: Theme.mono;
             font-size: 12px;
         }
-        BarIcon {
-            icon: Icons.wifi;
-            size: 15px;
-            clickable: root.status-clickable;
-            clicked => { root.network-clicked(); }
-        }
-        BarIcon {
-            icon: Icons.volume;
-            size: 15px;
-            clickable: root.status-clickable;
-            clicked => { root.sound-clicked(); }
-        }
-        // Sem bateria (desktop, VM) o Rust manda "--": o indicador some.
-        if Theme.bar-show-battery && Shell.battery != "--": HorizontalLayout {
-            spacing: 4px;
-            BarIcon { icon: Icons.battery; size: 17px; }
-            Text {
-                text: Shell.battery;
-                vertical-alignment: center;
-                color: Theme.text;
-                font-family: Theme.mono;
-                font-size: 12px;
-                font-weight: 600;
-            }
-        }
         Rectangle {
-            width: 18px;
-            Image { source: Icons.power; colorize: power-touch.has-hover ? Theme.danger : Theme.text; width: 15px; height: 15px; }
-            power-touch := TouchArea {
+            y: 3px;
+            height: parent.height - 7px;
+            width: status-row.preferred-width;
+            border-radius: 7px;
+            background: root.quick-open ? Theme.accent.with-alpha(0.22)
+                : status-touch.has-hover ? Theme.tile-hover : transparent;
+            animate background { duration: Theme.anim; }
+
+            status-row := HorizontalLayout {
+                padding-left: 10px;
+                padding-right: 10px;
+                spacing: 12px;
+                property <color> fg: root.quick-open ? Theme.accent : Theme.text;
+                BarIcon { icon: Icons.wifi; tint: status-row.fg; }
+                BarIcon { icon: Icons.volume; tint: status-row.fg; }
+                // Sem bateria (desktop, VM) o Rust manda "--": o indicador some.
+                if Theme.bar-show-battery && Shell.battery != "--": HorizontalLayout {
+                    spacing: 4px;
+                    BarIcon { icon: Icons.battery; size: 17px; tint: status-row.fg; }
+                    Text {
+                        text: Shell.battery;
+                        vertical-alignment: center;
+                        color: status-row.fg;
+                        font-family: Theme.mono;
+                        font-size: 12px;
+                        font-weight: 600;
+                    }
+                }
+                BarIcon { icon: Icons.power; tint: status-row.fg; }
+            }
+            status-touch := TouchArea {
                 mouse-cursor: pointer;
-                clicked => { root.power-clicked(); }
+                clicked => { root.status-clicked(); }
             }
         }
     }

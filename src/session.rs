@@ -4,6 +4,8 @@
 //! - sem argumento: a área de trabalho (barra, dock, fundo), sempre atrás dos apps;
 //! - `--launcher`: o menu de apps, em tela cheia e transparente, por cima de tudo;
 //! - `--settings`: as Configurações, numa janela comum;
+//! - `--quick-settings`: o painel rápido do canto da barra (volume, brilho,
+//!   Wi-Fi, desligar...), em tela cheia e transparente, por cima de tudo;
 //! - `--greeter`: a tela de login do greetd (ver [`crate::greeter`]).
 //!
 //! O menu e as Configurações são processos próprios porque, sem layer-shell,
@@ -28,6 +30,7 @@ pub enum Mode {
     Launcher,
     Settings,
     Greeter,
+    QuickSettings,
 }
 
 impl Mode {
@@ -39,6 +42,7 @@ impl Mode {
                 "--launcher" => mode = Mode::Launcher,
                 "--settings" => mode = Mode::Settings,
                 "--greeter" => mode = Mode::Greeter,
+                "--quick-settings" => mode = Mode::QuickSettings,
                 _ => {}
             }
         }
@@ -53,6 +57,7 @@ impl Mode {
             Mode::Launcher => "kalango-launcher",
             Mode::Settings => "kalango-settings",
             Mode::Greeter => "kalango-greeter",
+            Mode::QuickSettings => "kalango-quick-settings",
         }
     }
 
@@ -63,6 +68,7 @@ impl Mode {
             Mode::Launcher => Some("--launcher"),
             Mode::Settings => Some("--settings"),
             Mode::Greeter => Some("--greeter"),
+            Mode::QuickSettings => Some("--quick-settings"),
         }
     }
 
@@ -72,6 +78,7 @@ impl Mode {
             Mode::Launcher => ShellMode::Launcher,
             Mode::Settings => ShellMode::Settings,
             Mode::Greeter => ShellMode::Greeter,
+            Mode::QuickSettings => ShellMode::QuickSettings,
         }
     }
 }
@@ -180,8 +187,12 @@ pub fn open(id: &str) -> bool {
         _ => (id, None),
     };
     let cmd = match id {
-        "launcher" | "settings" => {
-            let mode = if id == "launcher" { Mode::Launcher } else { Mode::Settings };
+        "launcher" | "settings" | "quick-settings" => {
+            let mode = match id {
+                "launcher" => Mode::Launcher,
+                "settings" => Mode::Settings,
+                _ => Mode::QuickSettings,
+            };
             let Ok(exe) = std::env::current_exe() else {
                 return false;
             };
@@ -270,11 +281,11 @@ pub fn watch_page_requests(ui: &AppWindow) -> Option<Timer> {
     Some(timer)
 }
 
-/// Garante uma instância só do launcher e das Configurações.
+/// Garante uma instância só do launcher, do painel rápido e das Configurações.
 ///
 /// Usa um arquivo com o PID em `$XDG_RUNTIME_DIR`. Se já existe outra
-/// instância viva: o launcher a fecha (Super abre e fecha o menu) e as
-/// Configurações não abrem outra janela. Devolve `false` quando este processo
+/// instância viva: o launcher e o painel a fecham (o mesmo clique abre e
+/// fecha) e as Configurações não abrem outra janela. Devolve `false` quando este processo
 /// deve sair sem mostrar nada.
 pub fn claim_instance(mode: Mode) -> bool {
     if matches!(mode, Mode::Desktop | Mode::Greeter) {
@@ -290,7 +301,7 @@ pub fn claim_instance(mode: Mode) -> bool {
         .and_then(|s| s.trim().parse::<u32>().ok())
     {
         if pid != me && is_shell_process(pid) {
-            if mode == Mode::Launcher {
+            if matches!(mode, Mode::Launcher | Mode::QuickSettings) {
                 let _ = Command::new("kill").arg(pid.to_string()).status();
                 let _ = fs::remove_file(&pidfile);
             }
@@ -416,6 +427,7 @@ mod tests {
         let args = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
         assert_eq!(Mode::from_args(args(&["kalango-shell"])), Mode::Desktop);
         assert_eq!(Mode::from_args(args(&["x", "--launcher"])), Mode::Launcher);
+        assert_eq!(Mode::from_args(args(&["x", "--quick-settings"])), Mode::QuickSettings);
         assert_eq!(Mode::from_args(args(&["x", "--settings"])), Mode::Settings);
         assert_eq!(Mode::from_args(args(&["x", "--greeter"])), Mode::Greeter);
     }

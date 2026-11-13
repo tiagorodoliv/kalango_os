@@ -50,6 +50,12 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     da rede é apagado: um perfil de tentativa com senha errada faz o `nmcli` falhar com "key-mgmt missing".
     Campo que precisa de `focus()` não pode estar sob `visible: false` nem num `if` recém-criado (o foco se
     perde no winit); o painel da senha do Wi-Fi encolhe para altura 0 com `opacity: 0`.
+  - `kalango-shell --quick-settings`: **painel rápido** do canto da barra (como o menu do sistema do Ubuntu;
+    `ui/screens/quick_settings.slint`). Clicar no bloco Wi-Fi/volume/bateria/energia da barra abre; rodar de novo
+    fecha (pidfile, como o launcher). Tela cheia, transparente, por cima (regra no rc.xml), renderer femtovg.
+    Volume/mudo, brilho (só com `/sys/class/backlight`; `SetBrightness` do logind via `busctl`, sem root),
+    Wi-Fi liga/desliga (sem placa: botão "Rede"), estilo escuro, bateria, Configurações, bloquear e submenu
+    suspender/reiniciar/desligar/sair. No QEMU, voltar da suspensão reinicia a VM (limitação do QEMU).
   - `kalango-shell --greeter`: tela de login de verdade (`src/greeter.rs`). O greetd roda `kalango-greeter`
     (labwc com config própria em `/etc/kalango/greeter`, sem atalhos) como `_greetd`; a senha vai pelo IPC do
     greetd (JSON com tamanho u32 nativo, socket `$GREETD_SOCK`) para o PAM e, se conferir, o greeter sai e o

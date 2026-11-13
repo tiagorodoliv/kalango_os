@@ -1,0 +1,367 @@
+// Painel rápido (canto direito da barra, como o menu do sistema do Ubuntu):
+// volume, brilho, Wi-Fi, estilo escuro, bateria, Configurações, bloquear e
+// desligar/reiniciar/suspender/sair. Só o que funciona de verdade: o brilho
+// aparece só com tela ajustável e o Wi-Fi só com placa de Wi-Fi.
+//
+// Na sessão real é um processo próprio (`--quick-settings`, tela cheia e
+// transparente, por cima dos apps); no protótipo, uma camada da área de
+// trabalho. Clicar fora do card ou Esc fecha.
+
+import { Theme, ThemeMode } from "../theme.slint";
+import { Icons } from "../icons.slint";
+import { Shell } from "../globals.slint";
+import { Device } from "../device.slint";
+import { SliderBar } from "../components/widgets.slint";
+
+/// Botão redondo com ícone (linha de cima do painel).
+component RoundButton inherits Rectangle {
+    in property <image> icon;
+    in property <bool> active: false;
+    in property <color> hover-color: Theme.text;
+    callback clicked();
+
+    width: 40px;
+    height: 40px;
+    border-radius: self.height / 2;
+    background: root.active ? Theme.accent.with-alpha(0.22) : touch.has-hover ? Theme.tile-hover : Theme.tile;
+    border-width: 1px;
+    border-color: root.active ? Theme.accent : Theme.border;
+    animate background { duration: Theme.anim; }
+
+    Image {
+        source: root.icon;
+        colorize: root.active ? Theme.accent : touch.has-hover ? root.hover-color : Theme.text;
+        width: 17px;
+        height: 17px;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Linha de slider com o ícone à esquerda (volume, brilho).
+component SliderRow inherits Rectangle {
+    in property <image> icon;
+    in-out property <float> value;
+    /// Ícone clicável (o do volume liga/desliga o mudo).
+    in property <bool> icon-clickable: false;
+    callback icon-clicked();
+    callback changed(float);
+
+    height: 40px;
+    Rectangle {
+        x: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: self.height / 2;
+        background: root.icon-clickable && icon-touch.has-hover ? Theme.tile-hover : transparent;
+        Image {
+            source: root.icon;
+            colorize: Theme.text;
+            width: 18px;
+            height: 18px;
+        }
+        icon-touch := TouchArea {
+            enabled: root.icon-clickable;
+            mouse-cursor: root.icon-clickable ? pointer : default;
+            clicked => { root.icon-clicked(); }
+        }
+    }
+    SliderBar {
+        x: 46px;
+        width: parent.width - 52px;
+        value <=> root.value;
+        changed(v) => { root.changed(v); }
+    }
+}
+
+/// Botão grande liga/desliga (Wi-Fi, estilo escuro). A setinha à direita,
+/// quando há, abre a página das Configurações sobre o assunto.
+component Tile inherits Rectangle {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> subtitle;
+    in property <bool> on: false;
+    in property <bool> has-details: false;
+    callback toggled();
+    callback details();
+
+    height: 56px;
+    border-radius: 28px;
+    background: root.on ? Theme.accent : main-touch.has-hover ? Theme.tile-hover : Theme.tile;
+    border-width: root.on ? 0 : 1px;
+    border-color: Theme.border;
+    animate background { duration: Theme.anim; }
+    property <color> fg: root.on ? Theme.on-accent : Theme.text;
+
+    main-touch := TouchArea {
+        width: root.has-details ? parent.width - 44px : parent.width;
+        x: 0;
+        mouse-cursor: pointer;
+        clicked => { root.toggled(); }
+    }
+    Image {
+        x: 16px;
+        source: root.icon;
+        colorize: root.fg;
+        width: 18px;
+        height: 18px;
+    }
+    VerticalLayout {
+        x: 46px;
+        width: parent.width - 46px - (root.has-details ? 44px : 12px);
+        alignment: center;
+        Text {
+            text: root.title;
+            color: root.fg;
+            font-size: 13.5px;
+            font-weight: 600;
+            overflow: elide;
+        }
+        if root.subtitle != "": Text {
+            text: root.subtitle;
+            color: root.on ? Theme.on-accent.with-alpha(0.8) : Theme.text-muted;
+            font-size: 11.5px;
+            overflow: elide;
+        }
+    }
+    if root.has-details: Rectangle {
+        x: parent.width - 44px;
+        width: 44px;
+        // Divisória entre a parte que liga/desliga e a setinha.
+        Rectangle {
+            x: 0;
+            width: 1px;
+            height: 26px;
+            background: root.fg.with-alpha(0.25);
+        }
+        Image {
+            source: Icons.chevron-right;
+            colorize: details-touch.has-hover ? (root.on ? Theme.on-accent : Theme.accent) : root.fg;
+            width: 16px;
+            height: 16px;
+        }
+        details-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { root.details(); }
+        }
+    }
+}
+
+/// Item do submenu de energia.
+component PowerItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> text;
+    in property <bool> danger: false;
+    callback clicked();
+
+    height: 38px;
+    border-radius: 8px;
+    background: touch.has-hover ? Theme.tile-hover : transparent;
+    Image {
+        x: 12px;
+        source: root.icon;
+        colorize: root.danger && touch.has-hover ? Theme.danger : Theme.text;
+        width: 16px;
+        height: 16px;
+    }
+    Text {
+        x: 40px;
+        text: root.text;
+        color: root.danger && touch.has-hover ? Theme.danger : Theme.text;
+        font-size: 13.5px;
+        vertical-alignment: center;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// O painel: ocupa a janela inteira (o fundo transparente fecha ao clicar)
+/// e desenha o card no canto superior direito, logo abaixo da barra.
+export component QuickSettings inherits Rectangle {
+    /// Fecha o painel (sessão real: encerra o processo).
+    callback close();
+    /// Abre as Configurações numa página (0 = Rede, 5 = Som, 6 = Energia).
+    callback open-settings(int);
+    /// Bloqueia a tela.
+    callback lock();
+    /// Encerra a sessão (volta para a tela de login).
+    callback logout();
+
+    /// Submenu de energia aberto.
+    property <bool> power-open: false;
+
+    // Clique fora do card fecha.
+    TouchArea {
+        clicked => { root.close(); }
+    }
+
+    card := Rectangle {
+        width: 360px;
+        height: content.preferred-height;
+        x: parent.width - self.width - 10px;
+        y: Theme.bar-height + 8px;
+        border-radius: 18px;
+        background: Theme.panel;
+        border-width: 1px;
+        border-color: Theme.border;
+        drop-shadow-blur: 24px;
+        drop-shadow-color: #00000080;
+        drop-shadow-offset-y: 6px;
+
+        // Engole os cliques no card (para não fechar pelo fundo).
+        TouchArea { }
+
+        content := VerticalLayout {
+            padding: 16px;
+            spacing: 12px;
+
+            // --- Linha de cima: bateria + Configurações, bloquear, energia ---
+            HorizontalLayout {
+                spacing: 8px;
+                height: 40px;
+                if Shell.battery != "--": HorizontalLayout {
+                    spacing: 6px;
+                    alignment: start;
+                    Image {
+                        source: Icons.battery;
+                        colorize: Device.charging ? Theme.accent : Theme.text;
+                        width: 18px;
+                        height: 40px;
+                        image-fit: contain;
+                    }
+                    Text {
+                        text: Device.charging ? Shell.battery + " · " + @tr("charging") : Shell.battery;
+                        color: Theme.text;
+                        font-family: Theme.mono;
+                        font-size: 12.5px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                    }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                RoundButton {
+                    icon: Icons.settings;
+                    clicked => { root.open-settings(2); }
+                }
+                RoundButton {
+                    icon: Icons.lock;
+                    clicked => { root.lock(); }
+                }
+                RoundButton {
+                    icon: Icons.power;
+                    active: root.power-open;
+                    hover-color: Theme.danger;
+                    clicked => { root.power-open = !root.power-open; }
+                }
+            }
+
+            // --- Submenu de energia ---
+            if root.power-open: Rectangle {
+                height: power-list.preferred-height;
+                border-radius: 12px;
+                background: Theme.tile;
+                border-width: 1px;
+                border-color: Theme.border;
+                power-list := VerticalLayout {
+                    padding: 4px;
+                    PowerItem {
+                        icon: Icons.moon;
+                        text: @tr("Suspend");
+                        clicked => {
+                            Device.power-action("suspend");
+                            root.close();
+                        }
+                    }
+                    PowerItem {
+                        icon: Icons.rotate-ccw;
+                        text: @tr("Restart");
+                        clicked => { Device.power-action("reboot"); }
+                    }
+                    PowerItem {
+                        icon: Icons.power;
+                        text: @tr("Power off");
+                        danger: true;
+                        clicked => { Shell.power-off(); }
+                    }
+                    Rectangle {
+                        height: 9px;
+                        Rectangle { height: 1px; background: Theme.border; }
+                    }
+                    PowerItem {
+                        icon: Icons.log-out;
+                        text: @tr("Log out");
+                        clicked => { root.logout(); }
+                    }
+                }
+            }
+
+            // --- Volume e brilho ---
+            if Device.sound-available: SliderRow {
+                icon: Device.muted || Device.volume <= 0.001 ? Icons.volume-x : Icons.volume;
+                icon-clickable: true;
+                value: Device.volume;
+                icon-clicked => {
+                    Device.muted = !Device.muted;
+                    Device.set-muted(Device.muted);
+                }
+                changed(v) => {
+                    Device.volume = v;
+                    if (Device.muted && v > 0) {
+                        Device.muted = false;
+                        Device.set-muted(false);
+                    }
+                    Device.set-volume(v);
+                }
+            }
+            if Device.brightness-available: SliderRow {
+                icon: Icons.sun;
+                value: Device.brightness;
+                changed(v) => {
+                    Device.brightness = v;
+                    Device.set-brightness(v);
+                }
+            }
+
+            // --- Botões liga/desliga ---
+            HorizontalLayout {
+                spacing: 10px;
+                if Device.wifi-present: Tile {
+                    horizontal-stretch: 1;
+                    icon: Icons.wifi;
+                    title: "Wi-Fi";
+                    subtitle: !Device.wifi-enabled ? @tr("Off")
+                        : Device.wifi-name != "" ? Device.wifi-name : @tr("Not connected");
+                    on: Device.wifi-enabled;
+                    has-details: true;
+                    toggled => {
+                        Device.wifi-enabled = !Device.wifi-enabled;
+                        Device.set-wifi(Device.wifi-enabled);
+                    }
+                    details => { root.open-settings(0); }
+                }
+                // Sem Wi-Fi (cabo, VM): só mostra a conexão e leva às Configurações.
+                if !Device.wifi-present: Tile {
+                    horizontal-stretch: 1;
+                    icon: Icons.globe;
+                    title: @tr("Network");
+                    subtitle: Device.network-available ? Device.network-status : "";
+                    on: Device.network-available;
+                    toggled => { root.open-settings(0); }
+                }
+                Tile {
+                    horizontal-stretch: 1;
+                    icon: Icons.moon;
+                    title: @tr("Dark style");
+                    on: !Theme.is-light;
+                    toggled => {
+                        Theme.mode = Theme.is-light ? ThemeMode.glass : ThemeMode.light;
+                    }
+                }
+            }
+        }
+    }
+}

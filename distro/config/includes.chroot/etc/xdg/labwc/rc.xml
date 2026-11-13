@@ -6,6 +6,8 @@
   - "kalango-shell": a área de trabalho (barra, dock, fundo). Tela cheia,
     sem moldura e sempre atrás das janelas dos apps;
   - "kalango-launcher": o menu de apps. Tela cheia, transparente, por cima;
+  - "kalango-quick-settings": o painel rápido do canto da barra (volume,
+    brilho, Wi-Fi, desligar). Tela cheia, transparente, por cima;
   - "kalango-settings": as Configurações, janela comum.
 -->
 <labwc_config>
@@ -58,6 +60,13 @@
       <action name="ToggleAlwaysOnBottom"/>
     </windowRule>
     <windowRule identifier="kalango-launcher"
+                serverDecoration="no"
+                skipTaskbar="yes"
+                skipWindowSwitcher="yes">
+      <action name="ToggleFullscreen"/>
+      <action name="ToggleAlwaysOnTop"/>
+    </windowRule>
+    <windowRule identifier="kalango-quick-settings"
                 serverDecoration="no"
                 skipTaskbar="yes"
                 skipWindowSwitcher="yes">

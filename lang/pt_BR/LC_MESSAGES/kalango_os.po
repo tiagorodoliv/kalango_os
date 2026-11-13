@@ -732,3 +732,27 @@ msgstr "Âmbar"
 #: ui/theme.slint:70
 msgid "Pink"
 msgstr "Rosa"
+
+#: ui/app_window.slint
+msgid "Could not open the panel"
+msgstr "Não foi possível abrir o painel"
+
+#: ui/screens/quick_settings.slint
+msgid "charging"
+msgstr "carregando"
+
+#: ui/screens/quick_settings.slint
+msgid "Power off"
+msgstr "Desligar"
+
+#: ui/screens/quick_settings.slint
+msgid "Network"
+msgstr "Rede"
+
+#: ui/screens/quick_settings.slint
+msgid "Dark style"
+msgstr "Estilo escuro"
+
+#: ui/screens/quick_settings.slint
+msgid "Not connected"
+msgstr "Sem conexão"

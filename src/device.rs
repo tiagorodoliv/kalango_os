@@ -3,6 +3,8 @@
 //! - Rede e Wi-Fi: NetworkManager pelo `nmcli` (lista, liga/desliga, conecta).
 //! - Som: PipeWire/WirePlumber pelo `wpctl` (volume e mudo da saída padrão).
 //! - Energia: bateria do `/sys`, suspender/reiniciar pelo `systemctl`.
+//! - Brilho da tela: `/sys/class/backlight`, ajustado pelo logind
+//!   (`SetBrightness`, sem precisar de root).
 //! - Sobre o sistema: `/etc/os-release`, `/proc` e `df`.
 //!
 //! Os comandos rodam numa thread à parte (o `nmcli` pode levar segundos) e o
@@ -22,7 +24,7 @@ use slint::{ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel, 
 
 use crate::{AppWindow, Device, InfoItem, Mode, WifiNetwork};
 
-/// Intervalo entre as leituras de rede, som e bateria (só nas Configurações).
+/// Intervalo entre as leituras de rede, som e bateria (Configurações e painel rápido).
 const INTERVAL: Duration = Duration::from_secs(3);
 /// Quantas redes Wi-Fi mostrar.
 const MAX_NETWORKS: usize = 8;
@@ -239,6 +241,111 @@ pub(crate) fn spawn_detached(program: &str, args: &[&str]) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Brilho da tela
+// ---------------------------------------------------------------------------
+
+/// Uma tela com brilho ajustável (`/sys/class/backlight/<name>`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Backlight {
+    pub name: String,
+    pub current: u32,
+    pub max: u32,
+}
+
+/// Prioridade do tipo de controle, como o GNOME: o do firmware (ACPI)
+/// primeiro, depois o da plataforma e por último o direto da placa ("raw").
+fn backlight_rank(kind: &str) -> u8 {
+    match kind.trim() {
+        "firmware" => 0,
+        "platform" => 1,
+        _ => 2,
+    }
+}
+
+/// Escolhe a tela pelo tipo, entre `(nome, tipo, atual, máximo)`; ignora as
+/// de máximo 0.
+pub fn pick_backlight(found: Vec<(String, String, u32, u32)>) -> Option<Backlight> {
+    found
+        .into_iter()
+        .filter(|(_, _, _, max)| *max > 0)
+        .min_by_key(|(name, kind, _, _)| (backlight_rank(kind), name.clone()))
+        .map(|(name, _, current, max)| Backlight { name, current: current.min(max), max })
+}
+
+/// Lê a tela com brilho ajustável deste computador (notebooks); `None` no PC
+/// de mesa e na VM.
+pub fn backlight() -> Option<Backlight> {
+    let read = |path: std::path::PathBuf| fs::read_to_string(path).ok();
+    let num = |text: Option<String>| text.and_then(|t| t.trim().parse::<u32>().ok());
+    let found = fs::read_dir("/sys/class/backlight")
+        .ok()?
+        .flatten()
+        .filter_map(|entry| {
+            let dir = entry.path();
+            Some((
+                entry.file_name().to_string_lossy().into_owned(),
+                read(dir.join("type")).unwrap_or_default(),
+                num(read(dir.join("brightness")))?,
+                num(read(dir.join("max_brightness")))?,
+            ))
+        })
+        .collect();
+    pick_backlight(found)
+}
+
+/// Fração 0–1 do slider → valor do `/sys`. Nunca apaga a tela de vez:
+/// o mínimo é 5% (com a tela preta não daria para ver o slider).
+pub fn brightness_value(fraction: f32, max: u32) -> u32 {
+    let min = (max / 20).max(1);
+    ((fraction.clamp(0.0, 1.0) * max as f32).round() as u32).clamp(min, max)
+}
+
+/// Pede ao logind para mudar o brilho (vale para a sessão ativa, sem root).
+fn set_backlight(name: &str, value: u32) {
+    let value = value.to_string();
+    spawn_detached(
+        "busctl",
+        &[
+            "call",
+            "org.freedesktop.login1",
+            "/org/freedesktop/login1/session/auto",
+            "org.freedesktop.login1.Session",
+            "SetBrightness",
+            "ssu",
+            "backlight",
+            name,
+            &value,
+        ],
+    );
+}
+
+/// Liga o slider de brilho, se houver tela ajustável. Arrastar o slider
+/// manda no máximo um pedido a cada 80 ms (o último valor sempre vai).
+fn install_brightness(ui: &AppWindow) {
+    let Some(screen) = backlight() else { return };
+    let d = ui.global::<Device>();
+    d.set_brightness_available(true);
+    d.set_brightness(screen.current as f32 / screen.max as f32);
+    let pending: Rc<std::cell::Cell<Option<u32>>> = Rc::default();
+    let timer = Rc::new(Timer::default());
+    d.on_set_brightness(move |fraction| {
+        pending.set(Some(brightness_value(fraction, screen.max)));
+        if timer.running() {
+            return;
+        }
+        let (pending, name) = (pending.clone(), screen.name.clone());
+        let flush = move || {
+            if let Some(value) = pending.take() {
+                set_backlight(&name, value);
+            }
+        };
+        flush();
+        let flush = flush.clone();
+        timer.start(TimerMode::SingleShot, Duration::from_millis(80), flush);
+    });
+}
+
 fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64)
 }
@@ -383,6 +490,8 @@ fn apply(ui: &AppWindow, s: Snapshot, hold_volume: bool, rescan: bool) {
         }
         None => d.set_network_available(false),
     }
+    let active = s.networks.iter().find(|n| n.active).map(|n| n.ssid.clone()).unwrap_or_default();
+    d.set_wifi_name(active.into());
     let nets: Vec<WifiNetwork> = s
         .networks
         .into_iter()
@@ -476,25 +585,29 @@ fn refresh_from_thread(weak: Weak<AppWindow>, shared: Arc<Shared>) {
 ///
 /// Preenche "Sobre o sistema" e o login em todos os modos com tela de
 /// Configurações; a leitura periódica (rede, som, bateria) só roda no
-/// processo das Configurações (`--settings`). O timer devolvido precisa
+/// processo das Configurações (`--settings`) e no painel rápido
+/// (`--quick-settings`), que também liga o brilho da tela. O timer devolvido precisa
 /// ficar vivo.
 pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     if matches!(mode, Mode::Launcher | Mode::Greeter) {
         return None;
     }
     let d = ui.global::<Device>();
-    let about: Vec<InfoItem> = about_items()
-        .into_iter()
-        .map(|(label, value)| InfoItem { label: label.into(), value: value.into() })
-        .collect();
-    d.set_about(ModelRc::from(Rc::new(VecModel::from(about))));
-    if let Ok(user) = std::env::var("USER") {
-        d.set_login(user.into());
+    // O painel rápido não mostra a ficha do sistema nem os usuários.
+    if mode != Mode::QuickSettings {
+        let about: Vec<InfoItem> = about_items()
+            .into_iter()
+            .map(|(label, value)| InfoItem { label: label.into(), value: value.into() })
+            .collect();
+        d.set_about(ModelRc::from(Rc::new(VecModel::from(about))));
+        if let Ok(user) = std::env::var("USER") {
+            d.set_login(user.into());
+        }
+        if let Some(groups) = output("id", &["-Gn"]) {
+            d.set_admin(is_admin(&groups));
+        }
+        d.set_bluetooth_present(fs::read_dir("/sys/class/bluetooth").is_ok_and(|mut r| r.next().is_some()));
     }
-    if let Some(groups) = output("id", &["-Gn"]) {
-        d.set_admin(is_admin(&groups));
-    }
-    d.set_bluetooth_present(fs::read_dir("/sys/class/bluetooth").is_ok_and(|mut r| r.next().is_some()));
 
     let native = crate::session::is_native();
     d.on_power_action(move |action| {
@@ -515,8 +628,11 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         spawn_detached("foot", &[title.as_str(), "sh", "-c", script.as_str()]);
     });
 
-    if mode != Mode::Settings {
+    if !matches!(mode, Mode::Settings | Mode::QuickSettings) {
         return None;
+    }
+    if native {
+        install_brightness(ui);
     }
 
     let shared = Arc::new(Shared {
@@ -563,8 +679,9 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     }
 
     let weak = ui.as_weak();
-    // Ao abrir, procura redes de verdade: a lista guardada pode estar velha.
-    refresh(weak.clone(), shared.clone(), true);
+    // Nas Configurações, procura redes de verdade ao abrir (a lista guardada
+    // pode estar velha); o painel rápido só precisa do estado atual.
+    refresh(weak.clone(), shared.clone(), mode == Mode::Settings);
     let timer = Timer::default();
     timer.start(TimerMode::Repeated, INTERVAL, move || refresh(weak.clone(), shared.clone(), false));
     Some(timer)
@@ -608,6 +725,22 @@ mod tests {
         assert_eq!(parse_wpctl_volume("erro"), None);
         let inspect = "id 52, type PipeWire:Interface:Node\n  * node.description = \"Áudio interno\"\n";
         assert_eq!(parse_wpctl_description(inspect).as_deref(), Some("Áudio interno"));
+    }
+
+    #[test]
+    fn escolhe_a_tela_e_o_brilho() {
+        let telas = vec![
+            ("intel_backlight".to_string(), "raw\n".to_string(), 300, 1000),
+            ("acpi_video0".to_string(), "firmware\n".to_string(), 7, 15),
+            ("vazia".to_string(), "firmware".to_string(), 0, 0),
+        ];
+        let b = pick_backlight(telas).unwrap();
+        assert_eq!((b.name.as_str(), b.current, b.max), ("acpi_video0", 7, 15));
+        assert!(pick_backlight(vec![]).is_none());
+        assert_eq!(brightness_value(0.5, 1000), 500);
+        assert_eq!(brightness_value(0.0, 1000), 50);
+        assert_eq!(brightness_value(2.0, 15), 15);
+        assert_eq!(brightness_value(0.0, 10), 1);
     }
 
     #[test]

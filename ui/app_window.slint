@@ -32,6 +32,7 @@ import { TerminalWindow } from "apps/terminal.slint";
 import { LoginScreen } from "screens/login.slint";
 import { Launcher } from "screens/launcher.slint";
 import { SettingsScreen } from "screens/settings.slint";
+import { QuickSettings } from "screens/quick_settings.slint";
 import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution } from "device.slint";
 
 // Reexportados para o Rust enxergar os globais e tipos.
@@ -50,6 +51,9 @@ export enum ShellMode {
     settings,
     /// Só a tela de login, conferindo a senha no greetd (`--greeter`).
     greeter,
+    /// Só o painel rápido do canto da barra, sobre fundo transparente
+    /// (`--quick-settings`).
+    quick-settings,
 }
 
 export component AppWindow inherits Window {
@@ -61,13 +65,15 @@ export component AppWindow inherits Window {
     preferred-height: 900px;
     min-width: 1100px;
     min-height: 720px;
-    // O launcher é uma camada transparente por cima dos apps.
-    background: root.mode == ShellMode.launcher ? transparent : Theme.background;
+    // O launcher e o painel rápido são camadas transparentes por cima dos apps.
+    background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings ? transparent : Theme.background;
     default-font-family: Theme.sans;
 
     in property <ShellMode> mode: ShellMode.desktop;
     in-out property <Screen> screen: Screen.login;
     in-out property <bool> launcher-open: false;
+    /// Painel rápido aberto (protótipo; na sessão real é outro processo).
+    in-out property <bool> quick-open: false;
     /// Página aberta nas Configurações (2 = Aparência, 3 = Barra de tarefas,
     /// 4 = Monitores...). O Rust escolhe a inicial (`--pagina=`) e troca a
     /// página quando o menu da área de trabalho pede outra.
@@ -153,8 +159,23 @@ export component AppWindow inherits Window {
         }
     }
 
+    /// Abre ou fecha o painel rápido (clique no bloco de status da barra).
+    function toggle-quick() {
+        if (Shell.native) {
+            // Sessão real: outra janela, por cima dos apps (rodar de novo fecha).
+            if (!Shell.open-app("quick-settings")) {
+                root.show-toast(@tr("Could not open the panel"));
+            }
+        } else {
+            root.launcher-open = false;
+            root.quick-open = !root.quick-open;
+            keys.focus();
+        }
+    }
+
     function lock() {
         root.launcher-open = false;
+        root.quick-open = false;
         root.screen = Screen.login;
     }
 
@@ -177,8 +198,13 @@ export component AppWindow inherits Window {
                 return accept;
             }
             if (event.text == Key.Escape) {
-                if (root.mode == ShellMode.launcher || root.mode == ShellMode.settings) {
+                if (root.mode == ShellMode.launcher || root.mode == ShellMode.settings || root.mode == ShellMode.quick-settings) {
                     Shell.quit();
+                    return accept;
+                }
+                if (root.quick-open) {
+                    root.quick-open = false;
+                    keys.focus();
                     return accept;
                 }
                 if (root.launcher-open) {
@@ -329,11 +355,9 @@ export component AppWindow inherits Window {
             launcher-open: root.launcher-open;
             compact: root.launcher-open || root.screen == Screen.settings;
             message: Shell.native ? root.toast : "";
-            status-clickable: Shell.native;
-            network-clicked => { root.launch("network"); }
-            sound-clicked => { root.launch("sound"); }
+            quick-open: root.quick-open;
+            status-clicked => { root.toggle-quick(); }
             pill-clicked => { root.toggle-launcher(); }
-            power-clicked => { Shell.power-off(); }
         }
 
         // ------------------------------------------------------------------
@@ -352,8 +376,23 @@ export component AppWindow inherits Window {
             lock => { root.lock(); }
         }
 
+        // Painel rápido do protótipo (camada por cima da área de trabalho)
+        if root.quick-open: QuickSettings {
+            z: 5;
+            close => {
+                root.quick-open = false;
+                keys.focus();
+            }
+            open-settings(page) => {
+                root.quick-open = false;
+                root.open-settings(page);
+            }
+            lock => { root.lock(); }
+            logout => { root.lock(); }
+        }
+
         // ------------------------------------------------------------------
-        // Processos da sessão real: menu de apps e Configurações sozinhos
+        // Processos da sessão real: menu de apps, painel e Configurações sozinhos
         // ------------------------------------------------------------------
         if root.mode == ShellMode.launcher: Launcher {
             // A faixa da barra fica transparente: a barra real aparece por trás.
@@ -369,6 +408,19 @@ export component AppWindow inherits Window {
                 }
             }
             close => { Shell.quit(); }
+        }
+
+        if root.mode == ShellMode.quick-settings: QuickSettings {
+            close => { Shell.quit(); }
+            open-settings(page) => {
+                root.open-settings(page);
+                Shell.quit();
+            }
+            lock => {
+                Shell.open-app("lock");
+                Shell.quit();
+            }
+            logout => { Shell.open-app("logout"); }
         }
 
         if root.mode == ShellMode.settings: Rectangle {

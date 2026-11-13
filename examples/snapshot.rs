@@ -86,6 +86,20 @@ fn main() {
     save(&window, &out.join("menu_apps.png"));
     ui.set_launcher_open(false);
 
+    // Painel rápido com todas as partes (volume, brilho, Wi-Fi ligado).
+    let device = ui.global::<kalango_os::Device>();
+    device.set_sound_available(true);
+    device.set_volume(0.65);
+    device.set_brightness_available(true);
+    device.set_brightness(0.8);
+    device.set_wifi_present(true);
+    device.set_wifi_enabled(true);
+    device.set_wifi_name("Casa".into());
+    ui.global::<kalango_os::Shell>().set_battery("78%".into());
+    ui.set_quick_open(true);
+    save(&window, &out.join("painel_rapido.png"));
+    ui.set_quick_open(false);
+
     ui.set_screen(Screen::Settings);
     save(&window, &out.join("config_aparencia.png"));
 

@@ -71,7 +71,11 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     shell.on_try_login(|password| !password.is_empty());
 
     let native = session::is_native();
-    apps::install(&ui, mode == Mode::Launcher && native, native && mode != Mode::Greeter);
+    apps::install(
+        &ui,
+        mode == Mode::Launcher && native,
+        native && !matches!(mode, Mode::Greeter | Mode::QuickSettings),
+    );
     let mut timers = vec![clock::start(&ui), system::start(&ui)];
     timers.extend(session::install(&ui, mode));
     timers.extend(appearance::install(&ui, mode));
@@ -89,9 +93,9 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
 /// o que mudou, sem carregar o Mesa. Medido numa VM de 2 GB, a área de
 /// trabalho foi de 192 MB (OpenGL pelo llvmpipe, que traz o LLVM inteiro) para
 /// 31 MB, e de 1,4 s para 0,08 s de CPU a cada 30 s parada.
-/// O menu de apps é a exceção: ele é uma janela transparente por cima dos
-/// apps, e o renderer de software no Wayland não tem canal alfa (o fundo
-/// ficaria preto); como fica aberto pouco tempo, usa o OpenGL.
+/// O menu de apps e o painel rápido são a exceção: são janelas transparentes
+/// por cima dos apps, e o renderer de software no Wayland não tem canal alfa
+/// (o fundo ficaria preto); como ficam abertos pouco tempo, usam o OpenGL.
 /// `KALANGO_RENDERER=gl` ou `=software` força um dos dois em tudo. Com
 /// `$SLINT_BACKEND` definido, vale a escolha dele (`None`).
 pub fn renderer_for(
@@ -105,7 +109,7 @@ pub fn renderer_for(
     match kalango_renderer {
         Some("gl") | Some("femtovg") => Some("femtovg"),
         Some("software") => Some("software"),
-        _ if mode == Mode::Launcher => Some("femtovg"),
+        _ if matches!(mode, Mode::Launcher | Mode::QuickSettings) => Some("femtovg"),
         _ => Some("software"),
     }
 }
@@ -168,6 +172,7 @@ mod tests {
     #[test]
     fn menu_transparente_usa_opengl() {
         assert_eq!(renderer_for(Mode::Launcher, None, None), Some("femtovg"));
+        assert_eq!(renderer_for(Mode::QuickSettings, None, None), Some("femtovg"));
         assert_eq!(renderer_for(Mode::Launcher, None, Some("software")), Some("software"));
     }
 }
