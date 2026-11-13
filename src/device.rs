@@ -510,15 +510,9 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         }
     });
     d.on_change_password(|| {
-        spawn_detached(
-            "foot",
-            &[
-                "--title=Alterar senha",
-                "sh",
-                "-c",
-                "passwd; printf '\\nEnter para fechar'; read x",
-            ],
-        );
+        let title = format!("--title={}", tr("Change password", "Alterar senha"));
+        let script = format!("passwd; printf '\\n{}'; read x", tr("Press Enter to close", "Enter para fechar"));
+        spawn_detached("foot", &[title.as_str(), "sh", "-c", script.as_str()]);
     });
 
     if mode != Mode::Settings {

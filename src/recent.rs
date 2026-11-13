@@ -130,7 +130,7 @@ pub fn install(ui: &AppWindow) {
     if is_live() {
         items.push(RecentEntry {
             name: tr("Install Kalango OS", "Instalar Kalango OS").into(),
-            path: "Copiar o sistema para o disco".into(),
+            path: tr("Copy the system to the disk", "Copiar o sistema para o disco").into(),
             kind: "install".into(),
             target: "".into(),
             app: "installer".into(),
