@@ -1,0 +1,8 @@
+#!/bin/sh
+# Liga o Flathub (loja aberta de apps Flatpak) para todo o sistema: a Loja
+# (GNOME Software + plugin flatpak) passa a mostrar os apps do Debian e do
+# Flathub juntos. Usa o arquivo oficial guardado na ISO
+# (usr/share/kalango/flathub.flatpakrepo, com a chave de assinatura), então
+# não precisa de rede durante o build.
+set -e
+flatpak remote-add --system --if-not-exists flathub /usr/share/kalango/flathub.flatpakrepo

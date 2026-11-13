@@ -14,4 +14,10 @@ fi
 # lido, nem com `labwc --reconfigure`. Vazia, não muda nada: cada arquivo que
 # falta continua vindo de /etc/xdg/labwc.
 mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/labwc"
+# Apps do Flatpak (Flathub) no menu e na Loja: o /etc/profile.d/flatpak.sh
+# acrescenta as pastas deles ao XDG_DATA_DIRS (o greetd não roda um shell de
+# login, então ele não seria lido sozinho).
+if [ -r /etc/profile.d/flatpak.sh ]; then
+	. /etc/profile.d/flatpak.sh
+fi
 exec labwc

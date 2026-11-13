@@ -93,6 +93,8 @@ tela de login. Pacotes novos e o instalador ainda precisam da ISO de verdade.
 
 Para instalar: menu de apps → RECENTES → **Instalar Kalango OS** (Calamares, com a marca do Kalango).
 
+A Loja (GNOME Software) mostra os apps do Debian e do **Flathub** juntos (Spotify, Discord, VS Code, Steam...).
+
 A ISO entra direto na sessão: greetd → labwc → `kalango-shell`. Logs do shell: `journalctl -t kalango-shell`.
 Na ISO a dock e o menu abrem os apps de verdade (Thunar, foot, Firefox, Mousepad, Ristretto, Parole, htop,
 GNOME Software como Loja, GNOME Agenda) e o

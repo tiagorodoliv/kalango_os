@@ -61,6 +61,13 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   RECENTES do menu = `~/.local/share/recently-used.xbel` (`src/recent.rs`), abertos com `xdg-open`; na ISO live
   (`/run/live/medium` existe) o 1º item é "Instalar Kalango OS" (app `installer`).
   Sem a variável (dev no host, `examples/snapshot.rs`) continua o protótipo com as janelas de demonstração.
+- **Loja = GNOME Software + Flatpak/Flathub** (decidido em 2026-11-12): pacotes `flatpak` e
+  `gnome-software-plugin-flatpak`; o hook `0110` faz `flatpak remote-add --system flathub` a partir de
+  `usr/share/kalango/flathub.flatpakrepo` (arquivo oficial com a chave; sem rede no build). O `kalango-session`
+  lê `/etc/profile.d/flatpak.sh` (o greetd não roda shell de login) para os apps Flatpak entrarem no
+  `XDG_DATA_DIRS` ("Todos os apps"). Agente do polkit: `lxpolkit` no autostart do labwc (janela de senha). O
+  Flatpak do Debian libera instalar para o grupo `sudo` sem senha. Na ISO live, o que se instala fica na RAM
+  (overlay = metade da memória): apps grandes podem não caber.
 - **Instalador: Calamares** com a sequência do `calamares-settings-debian` e, por cima (`etc/calamares/`): marca
   `branding/kalango` (logo, slides, `stylesheet.qss` escuro), `locale.conf` (São Paulo/pt-BR), `packages.conf`
   (remove também o calamares) e `shellprocess@kalango` (tira o `[initial_session]` do greetd e o

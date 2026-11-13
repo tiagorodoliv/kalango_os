@@ -1,5 +1,7 @@
 # Executado pelo labwc ao iniciar a sessão.
 # Cria ~/Documentos, ~/Imagens etc. (nomes em pt-BR) na primeira sessão.
 xdg-user-dirs-update
+# Janela de senha do administrador (polkit): a Loja instala apps por ela.
+lxpolkit &
 # Saída do shell vai para o journal: journalctl -t kalango-shell
 systemd-cat -t kalango-shell kalango-shell &

@@ -35,11 +35,18 @@ htop
 parole
 xdg-user-dirs
 
+# Agente do polkit: a janela que pede a senha do administrador (Loja,
+# atualizações, apps que usam pkexec). Iniciado no autostart do labwc.
+lxpolkit
+
 # Bloqueio de tela (Super+L): protocolo ext-session-lock do Wayland
 swaylock
 
-# Loja (GNOME Software via PackageKit) e Agenda
+# Loja (GNOME Software via PackageKit) e Agenda. Com o plugin flatpak, a Loja
+# mostra também os apps do Flathub (configurado pelo hook 0110).
 gnome-software
+gnome-software-plugin-flatpak
+flatpak
 gnome-calendar
 # Abrir arquivos recentes no app padrão (xdg-open)
 xdg-utils
