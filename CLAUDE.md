@@ -114,6 +114,10 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `~/.config/gtk-3.0/gtk.css` (com marca; vale para apps abertos depois, e o Thunar fica vivo como daemon:
   `thunar -q`). Ativado em `settings.ini` e no gschema override. Padrões do Thunar (ícones, caminho em botões,
   sem barra de menu) em `etc/xdg/xfce4/xfconf/xfce-perchannel-xml/thunar.xml`; miniaturas pelo `tumbler`.
+- Editor de código ("Código" da dock, `session::command_for`): **Geany** com o esquema
+  `usr/share/geany/colorschemes/kalango-dark-modern.conf` (paleta do VS Code Dark Modern) e padrões globais em
+  `usr/share/geany/geany.conf` (números de linha, JetBrains Mono, régua na coluna 100; o Geany só usa esse arquivo
+  enquanto o usuário não tem `~/.config/geany/geany.conf`). Sem Geany, o "Código" abre o Mousepad.
 - `run-qemu.sh --disco` liga um disco de 20 GB (`distro/out/disco-teste.qcow2`) para testar o instalador;
   `--so-disco` dá boot pelo disco sem a ISO.
 - `auto/config` usa `noeject` (desligar não para pedindo para remover a mídia).

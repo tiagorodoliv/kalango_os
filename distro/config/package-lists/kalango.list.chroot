@@ -28,6 +28,8 @@ foot
 firefox-esr
 firefox-esr-l10n-pt-br
 mousepad
+# Editor de código ("Código" da dock), com o tema Dark Modern do VS Code
+geany
 ristretto
 htop
 parole

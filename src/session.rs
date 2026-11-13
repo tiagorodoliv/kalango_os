@@ -94,7 +94,8 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
         "calendar" => vec!["gnome-calendar".into()],
         // Só na ISO live: instalador Calamares (ver kalango-instalar).
         "installer" => vec!["kalango-instalar".into()],
-        "code" => vec!["mousepad".into()],
+        // Editor de código (Geany com o tema Dark Modern); sem ele, o Mousepad.
+        "code" => vec![if find_in_path("geany").is_some() { "geany" } else { "mousepad" }.into()],
         "documents" => vec!["thunar".into(), documents_dir(&home)],
         "images" => vec!["ristretto".into(), pictures_dir(&home)],
         "music" => vec!["parole".into()],
@@ -276,7 +277,7 @@ const RUNNING: [(&str, &[&str]); 4] = [
     ("files", &["thunar"]),
     ("terminal", &["foot"]),
     ("browser", &["firefox-esr", "firefox"]),
-    ("code", &["mousepad"]),
+    ("code", &["geany", "mousepad"]),
 ];
 
 /// Lista os nomes dos processos do sistema (`/proc/*/comm`).
@@ -367,7 +368,8 @@ mod tests {
     #[test]
     fn apps_do_catalogo_tem_comando() {
         assert_eq!(command_for("terminal").unwrap(), ["foot"]);
-        assert_eq!(command_for("code").unwrap(), ["mousepad"]);
+        let code = command_for("code").unwrap();
+        assert!(code == ["geany"] || code == ["mousepad"]);
         assert_eq!(command_for("documents").unwrap()[0], "thunar");
         assert_eq!(command_for("network").unwrap().last().unwrap(), "nmtui");
         assert_eq!(command_for("store").unwrap(), ["gnome-software"]);
