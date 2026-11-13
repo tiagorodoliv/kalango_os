@@ -120,11 +120,15 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   enquanto o usuário não tem `~/.config/geany/geany.conf`). Sem Geany, o "Código" abre o Mousepad. Mousepad usa
   o estilo GtkSourceView `usr/share/gtksourceview-4/styles/kalango.xml` (padrões no gschema override). Os dois:
   fundo/seleção/números do tema do sistema + cores de sintaxe do VS Code Dark Modern.
-- Ícones: temas próprios `Kalango-<Cor>` (6, um por destaque) gerados por `distro/icones/gerar.py` (pastas planas
-  na cor de destaque com os ícones de `ui/icons`, dispositivos/lixeira em quadrado escuro, arquivos como folha
-  escura); o resto herda do Adwaita. Padrão `Kalango-Ciano` (settings.ini + gschema); o shell troca a variante
-  com `gsettings` ao mudar o destaque (só se o tema atual for um Kalango), e os apps abertos mudam na hora.
-  Índice gerado pelo hook `0100`. Papirus foi descartado (187 MB).
+- Ícones: **Flat Remix** (GPL-3.0, escolhido pelo Tiago em 2026-11-12; não está no Debian). `distro/icones/
+  flat-remix.sh` (chamado pelo `build.sh`) baixa a versão fixa (tag + SHA-256) para `distro/.cache` e instala
+  `Flat-Remix-Blue-Dark` inteiro (~54 MB) + `Kalango-<Cor>` (6, um por destaque: Cyan, Violet, Blue, Green,
+  Yellow, Magenta) só com as pastas que diferem da base (~1,3 MB cada), herdando dele. Padrão `Kalango-Ciano`
+  (settings.ini + gschema); o shell troca a variante com `gsettings` ao mudar o destaque (só se o tema atual for
+  um Kalango) e os apps abertos mudam na hora. Índices pelo hook `0100`. A dock, o menu e "Todos os apps"
+  usam os ícones do tema na sessão real (`desktop::find_themed_icon` segue o `Inherits` como o GTK;
+  `apps::themed_icon_names`); `tint` transparente = ícone colorido próprio. Descartados: Papirus (187 MB),
+  WhiteSur e La Capitaine (imitam o Finder/App Store da Apple).
 - `run-qemu.sh --disco` liga um disco de 20 GB (`distro/out/disco-teste.qcow2`) para testar o instalador;
   `--so-disco` dá boot pelo disco sem a ISO.
 - `auto/config` usa `noeject` (desligar não para pedindo para remover a mídia).

@@ -938,9 +938,9 @@ export component TaskbarPage inherits Rectangle {
                 Image {
                     x: 10px;
                     source: app.icon;
-                    colorize: app.id == "files" ? Theme.accent : app.tint;
-                    width: 17px;
-                    height: 17px;
+                    colorize: app.tint == transparent ? transparent : app.id == "files" ? Theme.accent : app.tint;
+                    width: app.tint == transparent ? 20px : 17px;
+                    height: self.width;
                 }
                 Text {
                     x: 34px;

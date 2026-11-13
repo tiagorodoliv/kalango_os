@@ -83,6 +83,51 @@ fn pinned_programs(ids: impl Iterator<Item = String>) -> HashSet<String> {
         .collect()
 }
 
+/// Nomes de ícone a procurar no tema para cada app do catálogo (o primeiro
+/// que o tema tiver vale). Na sessão real, a dock e o menu usam esses ícones
+/// coloridos no lugar dos ícones de traço.
+pub fn themed_icon_names(id: &str) -> &'static [&'static str] {
+    match id {
+        "files" => &["org.xfce.thunar", "thunar", "system-file-manager"],
+        "terminal" => &["foot", "utilities-terminal"],
+        "browser" => &["firefox-esr", "firefox"],
+        "code" => &["geany", "accessories-text-editor"],
+        "store" => &["org.gnome.Software", "gnome-software", "system-software-install"],
+        "settings" => &["preferences-system", "org.gnome.Settings", "preferences-desktop"],
+        "images" => &["org.xfce.ristretto", "ristretto", "image-viewer"],
+        "music" => &["org.xfce.parole", "parole", "multimedia-audio-player"],
+        "documents" => &["folder-documents"],
+        "calendar" => &["org.gnome.Calendar", "office-calendar"],
+        "monitor" => &["htop", "utilities-system-monitor", "org.gnome.SystemMonitor"],
+        "updates" => &["system-software-update", "software-update-available", "update-manager"],
+        _ => &[],
+    }
+}
+
+/// Troca os ícones de traço dos apps fixados pelos do tema de ícones (com
+/// `tint` transparente, que a dock e o menu desenham sem colorir).
+fn use_themed_icons(ui: &AppWindow) {
+    let dirs = desktop::data_dirs();
+    let theme = desktop::current_icon_theme();
+    let apps = ui.global::<Apps>();
+    let entries: Vec<AppEntry> = apps
+        .get_pinned()
+        .iter()
+        .map(|mut app| {
+            let image = themed_icon_names(&app.id)
+                .iter()
+                .find_map(|name| desktop::find_themed_icon(name, &theme, &dirs))
+                .and_then(|path| Image::load_from_path(&path).ok());
+            if let Some(image) = image {
+                app.icon = image;
+                app.tint = Color::from_argb_u8(0, 0, 0, 0);
+            }
+            app
+        })
+        .collect();
+    apps.set_pinned(ModelRc::from(Rc::new(VecModel::from(entries))));
+}
+
 /// Cores das iniciais dos apps sem ícone (as cores de destaque do tema).
 const LETTER_TINTS: [u32; 6] = [0x3dd6f5, 0xa78bfa, 0x7ea6f7, 0x5fd38d, 0xe8b04b, 0xf28b95];
 
@@ -112,9 +157,13 @@ fn to_entry(app: &DesktopApp, icon: Option<&PathBuf>) -> AppEntry {
     }
 }
 
-/// Liga o callback `Shell.filter-apps` e, no menu da sessão real, preenche
+/// Liga o callback `Shell.filter-apps`; na sessão real (`themed`) troca os
+/// ícones dos fixados pelos do tema e, no menu (`load_installed`), preenche
 /// `Apps.all` com os apps instalados.
-pub fn install(ui: &AppWindow, load_installed: bool) {
+pub fn install(ui: &AppWindow, load_installed: bool, themed: bool) {
+    if themed {
+        use_themed_icons(ui);
+    }
     let shell = ui.global::<Shell>();
     shell.on_dock_has(|list, id| dock_ids(&list).contains(&id.as_str()));
     shell.on_dock_toggle(|list, id| dock_toggle(&list, &id).into());

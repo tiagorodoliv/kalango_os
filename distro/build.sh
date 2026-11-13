@@ -125,6 +125,8 @@ rsync -a --delete "$DISTRO/config/" "$BUILDER/work/iso/config/"
 install -D -m 0755 "$BUILDER/work/shell/target/release/kalango_os" \
 	"$BUILDER/work/iso/config/includes.chroot/usr/local/bin/kalango-shell"
 rm -f "$BUILDER/work/iso/config/includes.chroot/usr/local/bin/.gitkeep"
+# Ícones (Flat Remix + pastas por cor de destaque), baixados uma vez para o cache.
+sh "$DISTRO/icones/flat-remix.sh" "$BUILDER/work/iso/config/includes.chroot/usr/share/icons" "$DISTRO/.cache"
 no_builder "cd /work/iso && lb config"
 # O live-build às vezes falha ao desmontar o /proc do chroot ("target is busy"): um processo
 # do apt ainda está saindo. Ele retoma de onde parou, então basta rodar de novo. As

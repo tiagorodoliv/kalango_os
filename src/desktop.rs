@@ -61,6 +61,7 @@ impl DesktopApp {
 /// tem o próprio atalho) e utilitários que não fazem sentido no menu.
 const HIDDEN_PROGRAMS: &[&str] = &[
     "calamares",
+    "calamares-install-debian",
     "install-debian",
     "kalango-instalar",
     "kalango-shell",
@@ -238,9 +239,157 @@ pub fn scan(dirs: &[PathBuf]) -> Vec<DesktopApp> {
     apps
 }
 
-/// Acha o arquivo do ícone (`Icon=`) no tema hicolor, no Adwaita ou em
-/// `/usr/share/pixmaps`. Prefere PNG pequeno (rápido de carregar) e cai para
-/// SVG. `None` se não achar; o menu mostra a inicial do app.
+/// Uma pasta de um tema de ícones (linha de `Directories=` do `index.theme`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ThemeDir {
+    /// Caminho relativo ao tema ("apps/scalable", "48x48/apps").
+    pub path: String,
+    pub size: u32,
+    pub scalable: bool,
+}
+
+/// O que interessa do `index.theme`: temas herdados e pastas com tamanho.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct IconTheme {
+    pub inherits: Vec<String>,
+    pub dirs: Vec<ThemeDir>,
+}
+
+/// Lê um `index.theme` (formato freedesktop Icon Theme).
+pub fn parse_index_theme(text: &str) -> IconTheme {
+    let mut theme = IconTheme::default();
+    let mut names: Vec<String> = Vec::new();
+    let mut section = String::new();
+    let mut sizes: std::collections::HashMap<String, (u32, bool)> = Default::default();
+    for line in text.lines().map(str::trim) {
+        if let Some(name) = line.strip_prefix('[').and_then(|l| l.strip_suffix(']')) {
+            section = name.to_string();
+            continue;
+        }
+        let Some((key, value)) = line.split_once('=') else { continue };
+        let (key, value) = (key.trim(), value.trim());
+        if section == "Icon Theme" {
+            match key {
+                "Inherits" => theme.inherits = value.split(',').map(|v| v.trim().to_string()).filter(|v| !v.is_empty()).collect(),
+                "Directories" => names = value.split(',').map(|v| v.trim().to_string()).filter(|v| !v.is_empty()).collect(),
+                _ => {}
+            }
+        } else {
+            let entry = sizes.entry(section.clone()).or_insert((0, false));
+            match key {
+                "Size" => entry.0 = value.parse().unwrap_or(0),
+                "Type" => entry.1 = value == "Scalable",
+                _ => {}
+            }
+        }
+    }
+    theme.dirs = names
+        .into_iter()
+        .map(|path| {
+            let (size, scalable) = sizes.get(&path).copied().unwrap_or((0, false));
+            ThemeDir { path, size, scalable }
+        })
+        .collect();
+    theme
+}
+
+/// Pastas onde ficam os temas de ícones: `~/.local/share/icons`, `~/.icons`
+/// e `<XDG_DATA_DIRS>/icons`.
+fn icon_roots(dirs: &[PathBuf]) -> Vec<PathBuf> {
+    let mut roots: Vec<PathBuf> = dirs.iter().map(|d| d.join("icons")).collect();
+    if let Some(home) = std::env::var_os("HOME") {
+        roots.insert(1.min(roots.len()), PathBuf::from(home).join(".icons"));
+    }
+    roots
+}
+
+/// Tema de ícones atual: o do GSettings (o mesmo que os apps GTK usam) ou,
+/// sem ele, o do `settings.ini` do GTK 3. Lido uma vez por processo.
+pub fn current_icon_theme() -> String {
+    static THEME: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    THEME
+        .get_or_init(|| {
+            let from_gsettings = std::process::Command::new("gsettings")
+                .args(["get", "org.gnome.desktop.interface", "icon-theme"])
+                .output()
+                .ok()
+                .map(|o| String::from_utf8_lossy(&o.stdout).trim().trim_matches('\'').to_string())
+                .filter(|t| !t.is_empty());
+            from_gsettings
+                .or_else(|| {
+                    let home = std::env::var("HOME").unwrap_or_default();
+                    [format!("{home}/.config/gtk-3.0/settings.ini"), "/etc/gtk-3.0/settings.ini".into()]
+                        .iter()
+                        .filter_map(|p| fs::read_to_string(p).ok())
+                        .find_map(|t| {
+                            t.lines().find_map(|l| {
+                                l.trim().strip_prefix("gtk-icon-theme-name=").map(|v| v.trim().to_string())
+                            })
+                        })
+                })
+                .unwrap_or_else(|| "hicolor".into())
+        })
+        .clone()
+}
+
+/// Procura um ícone no tema `theme` e nos que ele herda (em largura, como o
+/// GTK), terminando no hicolor. Dentro de um tema, prefere o SVG escalável
+/// e depois o PNG de tamanho mais perto de 64 px.
+pub fn find_themed_icon(icon: &str, theme: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
+    let roots = icon_roots(dirs);
+    let mut queue: std::collections::VecDeque<String> = [theme.to_string()].into();
+    let mut seen = HashSet::new();
+    let mut hicolor_done = false;
+    while let Some(name) = queue.pop_front().or_else(|| {
+        (!hicolor_done).then(|| {
+            hicolor_done = true;
+            "hicolor".to_string()
+        })
+    }) {
+        if !seen.insert(name.clone()) {
+            continue;
+        }
+        if name == "hicolor" {
+            hicolor_done = true;
+        }
+        let Some(index) = roots
+            .iter()
+            .map(|r| r.join(&name).join("index.theme"))
+            .find(|p| p.is_file())
+            .and_then(|p| fs::read_to_string(p).ok())
+        else {
+            continue;
+        };
+        let parsed = parse_index_theme(&index);
+        let mut best: Option<(u32, PathBuf)> = None;
+        for dir in &parsed.dirs {
+            let score = if dir.scalable { 0 } else { dir.size.abs_diff(64) + 1 };
+            if best.as_ref().is_some_and(|(s, _)| *s <= score) {
+                continue;
+            }
+            for root in &roots {
+                let base = root.join(&name).join(&dir.path);
+                let found = ["svg", "png"]
+                    .iter()
+                    .map(|ext| base.join(format!("{icon}.{ext}")))
+                    .find(|p| p.is_file());
+                if let Some(path) = found {
+                    best = Some((score, path));
+                    break;
+                }
+            }
+        }
+        if let Some((_, path)) = best {
+            return Some(path);
+        }
+        queue.extend(parsed.inherits);
+    }
+    None
+}
+
+/// Acha o arquivo do ícone (`Icon=`): no tema de ícones atual (e nos que ele
+/// herda), senão no hicolor/Adwaita e em `/usr/share/pixmaps`. `None` se não
+/// achar; o menu mostra a inicial do app.
 pub fn find_icon(icon: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
     if icon.is_empty() {
         return None;
@@ -248,6 +397,9 @@ pub fn find_icon(icon: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
     let path = Path::new(icon);
     if path.is_absolute() {
         return path.is_file().then(|| path.to_path_buf());
+    }
+    if let Some(found) = find_themed_icon(icon, &current_icon_theme(), dirs) {
+        return Some(found);
     }
     const SIZES: &[&str] = &["64x64", "48x48", "96x96", "128x128", "scalable", "256x256", "512x512"];
     const THEMES: &[&str] = &["hicolor", "Adwaita"];
@@ -320,6 +472,7 @@ Exec=gimp-2.10 --new
         assert!(parse(p, "[Desktop Entry]\nType=Application\nName=A\n").is_none());
         // O instalador do Debian some: o Kalango tem o próprio atalho.
         assert!(parse(p, "[Desktop Entry]\nType=Application\nName=I\nExec=install-debian\n").is_none());
+        assert!(parse(p, "[Desktop Entry]\nType=Application\nName=I\nExec=calamares-install-debian\n").is_none());
     }
 
     #[test]
@@ -339,6 +492,40 @@ Exec=gimp-2.10 --new
         assert_eq!(parse_exec("prog --taxa=50%%"), ["prog", "--taxa=50%"]);
         assert_eq!(parse_exec("\"/opt/meu app/bin\" --a"), ["/opt/meu app/bin", "--a"]);
         assert_eq!(parse_exec("/usr/bin/thunar"), ["/usr/bin/thunar"]);
+    }
+
+    #[test]
+    fn le_o_index_theme() {
+        let t = parse_index_theme(
+            "[Icon Theme]\nName=K\nInherits=Flat-Remix-Blue-Dark, Adwaita,hicolor\n\
+             Directories=places/scalable,48x48/apps\n\n[places/scalable]\nSize=512\nType=Scalable\n\
+             [48x48/apps]\nSize=48\nType=Fixed\n",
+        );
+        assert_eq!(t.inherits, ["Flat-Remix-Blue-Dark", "Adwaita", "hicolor"]);
+        assert_eq!(t.dirs.len(), 2);
+        assert!(t.dirs[0].scalable && t.dirs[0].size == 512);
+        assert_eq!(t.dirs[1], ThemeDir { path: "48x48/apps".into(), size: 48, scalable: false });
+    }
+
+    #[test]
+    fn segue_a_heranca_dos_temas() {
+        let raiz = std::env::temp_dir().join(format!("kalango-icones-{}", std::process::id()));
+        let icons = raiz.join("icons");
+        let tema = |nome: &str, index: &str| {
+            fs::create_dir_all(icons.join(nome)).unwrap();
+            fs::write(icons.join(nome).join("index.theme"), index).unwrap();
+        };
+        tema("Filho", "[Icon Theme]\nInherits=Pai\nDirectories=places/scalable\n[places/scalable]\nType=Scalable\n");
+        tema("Pai", "[Icon Theme]\nDirectories=apps/scalable\n[apps/scalable]\nType=Scalable\n");
+        fs::create_dir_all(icons.join("Filho/places/scalable")).unwrap();
+        fs::create_dir_all(icons.join("Pai/apps/scalable")).unwrap();
+        fs::write(icons.join("Filho/places/scalable/folder.svg"), "<svg/>").unwrap();
+        fs::write(icons.join("Pai/apps/scalable/foot.svg"), "<svg/>").unwrap();
+        let dirs = [raiz.clone()];
+        assert!(find_themed_icon("folder", "Filho", &dirs).unwrap().ends_with("Filho/places/scalable/folder.svg"));
+        assert!(find_themed_icon("foot", "Filho", &dirs).unwrap().ends_with("Pai/apps/scalable/foot.svg"));
+        assert!(find_themed_icon("nada", "Filho", &dirs).is_none());
+        fs::remove_dir_all(&raiz).unwrap();
     }
 
     #[test]

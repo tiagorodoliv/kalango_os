@@ -63,7 +63,8 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     // autenticação será via PAM, pelo greetd.
     shell.on_try_login(|password| !password.is_empty());
 
-    apps::install(&ui, mode == Mode::Launcher && session::is_native());
+    let native = session::is_native();
+    apps::install(&ui, mode == Mode::Launcher && native, native && mode != Mode::Greeter);
     let mut timers = vec![clock::start(&ui), system::start(&ui)];
     timers.extend(session::install(&ui, mode));
     timers.extend(appearance::install(&ui, mode));

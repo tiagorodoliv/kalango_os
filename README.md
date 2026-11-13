@@ -115,6 +115,8 @@ logo. Detalhes em [TRADEMARKS.md](TRADEMARKS.md).
 Componentes de terceiros:
 - [Slint](https://slint.dev), usado sob a licença GPL-3.0 (uma das licenças oferecidas pelo Slint);
 - fontes Inter e JetBrains Mono, sob a SIL Open Font License (`ui/fonts/*LICENSE*`, `ui/fonts/*OFL*`);
+- ícones [Flat Remix](https://github.com/daniruiz/flat-remix), de Daniel Ruiz de Alegría, sob a GPL-3.0
+  (baixados no build por `distro/icones/flat-remix.sh`);
 - pacotes do Debian incluídos na ISO, cada um com a própria licença (em `/usr/share/doc/<pacote>/copyright`
   no sistema). O código-fonte deles está nos repositórios do Debian (`apt source <pacote>`) e em
   <https://sources.debian.org>.

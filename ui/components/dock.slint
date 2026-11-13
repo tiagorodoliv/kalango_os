@@ -14,17 +14,21 @@ component DockItem inherits Rectangle {
     in property <bool> active: false;
     callback clicked();
 
+    /// Ícone colorido do tema de ícones (sessão real): desenhado grande e sem
+    /// colorir, sem o quadradinho de fundo (só aparece ao passar o mouse).
+    property <bool> own-icon: root.app.tint == transparent;
+
     width: Theme.dock-item;
     height: Theme.dock-item;
     border-radius: Theme.dock-item * 0.21;
-    background: touch.has-hover ? Theme.tile-hover : Theme.tile;
+    background: touch.has-hover ? Theme.tile-hover : root.own-icon ? transparent : Theme.tile;
     animate background { duration: Theme.anim; }
 
     Image {
         source: root.app.icon;
-        colorize: root.app.id == "files" ? Theme.accent : root.app.tint;
-        width: Theme.dock-icon;
-        height: Theme.dock-icon;
+        colorize: root.own-icon ? transparent : root.app.id == "files" ? Theme.accent : root.app.tint;
+        width: root.own-icon ? Theme.dock-item * 0.82 : Theme.dock-icon;
+        height: self.width;
     }
 
     // Indicador: traço quando ativo, ponto quando só aberto.

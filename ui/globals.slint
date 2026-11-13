@@ -40,7 +40,9 @@ export struct RecentEntry {
 
 export global Apps {
     /// Os 12 apps fixados do launcher (grade 6×2), na ordem do layout.
-    out property <[AppEntry]> pinned: [
+    /// Na sessão real, o Rust troca os ícones de traço pelos do tema de ícones
+    /// (`tint` transparente = ícone colorido próprio).
+    in-out property <[AppEntry]> pinned: [
         { id: "files", name: "Arquivos", icon: Icons.folder, tint: #3dd6f5 },
         { id: "terminal", name: "Terminal", icon: Icons.terminal, tint: #3dd6f5 },
         { id: "browser", name: "Navegador", icon: Icons.globe, tint: #7ea6f7 },
