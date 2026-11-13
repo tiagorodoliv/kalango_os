@@ -1,8 +1,20 @@
-# Padrões do Kalango OS: tema GTK 3 "Kalango" e, nos apps libadwaita (Loja,
-# Agenda), o tema escuro
-# e fonte Inter. Compilado pelo hook 0100-kalango-schemas.hook.chroot.
+# Padrões do Kalango OS. Compilado pelo hook 0100-kalango-schemas.hook.chroot.
+#
+# Tema GTK 3 "Kalango", ícones "Kalango-Ciano" (o shell troca a variante junto
+# com a cor de destaque) e, nos apps libadwaita (Loja, Agenda), o tema escuro.
 [org.gnome.desktop.interface]
 color-scheme='prefer-dark'
 gtk-theme='Kalango'
+icon-theme='Kalango-Ciano'
 font-name='Inter 10'
 monospace-font-name='JetBrains Mono 10'
+
+# Mousepad (texto simples): mesmas cores do editor de código e do sistema.
+[org.xfce.mousepad.preferences.view]
+color-scheme='kalango'
+show-line-numbers=true
+highlight-current-line=true
+match-braces=true
+use-default-monospace-font=false
+font-name='JetBrains Mono 11'
+tab-width=4

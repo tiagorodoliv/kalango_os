@@ -45,6 +45,17 @@ pub struct Prefs {
 /// As 6 cores de destaque (mesma ordem de `Theme.accents` em ui/theme.slint).
 pub const ACCENTS: [&str; 6] = ["#3dd6f5", "#a78bfa", "#7ea6f7", "#5fd38d", "#e8b04b", "#f28b95"];
 
+/// Temas de ícones do Kalango, um por cor de destaque (mesma ordem de
+/// [`ACCENTS`]; gerados por `distro/icones/gerar.py`).
+pub const ICON_THEMES: [&str; 6] = [
+    "Kalango-Ciano",
+    "Kalango-Roxo",
+    "Kalango-Azul",
+    "Kalango-Verde",
+    "Kalango-Ambar",
+    "Kalango-Rosa",
+];
+
 /// Marca do `~/.config/gtk-3.0/gtk.css` gerado pelo shell.
 const GTK_MARK: &str = "/* Gerado pelo kalango-shell (Configurações → Aparência). */";
 
@@ -55,6 +66,26 @@ pub fn gtk_css(accent_index: i32) -> String {
     format!("{GTK_MARK}
 @define-color kalango_accent {color};
 ")
+}
+
+/// Troca a variante do tema de ícones (pastas na cor de destaque). Só mexe
+/// se o tema atual for um dos do Kalango: um tema escolhido pelo usuário fica.
+/// Os apps GTK abertos trocam os ícones na hora.
+fn sync_icon_theme(accent_index: i32) {
+    const KEY: [&str; 2] = ["org.gnome.desktop.interface", "icon-theme"];
+    let Ok(out) = std::process::Command::new("gsettings").arg("get").args(KEY).output() else {
+        return;
+    };
+    let current = String::from_utf8_lossy(&out.stdout).trim().trim_matches('\'').to_string();
+    let wanted = ICON_THEMES[accent_index.clamp(0, 5) as usize];
+    if current == wanted || !(current.is_empty() || ICON_THEMES.contains(&current.as_str())) {
+        return;
+    }
+    let _ = std::process::Command::new("gsettings")
+        .arg("set")
+        .args(KEY)
+        .arg(wanted)
+        .status();
 }
 
 /// Grava a cor de destaque no `gtk.css` do usuário (apps GTK abertos depois
@@ -82,13 +113,15 @@ fn sync_gtk_accent(accent_index: i32) {
 }
 
 /// Ajustes fora do shell que seguem as preferências (só a área de trabalho
-/// faz, um processo por sessão): margem da dock no labwc e destaque do GTK.
+/// faz, um processo por sessão): margem da dock no labwc, destaque do GTK e
+/// cor das pastas (tema de ícones).
 fn sync_system(now: &Prefs, before: Option<&Prefs>) {
     if before.is_none_or(|b| b.dock_margin() != now.dock_margin()) {
         crate::labwc::set_dock_margin(now.dock_margin());
     }
     if before.is_none_or(|b| b.accent_index != now.accent_index) {
         sync_gtk_accent(now.accent_index);
+        sync_icon_theme(now.accent_index);
     }
 }
 

@@ -1,0 +1,27 @@
+[Icon Theme]
+Name=Kalango Ciano
+Comment=Pastas e dispositivos do Kalango OS, na cor de destaque Ciano
+Inherits=Adwaita,hicolor
+Example=folder
+Directories=places/scalable,devices/scalable,mimetypes/scalable
+
+[places/scalable]
+Context=Places
+Size=64
+MinSize=8
+MaxSize=512
+Type=Scalable
+
+[devices/scalable]
+Context=Devices
+Size=64
+MinSize=8
+MaxSize=512
+Type=Scalable
+
+[mimetypes/scalable]
+Context=MimeTypes
+Size=64
+MinSize=8
+MaxSize=512
+Type=Scalable

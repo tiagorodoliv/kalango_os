@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Esquema de cores do Kalango OS para editores GtkSourceView (Mousepad).
+  Fundo, seleção e números de linha do tema do sistema (ui/theme.slint); cores
+  de sintaxe do tema Dark Modern do VS Code. Mesma paleta do Geany
+  (/usr/share/geany/colorschemes/kalango-dark-modern.conf).
+-->
+<style-scheme id="kalango" name="Kalango" version="1.0">
+  <author>Kalango OS</author>
+  <description>Escuro do Kalango OS com as cores de sintaxe do VS Code Dark Modern</description>
+
+  <color name="fundo" value="#0a0f14"/>
+  <color name="fundo_linha" value="#131920"/>
+  <color name="selecao" value="#194b58"/>
+  <color name="borda" value="#1e2a33"/>
+  <color name="texto" value="#dce3ea"/>
+  <color name="numero_linha" value="#515a64"/>
+  <color name="destaque" value="#3dd6f5"/>
+  <color name="azul" value="#569cd6"/>
+  <color name="azul_claro" value="#9cdcfe"/>
+  <color name="constante" value="#4fc1ff"/>
+  <color name="rosa" value="#c586c0"/>
+  <color name="laranja" value="#ce9178"/>
+  <color name="verde" value="#6a9955"/>
+  <color name="verde_claro" value="#b5cea8"/>
+  <color name="amarelo" value="#dcdcaa"/>
+  <color name="verde_agua" value="#4ec9b0"/>
+  <color name="vermelho" value="#f07178"/>
+  <color name="ouro" value="#ffd700"/>
+  <color name="escape" value="#d7ba7d"/>
+
+  <!-- Editor -->
+  <style name="text" foreground="texto" background="fundo"/>
+  <style name="selection" foreground="texto" background="selecao"/>
+  <style name="selection-unfocused" foreground="texto" background="borda"/>
+  <style name="cursor" foreground="destaque"/>
+  <style name="secondary-cursor" foreground="numero_linha"/>
+  <style name="current-line" background="fundo_linha"/>
+  <style name="current-line-number" foreground="texto" background="fundo_linha"/>
+  <style name="line-numbers" foreground="numero_linha" background="fundo"/>
+  <style name="right-margin" foreground="borda" background="fundo"/>
+  <style name="draw-spaces" foreground="borda"/>
+  <style name="background-pattern" background="fundo_linha"/>
+  <style name="bracket-match" foreground="ouro" background="borda" bold="true"/>
+  <style name="bracket-mismatch" foreground="vermelho" underline="error"/>
+  <style name="search-match" foreground="texto" background="#5a4405"/>
+
+  <!-- Sintaxe -->
+  <style name="def:comment" foreground="verde"/>
+  <style name="def:shebang" foreground="verde" bold="true"/>
+  <style name="def:doc-comment-element" foreground="azul"/>
+  <style name="def:constant" foreground="constante"/>
+  <style name="def:boolean" foreground="azul"/>
+  <style name="def:number" foreground="verde_claro"/>
+  <style name="def:floating-point" foreground="verde_claro"/>
+  <style name="def:decimal" foreground="verde_claro"/>
+  <style name="def:base-n-integer" foreground="verde_claro"/>
+  <style name="def:character" foreground="laranja"/>
+  <style name="def:string" foreground="laranja"/>
+  <style name="def:special-char" foreground="escape"/>
+  <style name="def:special-constant" foreground="azul"/>
+  <style name="def:keyword" foreground="rosa"/>
+  <style name="def:statement" foreground="rosa"/>
+  <style name="def:builtin" foreground="azul"/>
+  <style name="def:type" foreground="verde_agua"/>
+  <style name="def:identifier" foreground="azul_claro"/>
+  <style name="def:function" foreground="amarelo"/>
+  <style name="def:preprocessor" foreground="rosa"/>
+  <style name="def:operator" foreground="texto"/>
+  <style name="def:error" foreground="vermelho" underline="error"/>
+  <style name="def:warning" foreground="ouro" underline="error"/>
+  <style name="def:note" foreground="ouro" bold="true"/>
+  <style name="def:net-address" foreground="azul_claro" underline="single"/>
+  <style name="def:underlined" underline="single"/>
+
+  <!-- Markdown, HTML e XML -->
+  <style name="def:heading" foreground="azul" bold="true"/>
+  <style name="def:emphasis" italic="true"/>
+  <style name="def:strong-emphasis" bold="true"/>
+  <style name="def:link-text" foreground="laranja"/>
+  <style name="def:link-destination" foreground="azul_claro" underline="single"/>
+  <style name="def:inline-code" foreground="laranja"/>
+  <style name="def:list-marker" foreground="destaque" bold="true"/>
+  <style name="def:preformatted-section" foreground="laranja"/>
+  <style name="xml:element-name" foreground="azul"/>
+  <style name="xml:attribute-name" foreground="azul_claro"/>
+  <style name="xml:attribute-value" foreground="laranja"/>
+
+  <!-- Diff -->
+  <style name="diff:added-line" foreground="#81b88b"/>
+  <style name="diff:removed-line" foreground="#c74e39"/>
+  <style name="diff:changed-line" foreground="#e2c08d"/>
+  <style name="diff:location" foreground="azul"/>
+</style-scheme>
