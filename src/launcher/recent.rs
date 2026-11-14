@@ -5,7 +5,7 @@
 //! recentes que ainda existem. Na ISO live, o primeiro item é o atalho
 //! "Instalar Kalango OS".
 
-use crate::i18n::tr;
+use crate::common::i18n::tr;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 

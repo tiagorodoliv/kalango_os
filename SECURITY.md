@@ -10,9 +10,9 @@ como root, ler arquivo de outro usuário). A resposta inicial vem em até 7 dias
 
 ## O que é mais sensível
 
-- **Login e bloqueio:** o greeter (`src/greeter.rs`, IPC do greetd/PAM) e o `swaylock`.
+- **Login e bloqueio:** o greeter (`src/shell/greeter.rs`, IPC do greetd/PAM) e o `swaylock`.
 - **Instalador:** o Calamares e os comandos em `distro/config/includes.chroot/etc/calamares/`.
-- **Configurações:** comandos de sistema rodados pelo shell (`src/device.rs`, `src/session.rs`).
+- **Configurações:** comandos de sistema rodados pelo shell (`src/settings/device.rs`, `src/shell/session.rs`).
 - **Configuração da ISO live:** usuário `user` com senha `live` e `sudo` sem senha. Isso é proposital só na
   mídia live (como em outras distros) e não pode sobrar no sistema instalado.
 

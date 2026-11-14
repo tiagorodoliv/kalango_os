@@ -2,7 +2,7 @@
 <!--
   Menu de layouts das janelas do Kalango OS (botão direito no maximizar ou
   Super+Z). A sessão grava uma cópia traduzida em ~/.config/labwc/menu.xml
-  (src/labwc.rs); este é o padrão, em inglês. As regiões estão no rc.xml.
+  (src/shell/labwc.rs); este é o padrão, em inglês. As regiões estão no rc.xml.
 -->
 <openbox_menu>
   <menu id="kalango-layouts" label="Layouts">

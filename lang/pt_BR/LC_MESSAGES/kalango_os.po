@@ -1054,7 +1054,7 @@ msgstr "Quando o computador fica sem uso por"
 msgid "When the screen turns off and before suspending"
 msgstr "Quando a tela apaga e antes de suspender"
 
-# Configurações → Usuários (src/users.rs)
+# Configurações → Usuários (src/settings/users.rs)
 msgid "Administrator"
 msgstr "Administrador"
 

@@ -3,7 +3,7 @@
 //! A busca ignora maiúsculas e acentos ("configuracoes" acha "Configurações",
 //! "MUSICA" acha "Música"), o que o Slint não faz sozinho — por isso fica no Rust.
 //! Ela procura primeiro nos fixados e depois nos apps instalados no sistema
-//! (`Apps.all`, lidos dos `.desktop` por [`crate::desktop`]), sem repetir os
+//! (`Apps.all`, lidos dos `.desktop` por [`crate::launcher::desktop`]), sem repetir os
 //! que já são fixados.
 
 use std::cell::RefCell;
@@ -22,7 +22,7 @@ thread_local! {
 
 use slint::{Color, ComponentHandle, Image, Model, ModelRc, SharedString, VecModel};
 
-use crate::desktop::{self, DesktopApp};
+use crate::launcher::desktop::{self, DesktopApp};
 use crate::{AppEntry, AppWindow, Apps, IconPreview, Shell};
 
 /// Normaliza para comparação: minúsculas e sem acentos do português.
@@ -77,7 +77,7 @@ pub fn dock_toggle(list: &str, id: &str) -> String {
 /// Programas dos apps fixados: os `.desktop` desses programas não se repetem
 /// nos resultados da busca (ex.: "Thunar" já aparece como "Arquivos").
 fn pinned_programs(ids: impl Iterator<Item = String>) -> HashSet<String> {
-    ids.filter_map(|id| crate::session::command_for(&id))
+    ids.filter_map(|id| crate::shell::session::command_for(&id))
         .flat_map(|argv| {
             let first = argv.first().cloned();
             let last = argv.last().cloned();
@@ -136,7 +136,7 @@ pub fn icon_previews() -> Vec<IconPreview> {
     let dirs = desktop::data_dirs();
     (0..3)
         .map(|family| {
-            let theme = crate::appearance::icon_theme_name(family, 2);
+            let theme = crate::settings::appearance::icon_theme_name(family, 2);
             let icons: Vec<Image> = std::iter::once(&["folder"][..])
                 .chain(["files", "terminal", "browser", "settings"].iter().map(|id| themed_icon_names(id)))
                 .map(|names| {
@@ -197,7 +197,7 @@ pub fn extra_entry(id: &str) -> Option<AppEntry> {
     if let Some(e) = ENTRIES.with_borrow(|m| m.get(id).cloned()) {
         return Some(e);
     }
-    let entry = if let Some(app_id) = id.strip_prefix(crate::taskbar::WINDOW_PREFIX) {
+    let entry = if let Some(app_id) = id.strip_prefix(crate::shell::taskbar::WINDOW_PREFIX) {
         // Sem `.desktop`: ícone com o nome do app_id, se o tema tiver, ou a inicial.
         let fake = DesktopApp {
             path: PathBuf::new(),

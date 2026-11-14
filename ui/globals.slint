@@ -64,7 +64,7 @@ export global Apps {
 
     /// Todos os apps instalados (página "Todos os apps" do menu), em ordem
     /// alfabética. Sessão real: o Rust lê os `.desktop` do sistema
-    /// (`src/desktop.rs`). Protótipo: os próprios fixados.
+    /// (`src/launcher/desktop.rs`). Protótipo: os próprios fixados.
     in-out property <[AppEntry]> all: pinned;
 
     /// Apps da dock (antes do separador; Configurações vem depois dele),
@@ -72,14 +72,14 @@ export global Apps {
     out property <[AppEntry]> dock: Shell.dock-entries(Theme.dock-apps);
 
     /// Protótipo: os dois arquivos do layout. Sessão real: o Rust preenche com
-    /// os recentes de verdade (`src/recent.rs`) e o atalho do instalador.
+    /// os recentes de verdade (`src/launcher/recent.rs`) e o atalho do instalador.
     in-out property <[RecentEntry]> recents: [
         { name: "README.md", path: "~/Projects/distro", kind: "file" },
         { name: "main.cpp", path: "~/Projects/firmware", kind: "code" },
     ];
 }
 
-/// Tema do terminal (Configurações → Aparência → Terminal, `src/terminal.rs`),
+/// Tema do terminal (Configurações → Aparência → Terminal, `src/settings/terminal.rs`),
 /// com as cores da prévia.
 export struct TerminalTheme {
     id: string,
@@ -102,7 +102,7 @@ export struct LoginUser {
 }
 
 export global Shell {
-    // --- Preenchido pelo Rust (src/clock.rs e src/system.rs) ---
+    // --- Preenchido pelo Rust (src/common/clock.rs e src/common/system.rs) ---
 
     /// Hora "19:38" (tela de login).
     in property <string> time: "--:--";
@@ -115,7 +115,7 @@ export global Shell {
     /// Segundos da hora atual, "05" (opção "Mostrar segundos").
     in property <string> bar-seconds: "00";
     /// Papel de parede escolhido (`Theme.wallpaper`), já carregado pelo Rust
-    /// na resolução da tela (`src/wallpaper.rs`). Vazio = circuitos.
+    /// na resolução da tela (`src/shell/wallpaper.rs`). Vazio = circuitos.
     in property <image> wallpaper;
     /// Miniaturas dos papéis de parede (ordem de `Theme.wallpaper-names`;
     /// a 1ª, dos circuitos, fica vazia).
@@ -126,19 +126,19 @@ export global Shell {
     in property <string> cpu: "--";
     /// Carga da bateria, "78%" ou "--" sem bateria.
     in property <string> battery: "--";
-    /// Gravando num pendrive (`src/usb.rs`): a barra pede para não remover.
+    /// Gravando num pendrive (`src/shell/usb.rs`): a barra pede para não remover.
     in property <bool> usb-writing: false;
     /// "Identificar" monitores: número e nome do monitor desta janela.
     in property <bool> identify-visible: false;
     in property <int> identify-number: 1;
     in property <string> identify-name: "";
-    /// A dock está numa janela própria, sempre por cima (`src/dock.rs`): a
+    /// A dock está numa janela própria, sempre por cima (`src/shell/dock.rs`): a
     /// área de trabalho não a desenha.
     in property <bool> dock-external: false;
     /// Tamanho da janela da dock (`--faixa=LxA`).
     in property <length> dock-strip-width: 1440px;
     in property <length> dock-strip-height: 70px;
-    /// Áreas de trabalho (`src/workspaces.rs`): quantas há (0 = sem
+    /// Áreas de trabalho (`src/shell/workspaces.rs`): quantas há (0 = sem
     /// indicador) e a ativa (a partir de 0).
     in property <int> workspace-count: 3;
     in property <int> workspace-active: 0;
@@ -154,7 +154,7 @@ export global Shell {
     /// Letra do avatar (inicial do nome).
     in property <string> user-initial: "U";
 
-    // --- Tela de login de verdade (greeter do greetd, `src/greeter.rs`) ---
+    // --- Tela de login de verdade (greeter do greetd, `src/shell/greeter.rs`) ---
 
     /// Rodando como greeter: a senha vai para o greetd/PAM.
     in property <bool> greeter: false;
@@ -170,7 +170,7 @@ export global Shell {
     /// os apps abrem de verdade e as janelas de demonstração somem.
     /// Desligado no desenvolvimento e nas capturas (protótipo navegável).
     in property <bool> native: false;
-    /// Apps com janela aberta (sessão real, `src/taskbar.rs`): ids da dock
+    /// Apps com janela aberta (sessão real, `src/shell/taskbar.rs`): ids da dock
     /// separados por vírgula ("files,desktop:/usr/share/...").
     in property <string> running-ids: "";
     /// Id do app em foco (traço de destaque na dock).

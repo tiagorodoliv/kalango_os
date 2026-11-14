@@ -10,7 +10,7 @@ if systemd-detect-virt -q; then
 	export WLR_NO_HARDWARE_CURSORS=1
 fi
 # O labwc só procura a pasta de configuração do usuário ao iniciar: sem ela,
-# o rc.xml que o shell grava depois (margens da dock, src/labwc.rs) nunca é
+# o rc.xml que o shell grava depois (margens da dock, src/shell/labwc.rs) nunca é
 # lido, nem com `labwc --reconfigure`. Vazia, não muda nada: cada arquivo que
 # falta continua vindo de /etc/xdg/labwc.
 mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/labwc"
@@ -22,8 +22,8 @@ if [ -r /etc/profile.d/flatpak.sh ]; then
 fi
 # Variáveis da sessão. Ficam aqui, e não em /etc/xdg/labwc/environment: o
 # labwc lê um só arquivo "environment", e o ~/.config/labwc/environment que
-# o shell grava ao trocar o teclado (src/region.rs) esconderia o do sistema.
-# Liga o modo real do kalango-shell: abre os apps instalados (src/session.rs).
+# o shell grava ao trocar o teclado (src/settings/region.rs) esconderia o do sistema.
+# Liga o modo real do kalango-shell: abre os apps instalados (src/shell/session.rs).
 export KALANGO_SESSION=1
 # Tema escuro nos apps libadwaita (Loja, Agenda). Eles só leem a preferência
 # pelo portal de configurações, que a sessão labwc não tem.

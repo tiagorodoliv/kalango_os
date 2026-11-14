@@ -17,7 +17,7 @@ use std::time::Duration;
 use chrono::{DateTime, Datelike, Local, TimeZone, Timelike};
 use slint::{ComponentHandle, Timer, TimerMode};
 
-use crate::i18n::{self, Lang};
+use crate::common::i18n::{self, Lang};
 use crate::{AppWindow, Shell};
 
 /// Dias da semana em inglês, começando no domingo.

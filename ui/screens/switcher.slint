@@ -1,5 +1,5 @@
-// Alt+Tab (`--alternar`, `src/switcher.rs`) e menu do botão direito da dock
-// (`--menu-dock=`, `src/taskbar.rs`). Os dois são janelas de tela cheia e
+// Alt+Tab (`--alternar`, `src/shell/switcher.rs`) e menu do botão direito da dock
+// (`--menu-dock=`, `src/shell/taskbar.rs`). Os dois são janelas de tela cheia e
 // transparentes, por cima de tudo, como o menu de apps.
 
 import { Theme } from "../theme.slint";
@@ -176,7 +176,7 @@ component MenuItem inherits Rectangle {
 
 /// Menu do botão direito de um app da dock, encostado no item.
 export component DockMenuView inherits Rectangle {
-    // Mesmas contas de `ui/components/dock.slint` (e `src/dock.rs`).
+    // Mesmas contas de `ui/components/dock.slint` (e `src/shell/dock.rs`).
     property <bool> vertical: Theme.dock-position != 0;
     property <bool> bar: Theme.dock-style == 1;
     property <length> pad: (Theme.dock-thickness - Theme.dock-item) / 2;

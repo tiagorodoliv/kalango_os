@@ -124,7 +124,7 @@ fn main() {
     // Temas do terminal (da pasta da distro), no fim da Aparência.
     {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("distro/config/includes.chroot/usr/share/kalango/terminal");
-        let themes = kalango_os::terminal::to_ui(&kalango_os::terminal::load_from(&dir));
+        let themes = kalango_os::settings::terminal::to_ui(&kalango_os::settings::terminal::load_from(&dir));
         ui.global::<kalango_os::Shell>().set_terminal_themes(slint::ModelRc::new(slint::VecModel::from(themes)));
         window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (1700.0 * SCALE) as u32));
         save(&window, &out.join("config_aparencia_terminal.png"));

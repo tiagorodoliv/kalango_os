@@ -9,7 +9,7 @@
 //! O que foi mantido vai para `~/.config/kalango/monitores.conf`, e a área de
 //! trabalho reaplica o arquivo a cada início de sessão (o labwc não guarda).
 
-use crate::i18n::tr;
+use crate::common::i18n::tr;
 use std::cell::RefCell;
 use std::fs;
 use std::path::PathBuf;
@@ -743,7 +743,7 @@ fn finish(ui: &AppWindow, state: &Rc<RefCell<State>>, keep: bool) {
 }
 
 pub fn install(ui: &AppWindow, mode: Mode) {
-    let native = crate::session::is_native();
+    let native = crate::shell::session::is_native();
     if native && mode == Mode::Desktop {
         std::thread::spawn(apply_saved);
         return;
@@ -833,7 +833,7 @@ pub fn install(ui: &AppWindow, mode: Mode) {
         apply_with_confirm(&ui, &st, settings);
     });
 
-    device.on_identify_displays(crate::outputs::request_identify);
+    device.on_identify_displays(crate::shell::outputs::request_identify);
 
     let weak = ui.as_weak();
     let st = state.clone();

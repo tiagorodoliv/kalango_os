@@ -8,7 +8,7 @@
 #   - Kalango-<Tema>-<Cor>: no Colloid, só os arquivos que mudam na cor de
 #     destaque (pastas e alguns apps), herdando o resto da base; no Fluent,
 #     um nome que aponta para a variante daquela cor. O shell troca entre
-#     eles junto com a cor de destaque (src/appearance.rs, icon_theme_name).
+#     eles junto com a cor de destaque (src/settings/appearance.rs, icon_theme_name).
 #
 # Uso: distro/icones/temas-extras.sh <pasta_icons_de_destino> <pasta_de_cache>
 # Chamado pelo distro/build.sh. Versões fixas (commit + SHA-256).

@@ -14,7 +14,7 @@
 #   --so-disco  dá boot pelo disco virtual, sem a ISO (sistema já instalado).
 #   --pendrive  liga um pendrive USB de 1 GB (distro/out/pendrive-teste.img, FAT32)
 #               que grava a 2 MB/s, lento como um pendrive barato: para testar a
-#               cópia que não pode terminar antes da gravação (src/usb.rs).
+#               cópia que não pode terminar antes da gravação (src/shell/usb.rs).
 #   --dev pasta compartilha a pasta com a VM (9p, "kalango-dev"): a ISO live
 #               aplica o shell e as configs dela no boot (distro/testar-vm.sh).
 # Sem caminho, usa a ISO mais recente em distro/out/.

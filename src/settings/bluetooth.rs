@@ -21,8 +21,8 @@ use std::time::{Duration, Instant};
 
 use slint::{ComponentHandle, Model, ModelRc, SharedString, Timer, TimerMode, VecModel, Weak};
 
-use crate::device::output;
-use crate::i18n::tr;
+use crate::settings::device::output;
+use crate::common::i18n::tr;
 use crate::{AppWindow, BtDevice, Device, Mode};
 
 /// Intervalo entre as leituras do estado.
@@ -365,7 +365,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     d.on_bt_paired_count(|list| list.iter().filter(|b| b.paired).count() as i32);
     let present = std::fs::read_dir("/sys/class/bluetooth").is_ok_and(|mut r| r.next().is_some());
     d.set_bluetooth_present(present);
-    if !present || !crate::session::is_native() {
+    if !present || !crate::shell::session::is_native() {
         return None;
     }
     let shared = Arc::new(Shared { reading: AtomicBool::new(false), scanning: AtomicBool::new(false) });

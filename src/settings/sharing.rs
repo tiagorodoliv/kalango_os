@@ -20,8 +20,8 @@ use std::rc::Rc;
 
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel, Weak};
 
-use crate::device::{output, spawn_detached};
-use crate::i18n::tr;
+use crate::settings::device::{output, spawn_detached};
+use crate::common::i18n::tr;
 use crate::{AppWindow, Device, Mode, NetComputer, SharedFolder};
 
 /// Script de root (via pkexec) que mexe no Samba.
@@ -147,7 +147,7 @@ fn candidates() -> Vec<String> {
     let home = home();
     FOLDERS
         .iter()
-        .map(|(key, fallback)| crate::session::xdg_dir(&home, key, fallback))
+        .map(|(key, fallback)| crate::shell::session::xdg_dir(&home, key, fallback))
         .filter(|p| Path::new(p).is_dir() && *p != home)
         .fold(Vec::new(), |mut v, p| {
             if !v.contains(&p) {
@@ -158,7 +158,7 @@ fn candidates() -> Vec<String> {
 }
 
 fn load_prefs() -> Prefs {
-    let public = crate::session::xdg_dir(&home(), FOLDERS[0].0, FOLDERS[0].1);
+    let public = crate::shell::session::xdg_dir(&home(), FOLDERS[0].0, FOLDERS[0].1);
     Prefs::parse(fs::read_to_string(prefs_path()).ok().as_deref(), &public)
 }
 
@@ -265,7 +265,7 @@ fn open_in_files(url: &str) {
 /// Liga a página Compartilhamento ao global `Device` (só nas Configurações da
 /// sessão real; no protótipo a página mostra o aviso de indisponível).
 pub fn install(ui: &AppWindow, mode: Mode) {
-    if !(crate::session::is_native() && mode == Mode::Settings) {
+    if !(crate::shell::session::is_native() && mode == Mode::Settings) {
         return;
     }
     let d = ui.global::<Device>();

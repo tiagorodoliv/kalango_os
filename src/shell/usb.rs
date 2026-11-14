@@ -24,7 +24,7 @@ use std::time::{Duration, Instant};
 
 use slint::ComponentHandle;
 
-use crate::session::Mode;
+use crate::shell::session::Mode;
 use crate::{i18n, AppWindow, Shell};
 
 /// Intervalo entre as verificações (e entre os `sync`).
@@ -160,7 +160,7 @@ fn publish(weak: &slint::Weak<AppWindow>, writing: bool) {
 
 /// Começa a vigiar os pendrives (só a área de trabalho da sessão real).
 pub fn install(ui: &AppWindow, mode: Mode) {
-    if mode != Mode::Desktop || !crate::session::is_native() || !cfg!(target_os = "linux") {
+    if mode != Mode::Desktop || !crate::shell::session::is_native() || !cfg!(target_os = "linux") {
         return;
     }
     let weak = ui.as_weak();

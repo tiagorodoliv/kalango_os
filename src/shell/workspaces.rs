@@ -22,7 +22,7 @@ use wayland_protocols::ext::workspace::v1::client::{
     ext_workspace_manager_v1::{self, ExtWorkspaceManagerV1},
 };
 
-use crate::session::Mode;
+use crate::shell::session::Mode;
 use crate::{AppWindow, Shell};
 
 /// Uma área de trabalho anunciada pelo compositor.
@@ -135,7 +135,7 @@ impl Dispatch<ExtWorkspaceHandleV1, ()> for State {
 /// Começa a acompanhar as áreas de trabalho (só a área de trabalho da sessão
 /// real tem a barra). Sem o protocolo, a barra esconde o indicador.
 pub fn install(ui: &AppWindow, mode: Mode) {
-    if mode != Mode::Desktop || !crate::session::is_native() {
+    if mode != Mode::Desktop || !crate::shell::session::is_native() {
         return;
     }
     let shell = ui.global::<Shell>();

@@ -21,14 +21,14 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     o `Backdrop` nem cria grade/circuitos. Sistema: zram (`systemd-zram-generator`) e `winbind` desligado.
 - **Compositor (decidido em 2026-11-11): labwc + shell em Slint.** A sessão é greetd → `kalango-session` → labwc
   → `kalango-shell`. Sem layer-shell (winit não suporta), o shell roda em 3 processos do mesmo binário
-  (`src/session.rs`), cada um com seu app_id e regra em `etc/xdg/labwc/rc.xml`:
+  (`src/shell/session.rs`), cada um com seu app_id e regra em `etc/xdg/labwc/rc.xml`:
   - `kalango-shell` (sem argumento): barra, dock e fundo; tela cheia, sem moldura, sempre atrás dos apps.
     O `<margin top="35" bottom="70">` do labwc impede app maximizado de cobrir barra e dock (colada na borda).
   - `kalango-shell --launcher`: menu de apps em tela cheia, transparente, sempre por cima. Super (onRelease) ou
     Super+Espaço abre; rodar de novo fecha (pidfile em `$XDG_RUNTIME_DIR`).
   - `kalango-shell --settings`: Configurações em janela comum. A aparência é salva em
-    `~/.config/kalango/aparencia.conf` e os outros processos aplicam em <1 s (`src/appearance.rs`).
-    As outras páginas mexem no sistema de verdade (`src/device.rs` + global `Device` em `ui/device.slint`,
+    `~/.config/kalango/aparencia.conf` e os outros processos aplicam em <1 s (`src/settings/appearance.rs`).
+    As outras páginas mexem no sistema de verdade (`src/settings/device.rs` + global `Device` em `ui/device.slint`,
     páginas em `ui/screens/settings_pages.slint`): Rede e Wi-Fi pelo `nmcli` (lista, liga/desliga, conecta com
     senha), Som pelo `wpctl` (volume/mudo), Energia (bateria, suspender/reiniciar), Usuários (`passwd` no foot),
     Atualizações e Sobre o sistema (os-release, kernel, CPU, memória, disco). Bluetooth só tem aviso.
@@ -36,13 +36,13 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     barra, dock sempre visível, tamanho (44/52/60 px) e apps da dock (`Theme.dock-apps`, ids por vírgula;
     `Apps.dock` = `Shell.dock-entries`). A área de trabalho ajusta a margem do labwc gerando
     `~/.config/labwc/rc.xml` (cópia do de /etc com a marca "Gerado pelo kalango-shell" e o `bottom` trocado;
-    sem a marca, nunca sobrescreve) + `labwc --reconfigure` (`src/labwc.rs`); janelas já maximizadas só se
+    sem a marca, nunca sobrescreve) + `labwc --reconfigure` (`src/shell/labwc.rs`); janelas já maximizadas só se
     ajustam ao maximizar de novo. **O labwc só enxerga `~/.config/labwc` se a pasta já existir quando ele inicia**
     (por isso o `kalango-session` faz `mkdir -p` antes do `exec labwc`). A dock vai embaixo/esquerda/direita
     (`Theme.dock-position`) e como dock flutuante ou barra de ponta a ponta (`Theme.dock-style`); as margens
     viram `bottom`/`left`/`right` no `<margin>`. Papel de parede: `Theme.wallpaper` (0 = circuitos, padrão
     1 = PretoAzul), arquivos em `/usr/share/backgrounds/kalango` (copiados pelo `build.sh`), carregados por
-    `src/wallpaper.rs` na menor resolução que cobre a tela; escolha com miniaturas na Aparência. **Monitores** (`src/displays.rs`): `wlr-randr` (texto, não `--json`),
+    `src/shell/wallpaper.rs` na menor resolução que cobre a tela; escolha com miniaturas na Aparência. **Monitores** (`src/settings/displays.rs`): `wlr-randr` (texto, não `--json`),
     resolução/taxa/escala/rotação, confirmação de 15 s que volta sozinha, salvo em
     `~/.config/kalango/monitores.conf` e reaplicado pela área de trabalho ao entrar. Escala só se sobrar
     ≥ 1024×600 lógicos para o shell. `--mode` precisa da taxa exatamente como o wlr-randr escreve.
@@ -56,7 +56,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     Volume/mudo, brilho (só com `/sys/class/backlight`; `SetBrightness` do logind via `busctl`, sem root),
     Wi-Fi liga/desliga (sem placa: botão "Rede"), estilo escuro, bateria, Configurações, bloquear e submenu
     suspender/reiniciar/desligar/sair. No QEMU, voltar da suspensão reinicia a VM (limitação do QEMU).
-  - `kalango-shell --greeter`: tela de login de verdade (`src/greeter.rs`). O greetd roda `kalango-greeter`
+  - `kalango-shell --greeter`: tela de login de verdade (`src/shell/greeter.rs`). O greetd roda `kalango-greeter`
     (labwc com config própria em `/etc/kalango/greeter`, sem atalhos) como `_greetd`; a senha vai pelo IPC do
     greetd (JSON com tamanho u32 nativo, socket `$GREETD_SOCK`) para o PAM e, se conferir, o greeter sai e o
     greetd inicia `kalango-session`. Usuário padrão: o primeiro de UID 1000–59999 do `/etc/passwd`;
@@ -65,8 +65,8 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   Textos dos `.slint` em inglês com `@tr("...")`; tradução em `lang/pt_BR/LC_MESSAGES/kalango_os.po` (msgid =
   inglês, sem contexto: `DefaultTranslationContext::None` no `build.rs`), embutida no binário. Textos montados no
   Rust usam `i18n::tr("en", "pt")`. Idioma = `LC_ALL`/`LC_MESSAGES`/`LANG` começando com `pt`
-  (`src/i18n.rs`). Texto novo na UI: `@tr("English")` + par msgid/msgstr no `.po`. Comentários e docs continuam
-  em pt-BR. Configurações → **Idioma e região** (`src/region.rs`): idioma (vale no próximo login) e teclado
+  (`src/common/i18n.rs`). Texto novo na UI: `@tr("English")` + par msgid/msgstr no `.po`. Comentários e docs continuam
+  em pt-BR. Configurações → **Idioma e região** (`src/settings/region.rs`): idioma (vale no próximo login) e teclado
   (na hora: `~/.config/labwc/environment` com marca + `labwc --reconfigure`), gravados em
   `~/.config/kalango/regiao.conf`, lido por `/usr/local/lib/kalango/regiao.sh` (kalango-session, greeter,
   instalador) depois de `/etc/default/locale` e `/etc/default/keyboard`. **O labwc lê um só `environment`**
@@ -77,14 +77,14 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   pavucontrol, parole, gnome-software = Loja, gnome-calendar = Agenda), avisos vão para o centro da barra (o rodapé pode estar atrás de um app), power faz
   `systemctl poweroff`, a área de trabalho começa direto (sem login falso) e o nome vem do GECOS de `$USER`.
   Rodapé do menu: cadeado = `swaylock` (ext-session-lock, seguro), sair = `labwc --exit` (volta ao greeter).
-  "Todos os apps" do menu = os `.desktop` do sistema (`src/desktop.rs`: `Name[pt_BR]`, ícone do hicolor/Adwaita
+  "Todos os apps" do menu = os `.desktop` do sistema (`src/launcher/desktop.rs`: `Name[pt_BR]`, ícone do hicolor/Adwaita
   ou a inicial, `Exec` sem `%f`/`%U`, `Terminal=true` abre no foot; some `NoDisplay`, `OnlyShowIn` e o
   instalador do Debian), id `desktop:<caminho>`; a busca procura neles depois dos fixados, sem repetir os
   programas dos fixados. Lidos numa thread depois de o menu aparecer (~40 ms com 60 apps em release).
-  RECENTES do menu = `~/.local/share/recently-used.xbel` (`src/recent.rs`), abertos com `xdg-open`; na ISO live
+  RECENTES do menu = `~/.local/share/recently-used.xbel` (`src/launcher/recent.rs`), abertos com `xdg-open`; na ISO live
   (`/run/live/medium` existe) o 1º item é "Instalar Kalango OS" (app `installer`).
   Sem a variável (dev no host, `examples/snapshot.rs`) continua o protótipo com as janelas de demonstração.
-- **Rede local e compartilhamento (2026-11-13):** Configurações → **Sharing** (`src/sharing.rs`, `SharingPage`).
+- **Rede local e compartilhamento (2026-11-13):** Configurações → **Sharing** (`src/settings/sharing.rs`, `SharingPage`).
   Compartilhar = Samba + `wsdd2` (aparece na Rede do Windows), **desligado por padrão** (hook `0120` desliga
   smbd/nmbd/wsdd2, tira `[homes]`/`[printers]`/`[print$]` do smb.conf e inclui `/etc/samba/kalango.conf`). Root só
   por `pkexec /usr/local/sbin/kalango-compartilhar ligar|desligar|pastas SEM_SENHA PASTA...` (política
@@ -94,8 +94,8 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `avahi-browse -tpr _smb._tcp` (Linux/macOS/NAS; Windows não se anuncia: campo de endereço `\\pc\pasta` →
   `smb://` e "Browse network" = `thunar network:///`), tudo pelo gvfs (`gvfs-backends`). Testado na VM: visitante
   lê e não grava, com senha grava, Thunar lista as pastas e a Rede.
-- **Bluetooth, IP fixo e VPN (2026-11-13), como no Ubuntu:** `src/bluetooth.rs` (`bluetoothctl`; parear numa sessão
-  interativa com agente KeyboardDisplay, código do aparelho na tela; botão no painel rápido) e `src/netconfig.rs`
+- **Bluetooth, IP fixo e VPN (2026-11-13), como no Ubuntu:** `src/settings/bluetooth.rs` (`bluetoothctl`; parear numa sessão
+  interativa com agente KeyboardDisplay, código do aparelho na tela; botão no painel rápido) e `src/settings/netconfig.rs`
   (Rede → CONEXÕES → "Configurar IP" pelo `nmcli connection modify`; VPN: importar `.ovpn`/`.conf`, formulários
   OpenVPN e WireGuard). **WireGuard nunca pelo `nmcli connection import`** (liga na hora; com 0.0.0.0/0 derruba a
   rede) nem pelo nmcli (não edita `peers`): o shell lê o `.conf` e cria por `gdbus` → `Settings.AddConnection`,
@@ -109,11 +109,11 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   atualiza, fora da sessão o polkit nega o NetworkManager. Conferir antes se só há um `kalango-shell` sem argumento.
   `grim` instalado lá para capturas.
 - **Áreas de trabalho e encaixe (2026-11-13):** 4 áreas (`<desktops>` no rc.xml), indicador real na barra pelo
-  `ext-workspace-v1` do labwc 0.8.3 (`src/workspaces.rs`, conexão Wayland própria numa thread; clicar ativa). Barra,
+  `ext-workspace-v1` do labwc 0.8.3 (`src/shell/workspaces.rs`, conexão Wayland própria numa thread; clicar ativa). Barra,
   menu e painel com `ToggleOmnipresent`. Encaixe: borda = metade/maximizar com prévia; arrastar com modificador =
   regiões (metades e quartos); menu `kalango-layouts` (botão direito no maximizar ou Super+Z) no
   `~/.config/labwc/menu.xml` que o shell grava no idioma (`labwc::sync_layouts_menu`); o labwc lê um só menu.xml.
-- **Vários monitores (2026-11-14):** `src/outputs.rs` (área de trabalho, a cada 2 s pelo `wlr-randr`): barra e dock no
+- **Vários monitores (2026-11-14):** `src/shell/outputs.rs` (área de trabalho, a cada 2 s pelo `wlr-randr`): barra e dock no
   monitor **principal** (`principal=` no `monitores.conf`; sem escolha, o primeiro da esquerda), papel de parede nos
   outros com `kalango-shell --fundo=<saída> --numero=<n>` (app_id `kalango-fundo-<saída>`, uma instância por saída).
   **Para pôr uma janela num monitor use `MoveToOutput output=`** antes do `ToggleFullscreen` (com `MoveTo` o
@@ -134,26 +134,26 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   transparente, tamanho da faixa). Transparência do fundo da dock: `Theme.dock-transparency` (`dock-transparencia`). Sem placa de vídeo ou com a
   dock escondida, ela continua desenhada na área de trabalho (atrás das janelas). Com placa de vídeo, todo o shell
   usa OpenGL (`renderer_for`: a Aparência travava no renderer de software).
-- **Apps abertos na dock e Alt+Tab (2026-11-14):** `src/toplevels.rs` (wlr-foreign-toplevel, conexão própria numa
-  thread, ordem de uso) → `src/taskbar.rs`: janela → id da dock (catálogo, `desktop:<caminho>` pelo nome do arquivo/
+- **Apps abertos na dock e Alt+Tab (2026-11-14):** `src/shell/toplevels.rs` (wlr-foreign-toplevel, conexão própria numa
+  thread, ordem de uso) → `src/shell/taskbar.rs`: janela → id da dock (catálogo, `desktop:<caminho>` pelo nome do arquivo/
   `StartupWMClass`/programa — VS Code = `com.microsoft.VSCode.desktop` —, ou `window:<app_id>`); `Shell.running-ids`,
   `active-app`, `running-extra` (abertos não fixados, depois dos fixados). Clique: abre / foca / minimiza / próxima
   janela; o "em foco" é a última janela de app (clicar na dock tira o foco do app). Botão direito = processo
   `--menu-dock=<id> --pos= --total=` (tela cheia transparente, `DockMenuView`); fixar também pelo botão direito no
   menu de apps (`Shell.save-prefs` grava na hora). Dock nova só mata a antiga 0,9 s depois (sem piscar).
-  **Alt+Tab** (`src/switcher.rs`): A-Tab/W-Tab no rc.xml rodam `kalango-shell --alternar[=anterior]`, que só manda o
+  **Alt+Tab** (`src/shell/switcher.rs`): A-Tab/W-Tab no rc.xml rodam `kalango-shell --alternar[=anterior]`, que só manda o
   pedido pelo socket `$XDG_RUNTIME_DIR/kalango-alternar.sock` ao processo `--alternar=iniciar` (aberto pela área de
   trabalho, sem janela). **No Wayland o winit não mapeia de novo uma janela escondida** (`show()` depois de `hide()`
   ou numa janela criada escondida não faz nada): cada Alt+Tab cria um `AppWindow` novo e o descarta ao terminar. Soltar o Alt = evento cru do winit (feature `unstable-winit-030`; `ModifiersChanged` sem Alt
   ao ganhar o foco cobre o Alt+Tab rápido); painel só aparece após 120 ms.
-- **Usuários (2026-11-14), como no Ubuntu:** `src/users.rs` + global `Accounts` (`UsersPage`). A própria senha
+- **Usuários (2026-11-14), como no Ubuntu:** `src/settings/users.rs` + global `Accounts` (`UsersPage`). A própria senha
   pelo `passwd` num terminal falso (`script -qec passwd /dev/null`, `LC_ALL=C`), respondendo a cada pergunta 250 ms
   depois de ela aparecer (o PAM limpa a entrada ao desligar o eco). Outras contas pelo
   `pkexec /usr/local/sbin/kalango-usuarios criar|senha|tipo|nome|remover` (política `org.kalango.usuarios`, senha
   pela entrada padrão): conta nova com pasta 700 e grupos de desktop (+`sudo` se administrador); recusa remover/
   rebaixar a si mesmo, o último administrador e quem está com sessão aberta. A tela de login mostra todas as contas
   (`Shell.login-users`). Testar o pkexec com as Configurações abertas pela sessão gráfica (pela SSH não há agente).
-- **Energia (2026-11-14):** `src/power.rs` + global `Power`: modo (`powerprofilesctl`), apagar a tela/bloquear/
+- **Energia (2026-11-14):** `src/settings/power.rs` + global `Power`: modo (`powerprofilesctl`), apagar a tela/bloquear/
   suspender na bateria e na tomada (`~/.config/kalango/energia.conf`; a área de trabalho roda o `swayidle` com
   `wlopm` e troca ao mudar a escolha ou o carregador; pidfile `kalango-swayidle.pid`), tampa e botão de ligar pelo
   `pkexec /usr/local/sbin/kalango-energia` (`/etc/systemd/logind.conf.d/50-kalango.conf` + HUP no logind).
@@ -166,7 +166,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   Testar bloqueio sempre na VM antes da máquina física.
 - **Pendrives (2026-11-13): a cópia não termina antes da gravação.** `etc/udev/rules.d/90-kalango-pendrive.rules`
   (`90-`: precisa do `ID_BUS` do 60-persistent-storage) põe `bdi/strict_limit=1` e `bdi/max_bytes=16 MB` em disco
-  USB: a cópia anda na velocidade real. A área de trabalho (`src/usb.rs`, thread a cada 2 s) dá `sync -f` nos
+  USB: a cópia anda na velocidade real. A área de trabalho (`src/shell/usb.rs`, thread a cada 2 s) dá `sync -f` nos
   discos USB montados e mostra "Gravando no pendrive, não remova" no centro da barra (`Shell.usb-writing`; fim =
   aviso pelo `show-toast`, público). O udisks já monta FAT32 com `flush`; exFAT não tem. Medido em exFAT a 2 MB/s
   (`run-qemu.sh --pendrive`), 60 MB: sem nada o `cp` acaba em 0,2 s com 58 MB na memória; com regra + shell, 29 s e
@@ -194,6 +194,14 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   base-files pelo hook `0050`), `etc/default/grub.d/kalango.cfg` (`GRUB_DISTRIBUTOR`).
 - Próximos passos da arquitetura: layer-shell para barra/dock/menu; contraste das legendas de partição do
   Calamares no tema escuro (desenhadas pela paleta Qt, não pelo qss).
+
+## Organização do código (2026-11-14)
+
+- `src/common/` (relógio, idioma, CPU/bateria), `src/launcher/` (menu de apps, `.desktop`, recentes),
+  `src/shell/` (sessão e processos do shell: login, dock, barra, Alt+Tab, monitores, papel de parede, labwc, USB) e
+  `src/settings/` (o que fica por trás das páginas das Configurações). Caminho completo nos `use`
+  (`crate::shell::session::...`); o `lib.rs` só reexporta `Mode`. UI: `ui/screens/` (telas), `ui/components/`
+  (peças reutilizáveis), globals em `ui/globals.slint`, `ui/device.slint` e `ui/theme.slint`.
 
 ## Ambiente
 

@@ -6,14 +6,14 @@
 //! - `--settings`: as Configurações, numa janela comum;
 //! - `--quick-settings`: o painel rápido do canto da barra (volume, brilho,
 //!   Wi-Fi, desligar...), em tela cheia e transparente, por cima de tudo;
-//! - `--greeter`: a tela de login do greetd (ver [`crate::greeter`]).
+//! - `--greeter`: a tela de login do greetd (ver [`crate::shell::greeter`]).
 //!
 //! O menu e as Configurações são processos próprios porque, sem layer-shell,
 //! uma janela "sempre atrás" não consegue mostrar nada por cima dos apps.
 //! A variável `KALANGO_SESSION=1` (exportada pelo `kalango-session`)
 //! liga o modo real: abrir apps de verdade, desligar pelo systemd etc.
 
-use crate::i18n::tr;
+use crate::common::i18n::tr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -31,15 +31,15 @@ pub enum Mode {
     Settings,
     Greeter,
     QuickSettings,
-    /// Dock em janela própria, sempre por cima das janelas (`src/dock.rs`).
+    /// Dock em janela própria, sempre por cima das janelas (`src/shell/dock.rs`).
     Dock,
-    /// Papel de parede de um monitor extra (`--fundo=<saída>`, `src/outputs.rs`).
+    /// Papel de parede de um monitor extra (`--fundo=<saída>`, `src/shell/outputs.rs`).
     Fundo,
-    /// Alt+Tab (`--alternar`, `src/switcher.rs`): um processo que fica
+    /// Alt+Tab (`--alternar`, `src/shell/switcher.rs`): um processo que fica
     /// aberto (escondido) e mostra as janelas a cada Alt+Tab.
     Switcher,
     /// Menu do botão direito de um app da dock (`--menu-dock=<id>`,
-    /// `src/taskbar.rs`).
+    /// `src/shell/taskbar.rs`).
     DockMenu,
 }
 
@@ -228,8 +228,8 @@ pub fn open(id: &str) -> bool {
         }
         _ => {
             // Apps do sistema ("Todos os apps"): comando do `.desktop`.
-            let argv = if id.starts_with(crate::desktop::ID_PREFIX) {
-                crate::desktop::from_id(id).map(|app| app.command())
+            let argv = if id.starts_with(crate::launcher::desktop::ID_PREFIX) {
+                crate::launcher::desktop::from_id(id).map(|app| app.command())
             } else {
                 command_for(id)
             };
@@ -440,19 +440,19 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     shell.on_power_off(move || power_off(real));
 
     if mode == Mode::Greeter {
-        crate::greeter::install(ui);
+        crate::shell::greeter::install(ui);
         return None;
     }
     if native {
         // A sessão já foi autenticada pelo greetd: nada de tela de login falsa.
         ui.set_screen(Screen::Desktop);
         if let Ok(login) = std::env::var("USER") {
-            let name = crate::greeter::display_name(&login);
-            shell.set_user_initial(crate::greeter::initial(&name).into());
+            let name = crate::shell::greeter::display_name(&login);
+            shell.set_user_initial(crate::shell::greeter::initial(&name).into());
             shell.set_user_name(name.into());
         }
         if mode == Mode::Launcher {
-            crate::recent::install(ui);
+            crate::launcher::recent::install(ui);
         }
     }
     shell.on_quit(|| {

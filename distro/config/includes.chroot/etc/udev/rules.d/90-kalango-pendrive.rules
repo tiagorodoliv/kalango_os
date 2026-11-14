@@ -5,7 +5,7 @@
 # de cópia chega a 100% muito antes de o pendrive terminar de gravar: quem tira o
 # pendrive nessa hora perde o arquivo. Com o limite, a cópia anda na velocidade
 # real do pendrive e, ao terminar, sobra só um instante de gravação (o shell
-# força essa última parte com `sync -f` e avisa na barra, ver src/usb.rs).
+# força essa última parte com `sync -f` e avisa na barra, ver src/shell/usb.rs).
 #
 # strict_limit faz o limite valer mesmo com pouca coisa suja no sistema todo;
 # max_bytes existe desde o kernel 6.2 (o do Debian 13 é o 6.12).

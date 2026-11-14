@@ -7,7 +7,7 @@
 # - Kalango-Ciano, -Roxo, -Azul, -Verde, -Ambar, -Rosa: a pasta `places` da
 #   variante do Flat Remix na cor do destaque, herdando o resto do
 #   Flat-Remix-Blue-Dark. O shell troca entre eles junto com a cor de
-#   destaque (src/appearance.rs, ICON_THEMES).
+#   destaque (src/settings/appearance.rs, ICON_THEMES).
 #
 # Uso: distro/icones/flat-remix.sh <pasta_icons_de_destino> <pasta_de_cache>
 # Chamado pelo distro/build.sh. O pacote baixado fica no cache e é conferido

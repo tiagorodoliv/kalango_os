@@ -43,7 +43,7 @@ export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power, Accounts, User
 /// Telas de nível superior.
 export enum Screen { login, desktop, settings }
 
-/// O que este processo do shell mostra (ver `src/session.rs`).
+/// O que este processo do shell mostra (ver `src/shell/session.rs`).
 export enum ShellMode {
     /// Área de trabalho: login, barra, dock e fundo. Padrão.
     desktop,
@@ -56,13 +56,13 @@ export enum ShellMode {
     /// Só o painel rápido do canto da barra, sobre fundo transparente
     /// (`--quick-settings`).
     quick-settings,
-    /// Só a dock, em janela própria sempre por cima (`--dock`, src/dock.rs).
+    /// Só a dock, em janela própria sempre por cima (`--dock`, src/shell/dock.rs).
     dock,
-    /// Só o papel de parede de um monitor extra (`--fundo=`, src/outputs.rs).
+    /// Só o papel de parede de um monitor extra (`--fundo=`, src/shell/outputs.rs).
     fundo,
-    /// Alt+Tab: as janelas abertas (`--alternar`, src/switcher.rs).
+    /// Alt+Tab: as janelas abertas (`--alternar`, src/shell/switcher.rs).
     switcher,
-    /// Menu do botão direito de um app da dock (`--menu-dock=`, src/taskbar.rs).
+    /// Menu do botão direito de um app da dock (`--menu-dock=`, src/shell/taskbar.rs).
     dock-menu,
 }
 

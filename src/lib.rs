@@ -1,69 +1,29 @@
 //! Shell gráfico do Kalango OS (protótipo navegável em Rust + Slint).
 //!
 //! A UI declarativa fica em `ui/*.slint` (compilada pelo `build.rs`); este
-//! crate liga a UI aos serviços do sistema:
-//! - [`clock`]: data/hora local em pt-BR;
-//! - [`outputs`]: vários monitores (barra no principal, papel de parede em todos);
-//! - [`dock`]: a dock em janela própria, sempre por cima das janelas;
-//! - [`device`]: rede, som, energia e ficha do sistema nas Configurações;
-//! - [`netconfig`]: IP fixo das conexões e VPN (OpenVPN, WireGuard);
-//! - [`bluetooth`]: ligar, procurar, parear e conectar aparelhos (BlueZ);
-//! - [`displays`]: monitores (resolução, escala, rotação) pelo `wlr-randr`;
-//! - [`system`]: uso de CPU e bateria;
-//! - [`apps`]: busca do launcher e a lista "Todos os apps";
-//! - [`desktop`]: apps instalados, lidos dos arquivos `.desktop`;
-//! - [`session`]: sessão real (abrir apps, menu e Configurações como janelas
-//!   próprias, desligar);
-//! - [`appearance`]: aparência salva em disco e compartilhada entre processos;
-//! - [`labwc`]: ajustes do compositor feitos pelo shell (margem da dock);
-//! - [`greeter`]: tela de login de verdade, como greeter do greetd;
-//! - [`wallpaper`]: papel de parede da área de trabalho;
-//! - [`recent`]: arquivos recentes de verdade no menu de apps;
-//! - `workspaces` (Linux): áreas de trabalho na barra (ext-workspace do labwc);
-//! - [`terminal`]: temas do terminal (foot);
-//! - [`usb`]: grava logo nos pendrives e avisa na barra enquanto grava;
-//! - `toplevels` (Linux): janelas abertas (wlr-foreign-toplevel);
-//! - `taskbar` (Linux): apps abertos na dock e o menu do botão direito dela;
-//! - `switcher` (Linux): Alt+Tab com os ícones das janelas;
-//! - [`power`]: energia (modo de desempenho, apagar a tela, suspender, tampa);
-//! - [`users`]: contas de usuário (senha, criar, tipo, remover).
+//! crate liga a UI aos serviços do sistema, em quatro pastas:
+//! - [`common`]: relógio, idioma e uso de CPU/bateria;
+//! - [`launcher`]: menu de apps, apps instalados e arquivos recentes;
+//! - [`shell`]: a sessão (processos do shell, login, dock, barra, Alt+Tab,
+//!   monitores, papel de parede e ajustes do labwc);
+//! - [`settings`]: o que fica por trás das páginas das Configurações.
 //!
 //! A lógica fica na biblioteca (e não no `main.rs`) para poder ser reusada
 //! por testes e por ferramentas como um gerador de capturas das telas.
 
-pub mod appearance;
-pub mod apps;
-pub mod bluetooth;
-pub mod clock;
-pub mod desktop;
-pub mod device;
-pub mod dock;
-pub mod displays;
-pub mod greeter;
-pub mod i18n;
-pub mod labwc;
-pub mod netconfig;
-pub mod outputs;
-pub mod power;
-pub mod recent;
-pub mod region;
-pub mod session;
-pub mod sharing;
-pub mod system;
-pub mod terminal;
-pub mod usb;
-pub mod users;
-#[cfg(target_os = "linux")]
-pub mod switcher;
-#[cfg(target_os = "linux")]
-pub mod taskbar;
-#[cfg(target_os = "linux")]
-pub mod toplevels;
-#[cfg(target_os = "linux")]
-pub mod workspaces;
-pub mod wallpaper;
+pub mod common;
+pub mod launcher;
+pub mod settings;
+pub mod shell;
 
-pub use session::Mode;
+use common::{clock, i18n, system};
+use launcher::apps;
+use settings::{appearance, bluetooth, device, displays, netconfig, power, region, sharing, terminal, users};
+#[cfg(target_os = "linux")]
+use shell::{switcher, taskbar, workspaces};
+use shell::{dock, outputs, session, usb, wallpaper};
+
+pub use shell::session::Mode;
 
 // Tipos gerados pelo build.rs (AppWindow, Shell, Theme, Apps...).
 slint::include_modules!();
@@ -170,7 +130,7 @@ pub fn renderer_for(
         // Com placa de vídeo de verdade o OpenGL é barato e rola liso (a
         // página Aparência, alta, travava no renderer de software).
         _ if hardware_gl => Some("femtovg"),
-        // A dock em janela própria só abre com placa de vídeo (src/dock.rs).
+        // A dock em janela própria só abre com placa de vídeo (src/shell/dock.rs).
         _ if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Dock | Mode::Switcher | Mode::DockMenu) => {
             Some("femtovg")
         }
@@ -202,7 +162,7 @@ pub(crate) fn select_renderer(mode: Mode) {
 pub fn run() -> Result<(), slint::PlatformError> {
     let mode = Mode::from_args(std::env::args());
     // Alt+Tab: o atalho só manda o pedido ao processo aberto (rápido, sem
-    // abrir janela); ver src/switcher.rs.
+    // abrir janela); ver src/shell/switcher.rs.
     #[cfg(target_os = "linux")]
     if mode == Mode::Switcher {
         return switcher::run();

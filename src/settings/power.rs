@@ -22,8 +22,8 @@ use std::time::{Duration, SystemTime};
 
 use slint::{ComponentHandle, Timer, TimerMode};
 
-use crate::i18n::tr;
-use crate::session::Mode;
+use crate::common::i18n::tr;
+use crate::shell::session::Mode;
 use crate::{AppWindow, Power};
 
 /// Minutos das opções de "Apagar a tela" (0 = nunca).
@@ -177,7 +177,7 @@ fn install_settings(ui: &AppWindow) {
     pw.set_suspend_battery(index_of(&SUSPEND_MINUTES, p.suspend_battery));
     pw.set_suspend_ac(index_of(&SUSPEND_MINUTES, p.suspend_ac));
     pw.set_lock_on_blank(p.lock);
-    pw.set_has_battery(crate::system::battery_path().is_some());
+    pw.set_has_battery(crate::common::system::battery_path().is_some());
     pw.set_has_lid(has_lid());
 
     let (lid, lid_ac, button) = parse_logind(&fs::read_to_string(LOGIND_CONF).unwrap_or_default());
@@ -336,7 +336,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             install_settings(ui);
             None
         }
-        Mode::Desktop if crate::session::is_native() => Some(install_idle()),
+        Mode::Desktop if crate::shell::session::is_native() => Some(install_idle()),
         _ => None,
     }
 }

@@ -20,7 +20,7 @@ use std::time::{Duration, Instant};
 
 use slint::{ComponentHandle, ModelRc, VecModel};
 
-use crate::i18n::tr;
+use crate::common::i18n::tr;
 use crate::{Accounts, AppWindow, Mode, UserAccount};
 
 /// Script de root (via pkexec) que mexe nas contas.
@@ -65,7 +65,7 @@ pub fn admins(group: &str) -> HashSet<String> {
 
 /// Logins com sessão aberta (`loginctl list-sessions`).
 fn signed_in() -> HashSet<String> {
-    crate::device::output("loginctl", &["list-sessions", "--no-legend"])
+    crate::settings::device::output("loginctl", &["list-sessions", "--no-legend"])
         .map(|text| text.lines().filter_map(|l| l.split_whitespace().nth(2)).map(String::from).collect())
         .unwrap_or_default()
 }
@@ -158,7 +158,7 @@ pub fn login_problem(login: &str, taken: &HashSet<String>) -> String {
 
 /// Primeira letra maiúscula do nome (avatar).
 fn initial(name: &str) -> String {
-    crate::greeter::initial(name)
+    crate::shell::greeter::initial(name)
 }
 
 /// Lê as contas do sistema para a página.
@@ -178,8 +178,8 @@ fn load(me: &str) -> (UserAccount, Vec<UserAccount>, bool) {
     let all = people(&passwd);
     let mine = all.iter().find(|p| p.login == me).map(to_ui).unwrap_or_else(|| UserAccount {
         login: me.into(),
-        name: crate::greeter::display_name(me).into(),
-        initial: initial(&crate::greeter::display_name(me)).into(),
+        name: crate::shell::greeter::display_name(me).into(),
+        initial: initial(&crate::shell::greeter::display_name(me)).into(),
         admin: admins.contains(me),
         me: true,
         signed_in: true,
@@ -388,7 +388,7 @@ pub fn install(ui: &AppWindow, mode: Mode) {
     a.on_suggest_login(|name| suggest_login(&name, &taken_names()).into());
     a.on_check_login(|login| login_problem(&login, &taken_names()).into());
 
-    let native = crate::session::is_native();
+    let native = crate::shell::session::is_native();
     let weak = ui.as_weak();
     a.on_change_own_password(move |current, new| {
         let Some(ui) = weak.upgrade() else { return };

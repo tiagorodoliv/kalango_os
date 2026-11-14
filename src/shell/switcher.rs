@@ -3,7 +3,7 @@
 //! O labwc roda `kalango-shell --alternar` (ou `--alternar=anterior`, com
 //! Shift) a cada Alt+Tab. Um processo do Alt+Tab fica aberto a sessão toda
 //! (a área de trabalho o inicia com `--alternar=iniciar`), escondido, e
-//! guarda a ordem de uso das janelas ([`crate::toplevels`]); o comando do
+//! guarda a ordem de uso das janelas ([`crate::shell::toplevels`]); o comando do
 //! atalho só manda o pedido para ele pelo socket
 //! `$XDG_RUNTIME_DIR/kalango-alternar.sock` e sai. Sem o processo, o comando
 //! vira ele.
@@ -29,8 +29,8 @@ use slint::winit_030::winit::keyboard::{Key, NamedKey};
 use slint::winit_030::{EventResult, WinitWindowAccessor};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
-use crate::session::Mode;
-use crate::toplevels::{Tracker, Window};
+use crate::shell::session::Mode;
+use crate::shell::toplevels::{Tracker, Window};
 use crate::{AppWindow, Shell, Switcher, SwitcherItem};
 
 /// Pedidos do atalho.
@@ -111,7 +111,7 @@ pub fn spawn_background() {
     if socket_path().is_some_and(|p| UnixStream::connect(p).is_ok()) {
         return;
     }
-    let _ = Command::new(crate::session::own_exe()).arg("--alternar=iniciar").stdin(Stdio::null()).spawn();
+    let _ = Command::new(crate::shell::session::own_exe()).arg("--alternar=iniciar").stdin(Stdio::null()).spawn();
 }
 
 struct State {
@@ -172,10 +172,10 @@ fn new_window() -> Option<AppWindow> {
     let ui = AppWindow::new().map_err(|e| eprintln!("kalango-shell: Alt+Tab: {e}")).ok()?;
     let _ = slint::set_xdg_app_id(Mode::Switcher.app_id());
     // A tradução só pode ser escolhida depois de criar um componente.
-    crate::i18n::apply();
-    crate::session::install(&ui, Mode::Switcher);
-    crate::apps::install(&ui, false, crate::session::is_native());
-    crate::appearance::load(&ui);
+    crate::common::i18n::apply();
+    crate::shell::session::install(&ui, Mode::Switcher);
+    crate::launcher::apps::install(&ui, false, crate::shell::session::is_native());
+    crate::settings::appearance::load(&ui);
     let sw = ui.global::<Switcher>();
     sw.on_choose(choose);
     sw.on_cancel(hide);
@@ -231,7 +231,7 @@ fn handle(request: Request) {
     }
     let windows: Vec<Window> = with_state(|s| s.tracker.as_ref().map(|t| t.windows()))
         .flatten()
-        .map(crate::taskbar::with_ids)
+        .map(crate::shell::taskbar::with_ids)
         .unwrap_or_default()
         .into_iter()
         .map(|(w, _)| w)
@@ -244,8 +244,8 @@ fn handle(request: Request) {
     let items: Vec<SwitcherItem> = windows
         .iter()
         .map(|w| {
-            let id = crate::taskbar::dock_id(&w.app_id).unwrap_or_default();
-            let app = crate::apps::entry_for(&ui, &id).unwrap_or_default();
+            let id = crate::shell::taskbar::dock_id(&w.app_id).unwrap_or_default();
+            let app = crate::launcher::apps::entry_for(&ui, &id).unwrap_or_default();
             SwitcherItem {
                 title: if w.title.is_empty() { app.name.clone() } else { w.title.clone().into() },
                 app,

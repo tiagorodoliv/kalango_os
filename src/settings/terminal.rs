@@ -14,7 +14,7 @@ use std::rc::Rc;
 
 use slint::{Color, ComponentHandle, ModelRc, SharedString, VecModel};
 
-use crate::i18n::tr;
+use crate::common::i18n::tr;
 use crate::{AppWindow, Mode, Shell, TerminalTheme};
 
 /// Pasta dos temas instalados.

@@ -14,7 +14,7 @@
 //!
 //! Sem `$GREETD_SOCK` (desenvolvimento) qualquer senha não vazia entra.
 
-use crate::i18n::tr;
+use crate::common::i18n::tr;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
@@ -210,7 +210,7 @@ pub fn login(sock: &Path, user: &str, password: &str, cmd: &[&str]) -> Result<()
 /// Usuário de pessoa (UID 1000–59999 com shell de login) de um `/etc/passwd`:
 /// devolve `(login, nome exibido)`. O nome vem do campo GECOS, se houver.
 pub fn first_human_user(passwd: &str) -> Option<(String, String)> {
-    crate::users::people(passwd).into_iter().next().map(|p| (p.login, p.name))
+    crate::settings::users::people(passwd).into_iter().next().map(|p| (p.login, p.name))
 }
 
 /// Nome exibido de um login, pelo GECOS do `/etc/passwd` (ou o próprio login).
@@ -250,7 +250,7 @@ pub fn install(ui: &AppWindow) {
     shell.set_user_name(name.into());
     // Com mais de uma conta, a tela mostra todas para escolher.
     let people: Vec<LoginUser> = std::fs::read_to_string("/etc/passwd")
-        .map(|p| crate::users::people(&p))
+        .map(|p| crate::settings::users::people(&p))
         .unwrap_or_default()
         .into_iter()
         .map(|p| LoginUser { initial: initial(&p.name).into(), login: p.login.into(), name: p.name.into() })

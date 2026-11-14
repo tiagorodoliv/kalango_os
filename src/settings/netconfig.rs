@@ -22,8 +22,8 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel, Weak};
 
-use crate::device::split_terse;
-use crate::i18n::tr;
+use crate::settings::device::split_terse;
+use crate::common::i18n::tr;
 use crate::{AppWindow, Device, Mode, NetConnection, VpnConnection};
 
 /// Intervalo entre as leituras da lista de conexões.
@@ -554,7 +554,7 @@ fn pick_file(title: &str, filter: Option<&str>) -> Option<String> {
 
 /// Liga IP fixo e VPN à página de Rede (sessão real, Configurações).
 pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
-    if !(crate::session::is_native() && mode == Mode::Settings) {
+    if !(crate::shell::session::is_native() && mode == Mode::Settings) {
         return None;
     }
     let d = ui.global::<Device>();

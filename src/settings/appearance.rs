@@ -9,7 +9,7 @@
 //! O mesmo arquivo guarda as opções da Barra de tarefas (o que a barra
 //! superior mostra, tamanho e apps da dock). Na área de trabalho da sessão
 //! real, o tamanho da dock também ajusta a margem que o labwc reserva para
-//! ela ([`crate::labwc`]).
+//! ela ([`crate::shell::labwc`]).
 
 use std::fs;
 use std::path::PathBuf;
@@ -46,7 +46,7 @@ pub struct Prefs {
     pub dock_style: i32,
     /// Transparência do fundo da dock, 0.0 (opaca) a 0.8.
     pub dock_transparency: f32,
-    /// 0 = circuitos; 1 em diante, os modelos de [`crate::wallpaper::MODELS`].
+    /// 0 = circuitos; 1 em diante, os modelos de [`crate::shell::wallpaper::MODELS`].
     pub wallpaper: i32,
     /// Família de ícones: 0 = Flat Remix, 1 = Colloid, 2 = Fluent.
     pub icon_theme: i32,
@@ -138,10 +138,10 @@ fn sync_gtk_accent(accent_index: i32) {
 /// cor das pastas (tema de ícones).
 fn sync_system(ui: &AppWindow, now: &Prefs, before: Option<&Prefs>) {
     if before.is_none_or(|b| b.dock_margins() != now.dock_margins()) {
-        crate::labwc::set_dock_margins(now.dock_margins());
+        crate::shell::labwc::set_dock_margins(now.dock_margins());
     }
     if before.is_none() {
-        crate::labwc::sync_layouts_menu();
+        crate::shell::labwc::sync_layouts_menu();
     }
     if before.is_none_or(|b| b.accent_index != now.accent_index) {
         sync_gtk_accent(now.accent_index);
@@ -150,7 +150,7 @@ fn sync_system(ui: &AppWindow, now: &Prefs, before: Option<&Prefs>) {
         let theme = sync_icon_theme(now.icon_theme, now.accent_index);
         // Dock e menu desta janela com os ícones do tema novo.
         if before.is_some() {
-            crate::apps::use_themed_icons(ui, &theme);
+            crate::launcher::apps::use_themed_icons(ui, &theme);
         }
     }
 }
@@ -228,8 +228,8 @@ impl Prefs {
     /// dock (botão + respiro de 9 px de cada lado; 6 px na barra), que fica
     /// encostada na borda. Com a dock escondida, nenhuma (os apps maximizados
     /// ocupam a tela toda).
-    pub fn dock_margins(&self) -> crate::labwc::Margins {
-        let mut m = crate::labwc::Margins::default();
+    pub fn dock_margins(&self) -> crate::shell::labwc::Margins {
+        let mut m = crate::shell::labwc::Margins::default();
         if !self.dock_always_visible {
             return m;
         }
@@ -274,7 +274,7 @@ impl Prefs {
             DOCK_POSITIONS[self.dock_position.clamp(0, 2) as usize],
             DOCK_STYLES[self.dock_style.clamp(0, 1) as usize],
             self.dock_transparency,
-            crate::wallpaper::name(self.wallpaper),
+            crate::shell::wallpaper::name(self.wallpaper),
             ICON_FAMILIES[self.icon_theme.clamp(0, 2) as usize],
         )
     }
@@ -346,12 +346,12 @@ impl Prefs {
                     }
                 }
                 "papel-de-parede" => {
-                    if let Some(i) = crate::wallpaper::index(value) {
+                    if let Some(i) = crate::shell::wallpaper::index(value) {
                         p.wallpaper = i;
                     }
                 }
                 "dock-apps" => {
-                    let ids = crate::apps::dock_ids(value);
+                    let ids = crate::launcher::apps::dock_ids(value);
                     if !ids.is_empty() {
                         p.dock_apps = ids.join(",");
                     }
@@ -402,7 +402,7 @@ pub fn load(ui: &AppWindow) {
 /// sempre no padrão. Na área de trabalho, também mantém a margem da dock no
 /// labwc. O timer devolvido precisa ficar vivo.
 pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
-    if !crate::session::is_native() {
+    if !crate::shell::session::is_native() {
         return None;
     }
     let path = config_path()?;
@@ -544,7 +544,7 @@ mod tests {
 
     #[test]
     fn margens_da_dock() {
-        use crate::labwc::Margins;
+        use crate::shell::labwc::Margins;
         let mut p = padrao();
         assert_eq!(p.dock_margins(), Margins { bottom: 70, left: 0, right: 0 });
         p.dock_size = 44;

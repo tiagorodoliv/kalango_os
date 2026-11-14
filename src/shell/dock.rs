@@ -21,7 +21,7 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, Model, Timer, TimerMode};
 
-use crate::session::Mode;
+use crate::shell::session::Mode;
 use crate::{AppWindow, Shell, Theme};
 
 /// Drivers de vídeo com aceleração de verdade (o OpenGL não sai pelo llvmpipe).
@@ -58,7 +58,7 @@ pub struct DockSpec {
 
 /// Janela da dock na tela: posição e tamanho exatos da dock (na barra, a
 /// borda inteira), encostada na borda. `screen` em px lógicos.
-pub fn geometry(screen: (u32, u32), spec: DockSpec, bar_height: u32) -> crate::labwc::DockGeometry {
+pub fn geometry(screen: (u32, u32), spec: DockSpec, bar_height: u32) -> crate::shell::labwc::DockGeometry {
     let (w, h) = (screen.0 as f32, screen.1 as f32);
     let side = h - bar_height as f32;
     let pad = (spec.thickness - spec.item) / 2.0;
@@ -69,13 +69,13 @@ pub fn geometry(screen: (u32, u32), spec: DockSpec, bar_height: u32) -> crate::l
     let t = spec.thickness.round() as u32;
     let along_px = along.round() as u32;
     match spec.position {
-        1 | 2 => crate::labwc::DockGeometry {
+        1 | 2 => crate::shell::labwc::DockGeometry {
             x: if spec.position == 1 { 0 } else { (w - spec.thickness).round() as i32 },
             y: bar_height as i32 + ((side - along) / 2.0).round() as i32,
             width: t,
             height: along_px,
         },
-        _ => crate::labwc::DockGeometry {
+        _ => crate::shell::labwc::DockGeometry {
             x: ((w - along) / 2.0).round() as i32,
             y: (h - spec.thickness).round() as i32,
             width: along_px,
@@ -98,12 +98,12 @@ fn spawn(width: u32, height: u32) -> Option<Child> {
 /// Cuida da janela da dock (só a área de trabalho da sessão real, com placa
 /// de vídeo). O timer devolvido precisa ficar vivo.
 pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
-    if mode != Mode::Desktop || !crate::session::is_native() || !hardware_gl() {
+    if mode != Mode::Desktop || !crate::shell::session::is_native() || !hardware_gl() {
         return None;
     }
     let weak = ui.as_weak();
     // Posição e tamanho da janela aberta agora e o processo dela.
-    let mut current: Option<crate::labwc::DockGeometry> = None;
+    let mut current: Option<crate::shell::labwc::DockGeometry> = None;
     let mut child: Option<Child> = None;
     // Janelas antigas: a nova as fecha depois de aparecer (session::claim_instance).
     let mut retired: Vec<Child> = Vec::new();
@@ -128,10 +128,10 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             count: ui.global::<crate::Apps>().get_dock().row_count() + shell.get_running_extra().row_count(),
         };
         // No monitor principal (com vários monitores, a origem dele).
-        let (ox, oy) = crate::outputs::primary_origin();
+        let (ox, oy) = crate::shell::outputs::primary_origin();
         let wanted = (theme.get_dock_always_visible() && screen.0 > 0 && failures < 3).then(|| {
             let g = geometry(screen, spec, theme.get_bar_height() as u32);
-            crate::labwc::DockGeometry { x: g.x + ox, y: g.y + oy, ..g }
+            crate::shell::labwc::DockGeometry { x: g.x + ox, y: g.y + oy, ..g }
         });
 
         // A janela caiu: abre de novo (até 3 vezes; depois desiste e a dock
@@ -160,12 +160,12 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
                 Some(g) => {
                     // Posição e tamanho no rc.xml antes de abrir (a regra vale
                     // ao mapear a janela).
-                    if crate::labwc::set_dock_geometry(Some(g)) {
+                    if crate::shell::labwc::set_dock_geometry(Some(g)) {
                         child = spawn(g.width, g.height);
                     }
                 }
                 None => {
-                    crate::labwc::set_dock_geometry(None);
+                    crate::shell::labwc::set_dock_geometry(None);
                 }
             }
         }

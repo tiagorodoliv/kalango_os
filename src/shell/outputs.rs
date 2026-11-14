@@ -25,8 +25,8 @@ use std::time::{Duration, SystemTime};
 
 use slint::{ComponentHandle, Timer, TimerMode};
 
-use crate::displays::{self, Output};
-use crate::session::Mode;
+use crate::settings::displays::{self, Output};
+use crate::shell::session::Mode;
 use crate::{AppWindow, Shell};
 
 /// Origem do monitor principal (a dock se posiciona a partir dela).
@@ -92,7 +92,7 @@ fn write_plan(p: &Plan) -> bool {
     if let Ok(mut o) = PRIMARY_ORIGIN.lock() {
         *o = (p.primary.1, p.primary.2);
     }
-    crate::labwc::set_outputs(
+    crate::shell::labwc::set_outputs(
         Some((p.primary.0.clone(), p.primary.1, p.primary.2)),
         p.extras.iter().map(|(n, x, y, _)| (n.clone(), *x, *y)).collect(),
     )
@@ -152,7 +152,7 @@ pub fn install_background(ui: &AppWindow, name: &str, number: i32) -> Vec<Timer>
 
 /// Cuida dos monitores na área de trabalho da sessão real.
 pub fn install(ui: &AppWindow, mode: Mode) -> Vec<Timer> {
-    if mode != Mode::Desktop || !crate::session::is_native() {
+    if mode != Mode::Desktop || !crate::shell::session::is_native() {
         return Vec::new();
     }
     let mut timers = vec![watch_identify(ui)];

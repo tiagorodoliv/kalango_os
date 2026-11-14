@@ -2,20 +2,20 @@
 <!--
   Configuração do labwc para o Kalango OS (vale para todos os usuários).
 
-  O kalango-shell roda em três janelas (ver src/session.rs):
+  O kalango-shell roda em três janelas (ver src/shell/session.rs):
   - "kalango-shell": a área de trabalho (barra, dock, fundo). Tela cheia,
     sem moldura e sempre atrás das janelas dos apps;
   - "kalango-launcher": o menu de apps. Tela cheia, transparente, por cima;
   - "kalango-quick-settings": o painel rápido do canto da barra (volume,
     brilho, Wi-Fi, desligar). Tela cheia, transparente, por cima;
   - "kalango-settings": as Configurações, janela comum.
-  - "kalango-alternar": o Alt+Tab (src/switcher.rs). Tela cheia, transparente,
+  - "kalango-alternar": o Alt+Tab (src/shell/switcher.rs). Tela cheia, transparente,
     por cima; o processo fica aberto e a janela só aparece no Alt+Tab;
   - "kalango-dock-menu": o menu do botão direito de um app da dock, no
     monitor principal (o shell põe o nome dele). Tela cheia, transparente;
   - "kalango-dock": a dock em janela própria, sempre por cima das janelas
     (como a do Ubuntu). A posição (MoveTo) é gerada pelo shell em
-    ~/.config/labwc/rc.xml conforme a tela e a dock (src/dock.rs).
+    ~/.config/labwc/rc.xml conforme a tela e a dock (src/shell/dock.rs).
   Barra/fundo, menu, painel e dock ficam em todas as áreas de trabalho.
 -->
 <labwc_config>
@@ -33,7 +33,7 @@
 
   <!--
     Áreas de trabalho: a barra do shell mostra e troca pelo protocolo
-    ext-workspace (src/workspaces.rs). Os nomes seguem o idioma (LANG).
+    ext-workspace (src/shell/workspaces.rs). Os nomes seguem o idioma (LANG).
   -->
   <desktops number="4">
     <popupTime>700</popupTime>
@@ -44,7 +44,7 @@
     maximiza), com prévia. Arrastar segurando Ctrl, Alt, Shift ou Super mostra
     as regiões abaixo (metades e quartos). As mesmas regiões estão no menu de
     layouts (botão direito no maximizar, ou Super+Z): ~/.config/labwc/menu.xml,
-    gravado pelo shell no idioma da sessão (src/labwc.rs).
+    gravado pelo shell no idioma da sessão (src/shell/labwc.rs).
   -->
   <snapping>
     <range>8</range>
@@ -81,7 +81,7 @@
       <action name="Execute" command="kalango-shell --launcher" />
     </keybind>
     <!-- Alt+Tab (e Super+Tab) com os ícones das janelas, como no Ubuntu
-         (src/switcher.rs). Com Shift, para trás. -->
+         (src/shell/switcher.rs). Com Shift, para trás. -->
     <keybind key="A-Tab">
       <action name="Execute" command="kalango-shell --alternar" />
     </keybind>
@@ -133,7 +133,7 @@
                 serverDecoration="no"
                 skipTaskbar="yes"
                 skipWindowSwitcher="yes">
-      <!-- No monitor principal (o shell põe o nome dele, src/outputs.rs) e em
+      <!-- No monitor principal (o shell põe o nome dele, src/shell/outputs.rs) e em
            tela cheia (e não maximizado): maximizar respeitaria a <margin> e
            cortaria a própria barra e a dock. -->
       <action name="MoveToOutput" output="" />
@@ -181,7 +181,7 @@
                 fixedPosition="yes">
       <action name="ToggleAlwaysOnTop"/>
       <action name="ToggleOmnipresent"/>
-      <!-- Trocados pelo shell (src/dock.rs): tamanho exato da dock e
+      <!-- Trocados pelo shell (src/shell/dock.rs): tamanho exato da dock e
            encostada na borda. ResizeTo antes do MoveTo. -->
       <action name="ResizeTo" width="1" height="1" />
       <action name="MoveTo" x="0" y="0" />

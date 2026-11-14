@@ -12,7 +12,7 @@
 //! Kalango OS (desenvolvimento), comando que não existe só deixa a página no
 //! estado "indisponível".
 
-use crate::i18n::tr;
+use crate::common::i18n::tr;
 use std::fs;
 use std::process::{Command, Stdio};
 use std::rc::Rc;
@@ -456,7 +456,7 @@ fn read_snapshot(rescan: bool) -> Snapshot {
             .unwrap_or_else(|| tr("Default output", "Saída padrão").into());
         s.sound = Some((vol, muted, name));
     }
-    if let Some(path) = crate::system::battery_path() {
+    if let Some(path) = crate::common::system::battery_path() {
         let cap = fs::read_to_string(path.join("capacity")).ok().and_then(|c| c.trim().parse().ok());
         let charging = fs::read_to_string(path.join("status"))
             .is_ok_and(|t| matches!(t.trim(), "Charging" | "Full"));
@@ -660,7 +660,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         d.set_bluetooth_present(fs::read_dir("/sys/class/bluetooth").is_ok_and(|mut r| r.next().is_some()));
     }
 
-    let native = crate::session::is_native();
+    let native = crate::shell::session::is_native();
     d.on_power_action(move |action| {
         let verb = match action.as_str() {
             "suspend" => "suspend",

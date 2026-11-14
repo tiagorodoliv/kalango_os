@@ -18,7 +18,7 @@ use std::rc::Rc;
 
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 
-use crate::i18n::{tr, Lang};
+use crate::common::i18n::{tr, Lang};
 use crate::{AppWindow, Device, Mode};
 
 /// Marca dos arquivos gerados pelo shell.
@@ -182,7 +182,7 @@ pub fn install(ui: &AppWindow, mode: Mode) {
     if !matches!(mode, Mode::Settings | Mode::Desktop) {
         return;
     }
-    let native = crate::session::is_native();
+    let native = crate::shell::session::is_native();
     let d = ui.global::<Device>();
     let region = current();
     let languages: Vec<SharedString> = LANGUAGES.iter().map(|(.., name)| (*name).into()).collect();
@@ -192,7 +192,7 @@ pub fn install(ui: &AppWindow, mode: Mode) {
     d.set_keyboard_index(region.layout_index().map_or(-1, |i| i as i32));
     // O idioma da sessão é o que estava no ambiente ao abrir: se a escolha
     // salva for outra, falta sair e entrar de novo.
-    let session_lang = crate::i18n::lang();
+    let session_lang = crate::common::i18n::lang();
     d.set_language_pending(Lang::from_locale(&region.lang) != session_lang);
 
     let weak = ui.as_weak();

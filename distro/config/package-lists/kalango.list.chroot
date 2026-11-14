@@ -25,7 +25,7 @@ libfontconfig1
 # 4 GB (padrão do pacote). Faz muita diferença em máquina com 2–4 GB.
 systemd-zram-generator
 
-# Apps reais abertos pela dock e pelo menu (ver src/session.rs)
+# Apps reais abertos pela dock e pelo menu (ver src/shell/session.rs)
 thunar
 # Miniaturas de fotos e vídeos no Thunar
 tumbler
@@ -55,7 +55,7 @@ swaylock
 # Tela de bloqueio com relógio, usuário e senha (kalango-bloquear); o swaylock
 # fica de reserva
 gtklock
-# Energia (src/power.rs): apagar a tela e suspender sozinho (swayidle + wlopm)
+# Energia (src/settings/power.rs): apagar a tela e suspender sozinho (swayidle + wlopm)
 # e modo de energia (economia/equilibrado/desempenho).
 swayidle
 wlopm

@@ -125,7 +125,7 @@ export component Dock inherits Rectangle {
         y: root.vertical ? root.start + i * root.step : root.pad;
         app: app;
         edge: Theme.dock-position;
-        // Sessão real: janelas abertas de verdade (`src/taskbar.rs`).
+        // Sessão real: janelas abertas de verdade (`src/shell/taskbar.rs`).
         // Protótipo: janelas de demonstração.
         running: Shell.native
             ? Shell.dock-has(Shell.running-ids, app.id)

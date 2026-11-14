@@ -201,13 +201,13 @@ pub fn set_dock_margins(margins: Margins) {
     update(|w| w.margins = Some(margins));
 }
 
-/// Posição e tamanho da janela da dock (`src/dock.rs`); `None` = a do
+/// Posição e tamanho da janela da dock (`src/shell/dock.rs`); `None` = a do
 /// sistema. Devolve se o `rc.xml` ficou como pedido (a dock pode ser aberta).
 pub fn set_dock_geometry(position: Option<DockGeometry>) -> bool {
     update(|w| w.dock = position)
 }
 
-/// Monitores (`src/outputs.rs`): o principal e os extras com fundo. Devolve
+/// Monitores (`src/shell/outputs.rs`): o principal e os extras com fundo. Devolve
 /// se o `rc.xml` ficou como pedido.
 pub fn set_outputs(primary: Option<(String, i32, i32)>, backgrounds: Vec<(String, i32, i32)>) -> bool {
     update(|w| {
@@ -297,7 +297,7 @@ pub const MENU_MARK: &str = "<!-- Gerado pelo kalango-shell (menu de layouts das
 /// `menu.xml` com o menu de layouts (`kalango-layouts`): botão direito no
 /// maximizar ou Super+Z. As regiões estão no `rc.xml` do sistema.
 pub fn layouts_menu() -> String {
-    use crate::i18n::tr;
+    use crate::common::i18n::tr;
     let item = |label: &str, action: &str| format!("    <item label=\"{label}\">{action}</item>\n");
     let region = |r: &str| format!("<action name=\"SnapToRegion\" region=\"{r}\" />");
     let mut xml = format!(

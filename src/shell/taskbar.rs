@@ -1,6 +1,6 @@
 //! Apps abertos na dock (como a do Ubuntu) e o menu do botão direito dela.
 //!
-//! As janelas vêm do [`crate::toplevels`]. Cada uma é ligada a um id da dock:
+//! As janelas vêm do [`crate::shell::toplevels`]. Cada uma é ligada a um id da dock:
 //! um app do catálogo ("files", "browser"...), um app do sistema pelo
 //! `.desktop` (`desktop:<caminho>`: o VS Code é o
 //! `com.microsoft.VSCode.desktop`, reconhecido pelo `StartupWMClass`) ou, sem
@@ -23,9 +23,9 @@ use std::time::{Duration, Instant};
 
 use slint::{ComponentHandle, Model, ModelRc, Timer, TimerMode, VecModel};
 
-use crate::desktop::{self, DesktopApp};
-use crate::session::Mode;
-use crate::toplevels::{Tracker, Window};
+use crate::launcher::desktop::{self, DesktopApp};
+use crate::shell::session::Mode;
+use crate::shell::toplevels::{Tracker, Window};
 use crate::{AppEntry, AppWindow, Apps, DockMenu, DockMenuWindow, Shell, Theme};
 
 /// Prefixo dos ids de janelas sem `.desktop` conhecido.
@@ -180,11 +180,11 @@ fn refresh(ui: &AppWindow) {
     });
     shell.set_running_ids(ids.join(",").into());
     shell.set_active_app(active.into());
-    let pinned = crate::apps::dock_ids(&dock_list);
+    let pinned = crate::launcher::apps::dock_ids(&dock_list);
     let extra: Vec<AppEntry> = ids
         .iter()
         .filter(|id| *id != "settings" && !pinned.contains(&id.as_str()))
-        .filter_map(|id| crate::apps::entry_for(ui, id))
+        .filter_map(|id| crate::launcher::apps::entry_for(ui, id))
         .collect();
     let same = {
         let old = shell.get_running_extra();
@@ -209,7 +209,7 @@ fn click(id: &str) {
     match (click_action(&refs, focused), tracker) {
         (Click::Open, _) | (_, None) => {
             if !id.starts_with(WINDOW_PREFIX) {
-                crate::session::open(id);
+                crate::shell::session::open(id);
             }
         }
         (Click::Activate(w), Some(t)) => t.activate(w),
@@ -223,7 +223,7 @@ fn click(id: &str) {
 /// Abre o menu do botão direito de um app.
 fn open_menu(ui: &AppWindow, id: &str, offset: f32) {
     let total = ui.global::<Apps>().get_dock().row_count() + ui.global::<Shell>().get_running_extra().row_count();
-    let _ = Command::new(crate::session::own_exe())
+    let _ = Command::new(crate::shell::session::own_exe())
         .args([format!("--menu-dock={id}"), format!("--pos={}", offset.round() as i32), format!("--total={total}")])
         .stdin(Stdio::null())
         .spawn();
@@ -246,14 +246,14 @@ fn start_tracker(ui: &AppWindow) -> Option<Tracker> {
 /// Liga os apps abertos à dock (área de trabalho e dock própria) e monta o
 /// menu da dock (`--menu-dock=`). O timer devolvido precisa ficar vivo.
 pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
-    if !crate::session::is_native() {
+    if !crate::shell::session::is_native() {
         return None;
     }
     let shell = ui.global::<Shell>();
     let weak = ui.as_weak();
     shell.on_save_prefs(move || {
         if let Some(ui) = weak.upgrade() {
-            crate::appearance::save_now(&ui);
+            crate::settings::appearance::save_now(&ui);
         }
     });
     match mode {
@@ -306,17 +306,17 @@ pub fn menu_args<I: IntoIterator<Item = String>>(args: I) -> Option<(String, f32
 fn install_menu(ui: &AppWindow) {
     let Some((id, pos, total)) = menu_args(std::env::args()) else { return };
     let menu = ui.global::<DockMenu>();
-    if let Some(entry) = crate::apps::entry_for(ui, &id) {
+    if let Some(entry) = crate::launcher::apps::entry_for(ui, &id) {
         menu.set_app(entry);
     }
     menu.set_offset(pos);
     menu.set_total(total);
-    let pinned = crate::apps::dock_ids(&ui.global::<Theme>().get_dock_apps()).contains(&id.as_str());
+    let pinned = crate::launcher::apps::dock_ids(&ui.global::<Theme>().get_dock_apps()).contains(&id.as_str());
     menu.set_pinned(pinned);
     menu.set_can_pin(id != "settings" && !id.starts_with(WINDOW_PREFIX));
     let can_open = id == "settings"
         || (id.starts_with(desktop::ID_PREFIX) && Path::new(&id[desktop::ID_PREFIX.len()..]).is_file())
-        || crate::session::command_for(&id).is_some();
+        || crate::shell::session::command_for(&id).is_some();
     menu.set_can_open(can_open);
 
     let tracker = Tracker::start(|_| {});
@@ -342,7 +342,7 @@ fn install_menu(ui: &AppWindow) {
     });
     let open_id = id.clone();
     menu.on_new_window(move || {
-        crate::session::open(&open_id);
+        crate::shell::session::open(&open_id);
         quit();
     });
     let weak = ui.as_weak();
@@ -350,8 +350,8 @@ fn install_menu(ui: &AppWindow) {
     menu.on_toggle_pin(move || {
         if let Some(ui) = weak.upgrade() {
             let theme = ui.global::<Theme>();
-            theme.set_dock_apps(crate::apps::dock_toggle(&theme.get_dock_apps(), &pin_id).into());
-            crate::appearance::save_now(&ui);
+            theme.set_dock_apps(crate::launcher::apps::dock_toggle(&theme.get_dock_apps(), &pin_id).into());
+            crate::settings::appearance::save_now(&ui);
         }
         quit();
     });

@@ -1,5 +1,5 @@
 // Estado real do computador mostrado nas Configurações (rede, som, energia,
-// sobre o sistema). Preenchido pelo Rust em `src/device.rs`, que conversa com
+// sobre o sistema). Preenchido pelo Rust em `src/settings/device.rs`, que conversa com
 // o NetworkManager (`nmcli`), o PipeWire (`wpctl`) e o systemd.
 //
 // Os valores padrão abaixo são os do protótipo (desenvolvimento e capturas).
@@ -84,7 +84,7 @@ export struct VpnConnection {
     active: bool,
 }
 
-/// Um aparelho Bluetooth (`src/bluetooth.rs`).
+/// Um aparelho Bluetooth (`src/settings/bluetooth.rs`).
 export struct BtDevice {
     /// Endereço ("AA:BB:CC:DD:EE:FF").
     mac: string,
@@ -131,7 +131,7 @@ export global Device {
     /// Resultado da última ação ("Conectado a Casa", "Senha incorreta"...).
     in-out property <string> network-message: "";
 
-    // --- IP fixo e VPN (`src/netconfig.rs`) ---
+    // --- IP fixo e VPN (`src/settings/netconfig.rs`) ---
     /// Conexões salvas de cabo e Wi-Fi.
     in property <[NetConnection]> connections: [];
     /// Conexão com o editor de IP aberto ("" = nenhum).
@@ -234,7 +234,7 @@ export global Device {
     /// Existe um adaptador Bluetooth.
     in property <bool> bluetooth-present: false;
 
-    // --- Bluetooth (BlueZ, `src/bluetooth.rs`) ---
+    // --- Bluetooth (BlueZ, `src/settings/bluetooth.rs`) ---
     /// O BlueZ respondeu e há um controlador.
     in property <bool> bt-available: false;
     in-out property <bool> bt-powered: false;
@@ -260,7 +260,7 @@ export global Device {
     /// "suspend" ou "reboot" (desligar usa `Shell.power-off`).
     callback power-action(string);
 
-    // --- Monitores (wlr-randr, `src/displays.rs`) ---
+    // --- Monitores (wlr-randr, `src/settings/displays.rs`) ---
 
     /// O `wlr-randr` respondeu e há pelo menos um monitor.
     in property <bool> displays-available: false;
@@ -299,7 +299,7 @@ export global Device {
     /// Volta à configuração anterior.
     callback revert-display();
 
-    // --- Idioma e região (src/region.rs) ---
+    // --- Idioma e região (src/settings/region.rs) ---
     /// Idiomas, cada um no próprio idioma ("English", "Português (Brasil)").
     in property <[string]> languages: ["English", "Português (Brasil)"];
     in property <int> language-index: 0;
@@ -311,7 +311,7 @@ export global Device {
     in property <string> keyboard-message: "";
     callback set-language(int);
 
-    // --- Compartilhamento (src/sharing.rs) ---
+    // --- Compartilhamento (src/settings/sharing.rs) ---
     /// Samba e o script de compartilhamento instalados (sessão real).
     in property <bool> sharing-available: false;
     in-out property <bool> sharing-enabled: false;
@@ -344,7 +344,7 @@ export global Device {
     callback set-keyboard(int);
 }
 
-/// Energia (Configurações → Energia, `src/power.rs`). As listas são índices
+/// Energia (Configurações → Energia, `src/settings/power.rs`). As listas são índices
 /// das opções da página (minutos em `BLANK_MINUTES`/`SUSPEND_MINUTES`).
 export global Power {
     /// `power-profiles-daemon` instalado e rodando.
@@ -388,7 +388,7 @@ export struct UserAccount {
     signed-in: bool,
 }
 
-/// Usuários (Configurações → Usuários, `src/users.rs`). A própria senha muda
+/// Usuários (Configurações → Usuários, `src/settings/users.rs`). A própria senha muda
 /// pelo `passwd`; o resto (contas de outras pessoas) pelo
 /// `pkexec /usr/local/sbin/kalango-usuarios`, com a senha do administrador.
 export global Accounts {
