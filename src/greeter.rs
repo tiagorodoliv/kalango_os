@@ -20,9 +20,11 @@ use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
 use std::path::Path;
 
-use slint::ComponentHandle;
+use std::rc::Rc;
 
-use crate::{AppWindow, Shell};
+use slint::{ComponentHandle, ModelRc, VecModel};
+
+use crate::{AppWindow, LoginUser, Shell};
 
 /// Comando da sessão iniciada após o login.
 pub const SESSION_CMD: &str = "kalango-session";
@@ -208,17 +210,7 @@ pub fn login(sock: &Path, user: &str, password: &str, cmd: &[&str]) -> Result<()
 /// Usuário de pessoa (UID 1000–59999 com shell de login) de um `/etc/passwd`:
 /// devolve `(login, nome exibido)`. O nome vem do campo GECOS, se houver.
 pub fn first_human_user(passwd: &str) -> Option<(String, String)> {
-    passwd.lines().find_map(|line| {
-        let f: Vec<&str> = line.split(':').collect();
-        let uid: u32 = f.get(2)?.parse().ok()?;
-        let shell = f.get(6).copied().unwrap_or("");
-        if !(1000..60000).contains(&uid) || shell.ends_with("nologin") || shell.ends_with("false") {
-            return None;
-        }
-        let gecos = f.get(4).and_then(|g| g.split(',').next()).unwrap_or("");
-        let name = if gecos.trim().is_empty() { f[0] } else { gecos.trim() };
-        Some((f[0].to_string(), name.to_string()))
-    })
+    crate::users::people(passwd).into_iter().next().map(|p| (p.login, p.name))
 }
 
 /// Nome exibido de um login, pelo GECOS do `/etc/passwd` (ou o próprio login).
@@ -256,6 +248,14 @@ pub fn install(ui: &AppWindow) {
     shell.set_login_user(user.into());
     shell.set_user_initial(initial(&name).into());
     shell.set_user_name(name.into());
+    // Com mais de uma conta, a tela mostra todas para escolher.
+    let people: Vec<LoginUser> = std::fs::read_to_string("/etc/passwd")
+        .map(|p| crate::users::people(&p))
+        .unwrap_or_default()
+        .into_iter()
+        .map(|p| LoginUser { initial: initial(&p.name).into(), login: p.login.into(), name: p.name.into() })
+        .collect();
+    shell.set_login_users(ModelRc::from(Rc::new(VecModel::from(people))));
 
     let weak = ui.as_weak();
     shell.on_start_login(move |user, password| {

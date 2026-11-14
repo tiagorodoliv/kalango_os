@@ -218,6 +218,51 @@ export component LoginScreen inherits Rectangle {
         }
     }
 
+    // --- Outras contas (greeter com mais de uma pessoa): clique para trocar ---
+    if Shell.greeter && Shell.login-users.length > 1: HorizontalLayout {
+        x: (root.width - self.preferred-width) / 2;
+        y: card.y + card.height + 16px;
+        height: 44px;
+        spacing: 10px;
+        for u in Shell.login-users: Rectangle {
+            property <bool> current: u.login == Shell.login-user;
+            width: chip.preferred-width;
+            border-radius: 22px;
+            background: self.current ? Theme.accent.with-alpha(0.18) : chip-touch.has-hover ? Theme.tile-hover : Theme.panel.with-alpha(0.85);
+            border-width: 1px;
+            border-color: self.current ? Theme.accent : Theme.border;
+            chip := HorizontalLayout {
+                padding-left: 8px;
+                padding-right: 16px;
+                spacing: 8px;
+                Avatar {
+                    width: 28px;
+                    height: 28px;
+                    y: 8px;
+                    letter: u.initial;
+                    filled: u.login == Shell.login-user;
+                }
+                Text {
+                    text: u.name;
+                    color: Theme.text;
+                    font-family: Theme.sans;
+                    font-size: 13.5px;
+                    vertical-alignment: center;
+                }
+            }
+            chip-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.editing-user = false;
+                    root.error = "";
+                    Shell.login-error = "";
+                    Shell.choose-user(u.login);
+                    password.focus();
+                }
+            }
+        }
+    }
+
     // --- Rodapé: logotipo vetorial + "OS" (como na prancha da marca) ---
     HorizontalLayout {
         x: 30px;

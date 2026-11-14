@@ -1053,3 +1053,82 @@ msgstr "Quando o computador fica sem uso por"
 
 msgid "When the screen turns off and before suspending"
 msgstr "Quando a tela apaga e antes de suspender"
+
+# Configurações → Usuários (src/users.rs)
+msgid "Administrator"
+msgstr "Administrador"
+
+msgid "Standard"
+msgstr "Padrão"
+
+msgid "signed in"
+msgstr "com sessão aberta"
+
+msgid "Type the new password"
+msgstr "Digite a nova senha"
+
+msgid "The passwords do not match"
+msgstr "As senhas não conferem"
+
+msgid "YOUR ACCOUNT"
+msgstr "SUA CONTA"
+
+msgid "Current password"
+msgstr "Senha atual"
+
+msgid "New password"
+msgstr "Nova senha"
+
+msgid "Confirm"
+msgstr "Confirmar"
+
+msgid "Type your current password"
+msgstr "Digite a senha atual"
+
+msgid "OTHER USERS"
+msgstr "OUTROS USUÁRIOS"
+
+msgid "No other users on this computer"
+msgstr "Nenhum outro usuário neste computador"
+
+msgid "Full name"
+msgstr "Nome completo"
+
+msgid "Account type"
+msgstr "Tipo de conta"
+
+msgid "Leave empty to keep"
+msgstr "Deixe vazio para manter"
+
+msgid "Type the name"
+msgstr "Digite o nome"
+
+msgid "Remove user..."
+msgstr "Remover usuário..."
+
+msgid "Signed in now: log this user out before removing."
+msgstr "Com a sessão aberta: saia da sessão dessa pessoa antes de remover."
+
+msgid "Remove {}? Their files in /home/{} can be kept or deleted."
+msgstr "Remover {}? Os arquivos em /home/{} podem ser mantidos ou apagados."
+
+msgid "Keep files"
+msgstr "Manter arquivos"
+
+msgid "Delete files"
+msgstr "Apagar arquivos"
+
+msgid "Add user..."
+msgstr "Adicionar usuário..."
+
+msgid "Only administrators can add or change other users."
+msgstr "Só administradores podem adicionar ou mudar outros usuários."
+
+msgid "Add user"
+msgstr "Adicionar usuário"
+
+msgid "e.g. Maria Silva"
+msgstr "ex.: Maria Silva"
+
+msgid "Home folder: /home/{}, private to this user"
+msgstr "Pasta pessoal: /home/{}, só desse usuário"

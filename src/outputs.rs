@@ -70,6 +70,13 @@ pub fn plan(outputs: &[Output], config: &str) -> Option<Plan> {
     Some(Plan { primary: (primary.name.clone(), primary.x, primary.y, number(&primary.name)), extras })
 }
 
+impl Plan {
+    /// Nomes dos monitores do plano (principal e extras).
+    fn names(&self) -> Vec<String> {
+        std::iter::once(self.primary.0.clone()).chain(self.extras.iter().map(|e| e.0.clone())).collect()
+    }
+}
+
 fn read_plan() -> Option<Plan> {
     let out = Command::new("wlr-randr").stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
     if !out.status.success() {
@@ -162,10 +169,21 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Vec<Timer> {
     let mut current = first;
     let mut children: Vec<Child> = Vec::new();
     let mut started = false;
+    let mut known: Vec<String> = current.as_ref().map(Plan::names).unwrap_or_default();
     let timer = Timer::default();
     timer.start(TimerMode::Repeated, Duration::from_secs(2), move || {
         let Some(ui) = weak.upgrade() else { return };
         let Some(new) = read_plan() else { return };
+        // Monitor que apareceu (cabo ligado de novo): o labwc o põe na
+        // posição padrão; volta o que a pessoa escolheu (monitores.conf) e
+        // deixa o plano para a próxima volta, já com as posições certas.
+        let names = new.names();
+        let arrived = names.iter().any(|n| !known.contains(n));
+        known = names;
+        if arrived && started {
+            displays::apply_saved();
+            return;
+        }
         let primary_moved = current.as_ref().is_some_and(|c| (c.primary.0.as_str(), c.primary.1, c.primary.2) != (new.primary.0.as_str(), new.primary.1, new.primary.2));
         let fundo_died = children.iter_mut().any(|c| c.try_wait().ok().flatten().is_some());
         if started && Some(&new) == current.as_ref() && !fundo_died {

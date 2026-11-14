@@ -121,6 +121,9 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   área de trabalho abre outra dela e sai. Configurações → Monitores: desenho do arranjo (arrastar com encaixe nas
   bordas, `displays::place`), Identificar (arquivo `$XDG_RUNTIME_DIR/kalango-identificar` → número por 3 s em cada
   monitor), Tornar principal, Aplicar posição (`--pos`, confirmação de 15 s, `posicao=x,y` no monitores.conf).
+  O `monitores.conf` é gravado **ao aplicar** (fechar as Configurações na contagem mantém; sem "Manter" volta o
+  arquivo antigo) e a área de trabalho o reaplica quando um monitor aparece (cabo ligado de novo). O menu do botão
+  direito também funciona nas janelas `--fundo` (`DesktopMenuArea`).
 - **Dock em janela própria (2026-11-14):** com "sempre visível" e placa de vídeo de verdade
   (`dock::hardware_gl`: i915/xe/amdgpu/radeon/nouveau/nvidia), a área de trabalho abre
   `kalango-shell --dock --faixa=LxA` (app_id `kalango-dock`): sempre por cima das janelas, em todas as áreas, sem
@@ -140,8 +143,16 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   menu de apps (`Shell.save-prefs` grava na hora). Dock nova só mata a antiga 0,9 s depois (sem piscar).
   **Alt+Tab** (`src/switcher.rs`): A-Tab/W-Tab no rc.xml rodam `kalango-shell --alternar[=anterior]`, que só manda o
   pedido pelo socket `$XDG_RUNTIME_DIR/kalango-alternar.sock` ao processo `--alternar=iniciar` (aberto pela área de
-  trabalho, escondido). Soltar o Alt = evento cru do winit (feature `unstable-winit-030`; `ModifiersChanged` sem Alt
+  trabalho, sem janela). **No Wayland o winit não mapeia de novo uma janela escondida** (`show()` depois de `hide()`
+  ou numa janela criada escondida não faz nada): cada Alt+Tab cria um `AppWindow` novo e o descarta ao terminar. Soltar o Alt = evento cru do winit (feature `unstable-winit-030`; `ModifiersChanged` sem Alt
   ao ganhar o foco cobre o Alt+Tab rápido); painel só aparece após 120 ms.
+- **Usuários (2026-11-14), como no Ubuntu:** `src/users.rs` + global `Accounts` (`UsersPage`). A própria senha
+  pelo `passwd` num terminal falso (`script -qec passwd /dev/null`, `LC_ALL=C`), respondendo a cada pergunta 250 ms
+  depois de ela aparecer (o PAM limpa a entrada ao desligar o eco). Outras contas pelo
+  `pkexec /usr/local/sbin/kalango-usuarios criar|senha|tipo|nome|remover` (política `org.kalango.usuarios`, senha
+  pela entrada padrão): conta nova com pasta 700 e grupos de desktop (+`sudo` se administrador); recusa remover/
+  rebaixar a si mesmo, o último administrador e quem está com sessão aberta. A tela de login mostra todas as contas
+  (`Shell.login-users`). Testar o pkexec com as Configurações abertas pela sessão gráfica (pela SSH não há agente).
 - **Energia (2026-11-14):** `src/power.rs` + global `Power`: modo (`powerprofilesctl`), apagar a tela/bloquear/
   suspender na bateria e na tomada (`~/.config/kalango/energia.conf`; a área de trabalho roda o `swayidle` com
   `wlopm` e troca ao mudar a escolha ou o carregador; pidfile `kalango-swayidle.pid`), tampa e botão de ligar pelo

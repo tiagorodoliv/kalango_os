@@ -94,6 +94,13 @@ export struct TerminalTheme {
     cyan: color,
 }
 
+/// Uma conta na tela de login.
+export struct LoginUser {
+    login: string,
+    name: string,
+    initial: string,
+}
+
 export global Shell {
     // --- Preenchido pelo Rust (src/clock.rs e src/system.rs) ---
 
@@ -153,6 +160,8 @@ export global Shell {
     in property <bool> greeter: false;
     /// Login (nome de usuário do sistema) que vai entrar.
     in property <string> login-user: "user";
+    /// Contas de pessoas (com mais de uma, a tela de login mostra todas).
+    in property <[LoginUser]> login-users: [];
     /// Conferindo a senha (o PAM leva ~2 s para recusar).
     in property <bool> login-busy: false;
     /// Erro da última tentativa ("Senha incorreta"); a UI limpa ao digitar.

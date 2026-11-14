@@ -10,7 +10,7 @@
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { Shell, Apps } from "../globals.slint";
-import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, BtDevice, Power } from "../device.slint";
+import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, BtDevice, Power, Accounts, UserAccount } from "../device.slint";
 import { SectionLabel, Toggle, SliderBar, Avatar } from "../components/widgets.slint";
 import { KalangoLogo, KalangoIcon } from "../brand.slint";
 import { WifiList, ForgetLink } from "../components/wifi_list.slint";
@@ -1050,41 +1050,363 @@ export component PowerPage inherits Rectangle {
 // Usuários
 // ---------------------------------------------------------------------------
 
-export component UsersPage inherits Rectangle {
+/// Uma conta na lista de Usuários: avatar, nome e login/tipo.
+component AccountRow inherits Rectangle {
+    in property <UserAccount> account;
+    in property <bool> divider: true;
+    in property <bool> clickable: false;
+    in property <bool> selected: false;
+    callback clicked();
+    height: 64px;
+    background: root.selected ? Theme.accent-soft : touch.has-hover && root.clickable ? Theme.tile-hover : transparent;
+    if root.divider: Rectangle { y: 0; height: 1px; background: Theme.border; }
+    Avatar {
+        x: 20px;
+        width: 40px;
+        height: 40px;
+        letter: root.account.initial;
+        filled: root.account.me;
+    }
     VerticalLayout {
-        x: 0;
-        y: Page.top;
-        width: min(Page.max-width, parent.width);
-        alignment: start;
-        spacing: 16px;
-
-        Panel {
-            height: 96px;
-            Avatar {
-                x: 20px;
-                width: 56px;
-                height: 56px;
-                letter: Shell.user-initial;
-            }
-            VerticalLayout {
-                x: 96px;
-                alignment: center;
-                spacing: 4px;
-                Text { text: Shell.user-name; color: Theme.text; font-family: Theme.sans; font-size: 17px; font-weight: 600; }
-                Text { text: Device.login + " · " + (Device.admin ? @tr("administrator") : @tr("standard user")); color: Theme.text-muted; font-family: Theme.mono; font-size: 13px; }
-            }
+        x: 76px;
+        width: parent.width - self.x - 56px;
+        alignment: center;
+        spacing: 3px;
+        Text { text: root.account.name; color: Theme.text; font-family: Theme.sans; font-size: 14.5px; font-weight: 600; overflow: elide; }
+        Text {
+            text: root.account.login + " · " + (root.account.admin ? @tr("Administrator") : @tr("Standard"))
+                + (root.account.signed-in && !root.account.me ? " · " + @tr("signed in") : "");
+            color: Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 13px;
+            overflow: elide;
         }
+    }
+    if root.clickable: Image {
+        x: parent.width - 36px;
+        width: 16px;
+        height: 16px;
+        source: root.selected ? Icons.chevron-down : Icons.chevron-right;
+        colorize: Theme.text-muted;
+    }
+    touch := TouchArea {
+        enabled: root.clickable;
+        mouse-cursor: root.clickable ? MouseCursor.pointer : MouseCursor.default;
+        clicked => { root.clicked(); }
+    }
+}
 
-        HorizontalLayout {
+/// Aviso de validação dentro de um formulário.
+component FormHint inherits Rectangle {
+    in property <string> text;
+    in property <bool> error: true;
+    height: root.text == "" ? 0 : 26px;
+    Text {
+        x: 20px;
+        width: parent.width - 40px;
+        text: root.text;
+        color: root.error ? Theme.danger : Theme.text-muted;
+        font-family: Theme.sans;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component UsersPage inherits Rectangle {
+    // Formulário "Alterar senha".
+    property <string> pw-current;
+    property <string> pw-new;
+    property <string> pw-confirm;
+    property <string> pw-error;
+    // Formulário "Adicionar usuário".
+    property <string> add-name;
+    property <string> add-login;
+    /// O login foi digitado à mão (deixa de seguir o nome).
+    property <bool> add-login-edited;
+    property <bool> add-admin;
+    property <string> add-pass;
+    property <string> add-confirm;
+    property <string> add-error;
+    // Formulário de outra conta.
+    property <string> ed-name;
+    property <bool> ed-admin;
+    property <string> ed-pass;
+    property <string> ed-confirm;
+    property <string> ed-error;
+    property <bool> ed-removing;
+    property <UserAccount> ed-account;
+
+    function open-form(form: string) {
+        Accounts.message = "";
+        Accounts.form = form;
+        root.pw-current = ""; root.pw-new = ""; root.pw-confirm = ""; root.pw-error = "";
+        root.add-name = ""; root.add-login = ""; root.add-login-edited = false; root.add-admin = false;
+        root.add-pass = ""; root.add-confirm = ""; root.add-error = "";
+        root.ed-pass = ""; root.ed-confirm = ""; root.ed-error = ""; root.ed-removing = false;
+    }
+    function open-edit(u: UserAccount) {
+        if (Accounts.form == "edit" && Accounts.editing == u.login) {
+            Accounts.form = "";
+            return;
+        }
+        root.open-form("edit");
+        Accounts.editing = u.login;
+        root.ed-account = u;
+        root.ed-name = u.name;
+        root.ed-admin = u.admin;
+    }
+    /// Erro das duas senhas ("" = ok).
+    function password-error(a: string, b: string) -> string {
+        if (a == "") { return @tr("Type the new password"); }
+        if (a != b) { return @tr("The passwords do not match"); }
+        return "";
+    }
+
+    Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: users-col.preferred-height + 36px;
+        users-col := VerticalLayout {
+            x: 0;
+            y: 12px;
+            width: min(Page.max-width, parent.width);
             alignment: start;
             spacing: 12px;
-            PillButton {
-                text: @tr("Change password");
-                clicked => { Device.change-password(); }
+
+            SectionLabel { text: @tr("YOUR ACCOUNT"); }
+            Panel {
+                height: 64px;
+                AccountRow { account: Accounts.me; divider: false; }
             }
-            PillButton {
-                text: @tr("Log out");
-                clicked => { Shell.open-app("logout"); }
+            HorizontalLayout {
+                alignment: start;
+                spacing: 12px;
+                PillButton {
+                    text: @tr("Change password");
+                    clicked => { root.open-form(Accounts.form == "password" ? "" : "password"); }
+                }
+                PillButton {
+                    text: @tr("Log out");
+                    clicked => { Shell.open-app("logout"); }
+                }
+            }
+
+            if Accounts.form == "password": Panel {
+                height: pw-col.preferred-height;
+                pw-col := VerticalLayout {
+                    padding-top: 12px;
+                    padding-bottom: 14px;
+                    FormTitle { text: @tr("Change password"); }
+                    Field { label: @tr("Current password"); password: true; text <=> root.pw-current; }
+                    Field { label: @tr("New password"); password: true; text <=> root.pw-new; }
+                    Field { label: @tr("Confirm"); password: true; text <=> root.pw-confirm; }
+                    FormHint { text: root.pw-error; }
+                    FormHint {
+                        error: !Accounts.busy;
+                        text: Accounts.busy ? @tr("Please wait...") : Accounts.message-error ? Accounts.message : "";
+                    }
+                    FormButtons {
+                        busy: Accounts.busy;
+                        cancel => { Accounts.form = ""; }
+                        save => {
+                            if (root.pw-current == "") {
+                                root.pw-error = @tr("Type your current password");
+                                return;
+                            }
+                            root.pw-error = root.password-error(root.pw-new, root.pw-confirm);
+                            if (root.pw-error == "") {
+                                Accounts.change-own-password(root.pw-current, root.pw-new);
+                            }
+                        }
+                    }
+                }
+            }
+
+            SectionLabel { text: @tr("OTHER USERS"); }
+            Panel {
+                height: others-col.preferred-height;
+                others-col := VerticalLayout {
+                    if Accounts.others.length == 0: Rectangle {
+                        height: 56px;
+                        Text {
+                            x: 20px;
+                            text: @tr("No other users on this computer");
+                            color: Theme.text-muted;
+                            font-family: Theme.sans;
+                            font-size: 14px;
+                            vertical-alignment: center;
+                        }
+                    }
+                    for u[i] in Accounts.others: AccountRow {
+                        account: u;
+                        divider: i > 0;
+                        clickable: Accounts.can-manage;
+                        selected: Accounts.form == "edit" && Accounts.editing == u.login;
+                        clicked => { root.open-edit(u); }
+                    }
+                }
+            }
+
+            if Accounts.form == "edit": Panel {
+                height: ed-col.preferred-height;
+                ed-col := VerticalLayout {
+                    padding-top: 12px;
+                    padding-bottom: 14px;
+                    FormTitle { text: root.ed-account.login; }
+                    Field { label: @tr("Full name"); text <=> root.ed-name; }
+                    FormRow {
+                        label: @tr("Account type");
+                        Segmented {
+                            x: parent.width - self.width - 20px;
+                            options: [@tr("Standard"), @tr("Administrator")];
+                            selected: root.ed-admin ? 1 : 0;
+                            chosen(i) => { root.ed-admin = i == 1; }
+                        }
+                    }
+                    Field { label: @tr("New password"); password: true; placeholder: @tr("Leave empty to keep"); text <=> root.ed-pass; }
+                    Field { label: @tr("Confirm"); password: true; text <=> root.ed-confirm; }
+                    FormHint { text: root.ed-error; }
+                    FormHint {
+                        error: !Accounts.busy;
+                        text: Accounts.busy ? @tr("Please wait...") : Accounts.message-error ? Accounts.message : "";
+                    }
+                    FormButtons {
+                        busy: Accounts.busy;
+                        cancel => { Accounts.form = ""; }
+                        save => {
+                            root.ed-error = root.ed-name == "" ? @tr("Type the name")
+                                : root.ed-pass == "" && root.ed-confirm == "" ? ""
+                                : root.password-error(root.ed-pass, root.ed-confirm);
+                            if (root.ed-error == "") {
+                                Accounts.update(root.ed-account.login, root.ed-name, root.ed-admin, root.ed-pass);
+                            }
+                        }
+                    }
+                    Rectangle { height: 14px; Rectangle { y: 7px; height: 1px; background: Theme.border; } }
+                    if !root.ed-removing: HorizontalLayout {
+                        padding-left: 20px;
+                        padding-right: 20px;
+                        alignment: start;
+                        PillButton {
+                            text: @tr("Remove user...");
+                            danger: true;
+                            enabled: !root.ed-account.signed-in && !Accounts.busy;
+                            clicked => { root.ed-removing = true; }
+                        }
+                    }
+                    if !root.ed-removing && root.ed-account.signed-in: FormHint {
+                        error: false;
+                        text: @tr("Signed in now: log this user out before removing.");
+                    }
+                    if root.ed-removing: VerticalLayout {
+                        spacing: 8px;
+                        Text {
+                            x: 20px;
+                            width: parent.width - 40px;
+                            text: @tr("Remove {}? Their files in /home/{} can be kept or deleted.", root.ed-account.name, root.ed-account.login);
+                            color: Theme.text;
+                            font-family: Theme.sans;
+                            font-size: 13.5px;
+                            wrap: word-wrap;
+                        }
+                        HorizontalLayout {
+                            padding-left: 20px;
+                            padding-right: 20px;
+                            spacing: 10px;
+                            alignment: end;
+                            PillButton { text: @tr("Cancel"); clicked => { root.ed-removing = false; } }
+                            PillButton {
+                                text: @tr("Keep files");
+                                enabled: !Accounts.busy;
+                                clicked => { Accounts.remove(root.ed-account.login, false); }
+                            }
+                            PillButton {
+                                text: @tr("Delete files");
+                                danger: true;
+                                enabled: !Accounts.busy;
+                                clicked => { Accounts.remove(root.ed-account.login, true); }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if Accounts.can-manage && Accounts.form != "add": HorizontalLayout {
+                alignment: start;
+                PillButton {
+                    text: @tr("Add user...");
+                    clicked => { root.open-form("add"); }
+                }
+            }
+            if !Accounts.can-manage: Text {
+                text: @tr("Only administrators can add or change other users.");
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+                wrap: word-wrap;
+            }
+
+            if Accounts.form == "add": Panel {
+                height: add-col.preferred-height;
+                add-col := VerticalLayout {
+                    padding-top: 12px;
+                    padding-bottom: 14px;
+                    FormTitle { text: @tr("Add user"); }
+                    Field {
+                        label: @tr("Full name");
+                        placeholder: @tr("e.g. Maria Silva");
+                        text <=> root.add-name;
+                        edited(t) => {
+                            if (!root.add-login-edited) {
+                                root.add-login = Accounts.suggest-login(t);
+                            }
+                        }
+                    }
+                    Field {
+                        label: @tr("Username");
+                        text <=> root.add-login;
+                        edited(t) => { root.add-login-edited = t != ""; }
+                    }
+                    FormHint { error: false; text: root.add-login != "" ? @tr("Home folder: /home/{}, private to this user", root.add-login) : ""; }
+                    FormRow {
+                        label: @tr("Account type");
+                        Segmented {
+                            x: parent.width - self.width - 20px;
+                            options: [@tr("Standard"), @tr("Administrator")];
+                            selected: root.add-admin ? 1 : 0;
+                            chosen(i) => { root.add-admin = i == 1; }
+                        }
+                    }
+                    Field { label: @tr("Password"); password: true; text <=> root.add-pass; }
+                    Field { label: @tr("Confirm"); password: true; text <=> root.add-confirm; }
+                    FormHint { text: root.add-error; }
+                    FormHint {
+                        error: !Accounts.busy;
+                        text: Accounts.busy ? @tr("Please wait...") : Accounts.message-error ? Accounts.message : "";
+                    }
+                    FormButtons {
+                        busy: Accounts.busy;
+                        cancel => { Accounts.form = ""; }
+                        save => {
+                            root.add-error = root.add-name == "" ? @tr("Type the name")
+                                : Accounts.check-login(root.add-login) != "" ? Accounts.check-login(root.add-login)
+                                : root.password-error(root.add-pass, root.add-confirm);
+                            if (root.add-error == "") {
+                                Accounts.create(root.add-name, root.add-login, root.add-pass, root.add-admin);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Com um formulário aberto, o resultado aparece dentro dele.
+            if Accounts.form == "" && (Accounts.busy || Accounts.message != ""): Text {
+                text: Accounts.busy ? @tr("Please wait...") : Accounts.message;
+                color: Accounts.message-error && !Accounts.busy ? Theme.danger : Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+                wrap: word-wrap;
             }
         }
     }

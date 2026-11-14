@@ -388,6 +388,14 @@ fn modified(path: &PathBuf) -> Option<SystemTime> {
     fs::metadata(path).and_then(|m| m.modified()).ok()
 }
 
+/// Aplica a aparência salva em disco, uma vez (janelas de vida curta, como
+/// a do Alt+Tab, que não acompanham as mudanças).
+pub fn load(ui: &AppWindow) {
+    if let Some(text) = config_path().and_then(|p| fs::read_to_string(p).ok()) {
+        Prefs::parse(&text, &Prefs::from_ui(ui)).apply(ui);
+    }
+}
+
 /// Carrega o arquivo (se existir) e mantém tema e arquivo em sincronia.
 ///
 /// Só roda na sessão real: no desenvolvimento e nas capturas o tema começa
@@ -398,9 +406,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         return None;
     }
     let path = config_path()?;
-    if let Ok(text) = fs::read_to_string(&path) {
-        Prefs::parse(&text, &Prefs::from_ui(ui)).apply(ui);
-    }
+    load(ui);
     let mut last = Prefs::from_ui(ui);
     // Só a área de trabalho (um processo por sessão) mexe no labwc.
     let desktop = mode == Mode::Desktop;

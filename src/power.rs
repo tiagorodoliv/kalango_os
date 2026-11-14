@@ -297,6 +297,9 @@ fn spawn_swayidle(args: &[String]) -> Option<Child> {
 fn install_idle() -> Timer {
     kill_previous();
     let mut current: Option<(Vec<String>, Child)> = None;
+    // Argumentos com que o swayidle não abriu (não instalado): sem tentar de
+    // novo a cada 3 s, só quando a escolha mudar.
+    let mut failed: Option<Vec<String>> = None;
     let mut last_mtime: Option<SystemTime> = None;
     let mut prefs = read_prefs();
     let mut first = true;
@@ -310,14 +313,15 @@ fn install_idle() -> Timer {
         first = false;
         let args = swayidle_args(&prefs, on_ac());
         let dead = current.as_mut().is_some_and(|(_, c)| c.try_wait().ok().flatten().is_some());
-        if !dead && current.as_ref().is_some_and(|(a, _)| *a == args) {
+        if !dead && current.as_ref().is_some_and(|(a, _)| *a == args) || failed.as_ref() == Some(&args) {
             return;
         }
         if let Some((_, mut c)) = current.take() {
             let _ = c.kill();
             let _ = c.wait();
         }
-        current = spawn_swayidle(&args).map(|c| (args, c));
+        current = spawn_swayidle(&args).map(|c| (args.clone(), c));
+        failed = if current.is_none() { Some(args) } else { None };
     };
     check();
     timer.start(TimerMode::Repeated, Duration::from_secs(3), check);

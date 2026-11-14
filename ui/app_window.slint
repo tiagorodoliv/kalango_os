@@ -26,7 +26,7 @@ import { Apps, AppEntry, RecentEntry, Shell, IconPreview } from "globals.slint";
 import { Backdrop, BackdropVariant } from "components/backdrop.slint";
 import { TopBar } from "components/top_bar.slint";
 import { Dock } from "components/dock.slint";
-import { DesktopMenu } from "components/desktop_menu.slint";
+import { DesktopMenuArea } from "components/desktop_menu.slint";
 import { FilesWindow } from "apps/files.slint";
 import { TerminalWindow } from "apps/terminal.slint";
 import { LoginScreen } from "screens/login.slint";
@@ -34,11 +34,11 @@ import { Launcher } from "screens/launcher.slint";
 import { SwitcherView, Switcher, SwitcherItem, DockMenuView, DockMenu, DockMenuWindow } from "screens/switcher.slint";
 import { SettingsScreen } from "screens/settings.slint";
 import { QuickSettings } from "screens/quick_settings.slint";
-import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, Power } from "device.slint";
+import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, Power, Accounts, UserAccount } from "device.slint";
 
 // Reexportados para o Rust enxergar os globais e tipos.
 export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry, IconPreview, Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution }
-export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power }
+export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power, Accounts, UserAccount }
 
 /// Telas de nível superior.
 export enum Screen { login, desktop, settings }
@@ -99,9 +99,6 @@ export component AppWindow inherits Window {
     /// página quando o menu da área de trabalho pede outra.
     in-out property <int> settings-page: 2;
     /// Menu do botão direito aberto, e onde o botão foi clicado.
-    property <bool> menu-open: false;
-    property <length> menu-x;
-    property <length> menu-y;
     property <bool> files-open: true;
     property <bool> terminal-open: true;
     /// App com a janela em primeiro plano ("files" ou "terminal").
@@ -274,39 +271,10 @@ export component AppWindow inherits Window {
             }
 
             // Botão direito no fundo: menu da área de trabalho.
-            TouchArea {
-                pointer-event(ev) => {
-                    if (ev.button == PointerEventButton.right && ev.kind == PointerEventKind.down) {
-                        root.menu-x = self.mouse-x;
-                        root.menu-y = self.mouse-y;
-                        root.menu-open = true;
-                    }
-                }
-            }
-            // Desenhado dentro da própria janela (e não como PopupWindow): na
-            // sessão real a área de trabalho é uma janela em tela cheia sempre
-            // atrás das outras, e o labwc não entrega os cliques a um popup dela.
-            if root.menu-open: TouchArea {
-                z: 10;
-                // Clique fora do menu (qualquer botão) fecha.
-                pointer-event(ev) => {
-                    if (ev.kind == PointerEventKind.down) {
-                        root.menu-open = false;
-                    }
-                }
-                DesktopMenu {
-                    // Sem passar da borda da tela.
-                    x: min(root.menu-x, parent.width - self.width - 8px);
-                    y: min(root.menu-y, parent.height - self.height - 8px);
-                    settings(page) => {
-                        root.menu-open = false;
-                        root.open-settings(page);
-                    }
-                    launch(id) => {
-                        root.menu-open = false;
-                        root.launch(id);
-                    }
-                }
+            desktop-menu := DesktopMenuArea {
+                z: self.open ? 10 : 0;
+                settings(page) => { root.open-settings(page); }
+                launch(id) => { root.launch(id); }
             }
 
             if !Shell.native && root.files-open && !root.launcher-open: FilesWindow {
@@ -451,7 +419,14 @@ export component AppWindow inherits Window {
         }
 
         // Papel de parede de um monitor extra.
-        if root.mode == ShellMode.fundo: Backdrop { variant: BackdropVariant.desktop; }
+        // Botão direito nele: o mesmo menu da área de trabalho.
+        if root.mode == ShellMode.fundo: Rectangle {
+            Backdrop { variant: BackdropVariant.desktop; }
+            DesktopMenuArea {
+                settings(page) => { root.open-settings(page); }
+                launch(id) => { root.launch(id); }
+            }
+        }
 
         // "Identificar" (Configurações → Monitores): número do monitor.
         if Shell.identify-visible && (root.mode == ShellMode.desktop || root.mode == ShellMode.fundo): Rectangle {

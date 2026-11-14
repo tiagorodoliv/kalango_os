@@ -1,0 +1,142 @@
+#!/bin/sh
+# Contas de usuário do Kalango OS (Configurações → Usuários).
+# Roda como root pelo pkexec (política org.kalango.usuarios).
+#
+#   kalango-usuarios criar LOGIN NOME admin|padrao   (senha na entrada padrão)
+#   kalango-usuarios senha LOGIN                     (senha na entrada padrão)
+#   kalango-usuarios tipo LOGIN admin|padrao
+#   kalango-usuarios nome LOGIN NOME
+#   kalango-usuarios remover LOGIN manter|apagar     (apagar = apaga a pasta pessoal)
+#
+# Só mexe em contas de pessoas (UID 1000 a 59999). Cada conta nova tem a
+# própria pasta pessoal, fechada para as outras (modo 700).
+#
+# Saída: 0 = feito; 1 = argumento inválido; 2 = o login já existe;
+# 3 = a pessoa está com a sessão aberta; 4 = seria o último administrador;
+# 5 = não pode ser feito na própria conta; 6 = falha ao gravar.
+set -eu
+
+falha() {
+	echo "kalango-usuarios: $2" >&2
+	exit "$1"
+}
+
+# Login: letras minúsculas, números, "-" e "_", começando com letra.
+valida_login() {
+	printf '%s' "$1" | grep -Eq '^[a-z][a-z0-9_-]{0,31}$' || falha 1 "login inválido: $1"
+}
+
+# Nome exibido: sem ":" nem "," (separadores do /etc/passwd) e numa linha só.
+valida_nome() {
+	case "$1" in
+	*:* | *,*) falha 1 "nome inválido" ;;
+	esac
+	[ "$(printf '%s' "$1" | wc -l)" -eq 0 ] || falha 1 "nome inválido"
+	[ -n "$1" ] || falha 1 "nome vazio"
+}
+
+# A conta existe e é de uma pessoa (não do sistema).
+valida_pessoa() {
+	valida_login "$1"
+	uid=$(id -u "$1" 2>/dev/null) || falha 1 "usuário não existe: $1"
+	[ "$uid" -ge 1000 ] && [ "$uid" -le 59999 ] || falha 1 "não é uma conta de pessoa: $1"
+}
+
+# Login de quem chamou o pkexec.
+quem_chamou() {
+	[ -n "${PKEXEC_UID:-}" ] && id -nu "$PKEXEC_UID" 2>/dev/null || true
+}
+
+# Administradores (grupo sudo) que são pessoas.
+admins() {
+	getent group sudo | cut -d: -f4 | tr ',' '\n' | while read -r u; do
+		[ -n "$u" ] || continue
+		uid=$(id -u "$u" 2>/dev/null) || continue
+		[ "$uid" -ge 1000 ] && [ "$uid" -le 59999 ] && echo "$u"
+	done
+}
+
+# Lê a senha (uma linha) da entrada padrão.
+le_senha() {
+	senha=""
+	IFS= read -r senha || true
+	[ -n "$senha" ] || falha 1 "senha vazia"
+}
+
+# Grava a senha lida por le_senha.
+grava_senha() {
+	printf '%s:%s\n' "$1" "$senha" | chpasswd
+}
+
+[ $# -ge 2 ] || falha 1 "uso: kalango-usuarios criar|senha|tipo|nome|remover LOGIN ..."
+acao=$1
+login=$2
+
+case "$acao" in
+criar)
+	[ $# -eq 4 ] || falha 1 "uso: kalango-usuarios criar LOGIN NOME admin|padrao"
+	valida_login "$login"
+	valida_nome "$3"
+	case "$4" in admin | padrao) ;; *) falha 1 "tipo inválido: $4" ;; esac
+	! getent passwd "$login" >/dev/null || falha 2 "o login já existe: $login"
+	! getent group "$login" >/dev/null || falha 2 "já existe um grupo com esse nome: $login"
+	# Grupos de quem usa o computador (som, vídeo, pendrives, rede, impressoras).
+	grupos=""
+	for g in users audio video plugdev netdev bluetooth lpadmin scanner cdrom dip; do
+		getent group "$g" >/dev/null && grupos="$grupos${grupos:+,}$g"
+	done
+	[ "$4" = admin ] && grupos="$grupos${grupos:+,}sudo"
+	le_senha
+	useradd --create-home --shell /bin/bash --comment "$3" ${grupos:+--groups "$grupos"} "$login" ||
+		falha 6 "não foi possível criar a conta"
+	casa=$(getent passwd "$login" | cut -d: -f6)
+	chmod 700 "$casa"
+	if ! grava_senha "$login"; then
+		userdel --remove "$login" 2>/dev/null || true
+		falha 6 "não foi possível gravar a senha"
+	fi
+	;;
+senha)
+	valida_pessoa "$login"
+	le_senha
+	grava_senha "$login" || falha 6 "não foi possível gravar a senha"
+	;;
+tipo)
+	[ $# -eq 3 ] || falha 1 "uso: kalango-usuarios tipo LOGIN admin|padrao"
+	valida_pessoa "$login"
+	case "$3" in
+	admin) gpasswd -a "$login" sudo >/dev/null ;;
+	padrao)
+		[ "$login" != "$(quem_chamou)" ] || falha 5 "não dá para tirar o administrador de si mesmo"
+		admins | grep -qvx "$login" || falha 4 "seria o último administrador"
+		gpasswd -d "$login" sudo >/dev/null 2>&1 || true
+		;;
+	*) falha 1 "tipo inválido: $3" ;;
+	esac
+	;;
+nome)
+	[ $# -eq 3 ] || falha 1 "uso: kalango-usuarios nome LOGIN NOME"
+	valida_pessoa "$login"
+	valida_nome "$3"
+	usermod --comment "$3" "$login" || falha 6 "não foi possível mudar o nome"
+	;;
+remover)
+	[ $# -eq 3 ] || falha 1 "uso: kalango-usuarios remover LOGIN manter|apagar"
+	valida_pessoa "$login"
+	[ "$login" != "$(quem_chamou)" ] || falha 5 "não dá para remover a própria conta"
+	if loginctl list-sessions --no-legend 2>/dev/null | awk '{print $3}' | grep -qx "$login"; then
+		falha 3 "a pessoa está com a sessão aberta: $login"
+	fi
+	if id -nG "$login" | tr ' ' '\n' | grep -qx sudo; then
+		admins | grep -qvx "$login" || falha 4 "seria o último administrador"
+	fi
+	case "$3" in
+	apagar) userdel --remove "$login" 2>/dev/null || userdel "$login" || falha 6 "não foi possível remover" ;;
+	manter) userdel "$login" || falha 6 "não foi possível remover" ;;
+	*) falha 1 "opção inválida: $3" ;;
+	esac
+	;;
+*)
+	falha 1 "ação desconhecida: $acao"
+	;;
+esac

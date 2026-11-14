@@ -673,11 +673,6 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             eprintln!("kalango-shell: protótipo, ignorando systemctl {verb}");
         }
     });
-    d.on_change_password(|| {
-        let title = format!("--title={}", tr("Change password", "Alterar senha"));
-        let script = format!("passwd; printf '\\n{}'; read x", tr("Press Enter to close", "Enter para fechar"));
-        spawn_detached("foot", &[title.as_str(), "sh", "-c", script.as_str()]);
-    });
 
     if !matches!(mode, Mode::Settings | Mode::QuickSettings) {
         return None;

@@ -509,8 +509,9 @@ fn read_outputs() -> Option<Vec<Output>> {
     wlr_randr(&[]).map(|text| parse(&text))
 }
 
-/// Reaplica o `monitores.conf` (início de sessão), só nas saídas conectadas.
-fn apply_saved() {
+/// Reaplica o `monitores.conf` (início de sessão e monitor reconectado), só
+/// nas saídas conectadas.
+pub fn apply_saved() {
     let Some(text) = config_path().and_then(|p| fs::read_to_string(p).ok()) else {
         return;
     };
@@ -586,6 +587,11 @@ struct State {
     previous: Vec<Setting>,
     /// O que foi aplicado e espera "Manter".
     pending: Vec<Setting>,
+    /// `monitores.conf` de antes da mudança (`None` = não existia), para
+    /// voltar se a contagem acabar sem "Manter". A mudança já vai para o
+    /// arquivo ao aplicar: fechar as Configurações durante a contagem mantém
+    /// o que está na tela, e o monitor reconectado volta para o lugar certo.
+    previous_config: Option<Option<String>>,
     countdown: Option<Timer>,
     /// Posições arrastadas ainda não aplicadas.
     arranged: bool,
@@ -658,6 +664,21 @@ fn apply_with_confirm(ui: &AppWindow, st: &Rc<RefCell<State>>, settings: Vec<Set
             return false;
         }
     }
+    // Grava já (ver `State::previous_config`).
+    if let Some(path) = config_path() {
+        let before = fs::read_to_string(&path).ok();
+        let mut text = before.clone().unwrap_or_default();
+        for setting in &settings {
+            text = merge_config(&text, setting);
+        }
+        if let Some(dir) = path.parent() {
+            let _ = fs::create_dir_all(dir);
+        }
+        if let Err(err) = fs::write(&path, text) {
+            eprintln!("kalango-shell: monitores.conf: {err}");
+        }
+        s.previous_config = Some(before);
+    }
     s.previous = previous;
     s.pending = settings;
     s.arranged = false;
@@ -697,25 +718,21 @@ fn finish(ui: &AppWindow, state: &Rc<RefCell<State>>, keep: bool) {
     st.countdown = None;
     let device = ui.global::<Device>();
     device.set_display_confirm(false);
-    let pending = std::mem::take(&mut st.pending);
+    st.pending.clear();
     let previous = std::mem::take(&mut st.previous);
+    let before = st.previous_config.take();
     if keep {
-        if let Some(path) = config_path() {
-            let mut text = fs::read_to_string(&path).unwrap_or_default();
-            for setting in &pending {
-                text = merge_config(&text, setting);
-            }
-            if let Some(dir) = path.parent() {
-                let _ = fs::create_dir_all(dir);
-            }
-            match fs::write(&path, text) {
-                Ok(()) => device.set_display_message(tr("Display configuration saved.", "Configuração do monitor salva.").into()),
-                Err(err) => device.set_display_message(format!("{}: {err}", tr("Could not save", "Não foi possível salvar")).into()),
-            }
-        }
+        device.set_display_message(tr("Display configuration saved.", "Configuração do monitor salva.").into());
     } else {
         for setting in &previous {
             let _ = wlr_randr(&setting.args());
+        }
+        // Volta também o arquivo.
+        if let (Some(before), Some(path)) = (before, config_path()) {
+            let _ = match before {
+                Some(text) => fs::write(&path, text),
+                None => fs::remove_file(&path),
+            };
         }
         device.set_display_message(
             tr("The display went back to the previous configuration.", "O monitor voltou à configuração anterior.").into(),

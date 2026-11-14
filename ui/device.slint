@@ -259,8 +259,6 @@ export global Device {
 
     /// "suspend" ou "reboot" (desligar usa `Shell.power-off`).
     callback power-action(string);
-    /// Abre a troca de senha (`passwd` num terminal).
-    callback change-password();
 
     // --- Monitores (wlr-randr, `src/displays.rs`) ---
 
@@ -375,4 +373,50 @@ export global Power {
     callback save();
     /// Grava tampa e botão no sistema (pkexec).
     callback save-system();
+}
+
+/// Uma conta de pessoa (Configurações → Usuários e tela de login).
+export struct UserAccount {
+    login: string,
+    /// Nome exibido (GECOS) ou o próprio login.
+    name: string,
+    initial: string,
+    admin: bool,
+    /// É quem está usando agora.
+    me: bool,
+    /// Tem uma sessão aberta (não pode ser removida).
+    signed-in: bool,
+}
+
+/// Usuários (Configurações → Usuários, `src/users.rs`). A própria senha muda
+/// pelo `passwd`; o resto (contas de outras pessoas) pelo
+/// `pkexec /usr/local/sbin/kalango-usuarios`, com a senha do administrador.
+export global Accounts {
+    /// A conta de quem está usando.
+    in property <UserAccount> me;
+    /// As outras contas de pessoas.
+    in property <[UserAccount]> others;
+    /// Quem está usando é administrador (pode criar e mudar contas).
+    in property <bool> can-manage: false;
+    /// Formulário aberto: "" nenhum, "password" (a própria senha), "add"
+    /// (nova conta) ou "edit" (a conta `editing`). O Rust fecha ("") ao concluir.
+    in-out property <string> form: "";
+    in-out property <string> editing: "";
+    /// Esperando o `passwd` ou a senha do administrador.
+    in property <bool> busy: false;
+    /// Resultado da última ação (erro em vermelho).
+    in-out property <string> message: "";
+    in property <bool> message-error: false;
+    /// Muda a própria senha (atual, nova).
+    callback change-own-password(string, string);
+    /// Cria uma conta (nome, login, senha, administrador).
+    callback create(string, string, string, bool);
+    /// Muda a conta `login`: tipo, nome e (se não vazia) a senha.
+    callback update(string /* login */, string /* nome */, bool /* admin */, string /* senha */);
+    /// Remove a conta; `delete-files` apaga também a pasta pessoal.
+    callback remove(string, bool);
+    /// Login sugerido a partir do nome ("Maria Silva" → "maria").
+    pure callback suggest-login(string) -> string;
+    /// Login válido e livre ("" = ok; senão, o motivo).
+    pure callback check-login(string) -> string;
 }

@@ -76,3 +76,49 @@ export component DesktopMenu inherits Rectangle {
         MenuItem { icon: Icons.settings; text: @tr("Settings"); clicked => { root.launch("settings"); } }
     }
 }
+
+/// Fundo que abre o [`DesktopMenu`] com o botão direito, onde se clicou.
+/// Usado na área de trabalho e no papel de parede dos outros monitores
+/// (`--fundo=`). Desenhado dentro da própria janela (e não como
+/// PopupWindow): a janela é tela cheia sempre atrás das outras, e o labwc não
+/// entrega os cliques a um popup dela.
+export component DesktopMenuArea inherits Rectangle {
+    callback settings(int);
+    callback launch(string);
+    /// Menu aberto (a área de trabalho põe a camada por cima das janelas
+    /// de demonstração só enquanto ele está aberto).
+    out property <bool> open: false;
+    property <length> menu-x;
+    property <length> menu-y;
+
+    TouchArea {
+        pointer-event(ev) => {
+            if (ev.button == PointerEventButton.right && ev.kind == PointerEventKind.down) {
+                root.menu-x = self.mouse-x;
+                root.menu-y = self.mouse-y;
+                root.open = true;
+            }
+        }
+    }
+    if root.open: TouchArea {
+        // Clique fora do menu (qualquer botão) fecha.
+        pointer-event(ev) => {
+            if (ev.kind == PointerEventKind.down) {
+                root.open = false;
+            }
+        }
+        DesktopMenu {
+            // Sem passar da borda da tela.
+            x: min(root.menu-x, parent.width - self.width - 8px);
+            y: min(root.menu-y, parent.height - self.height - 8px);
+            settings(page) => {
+                root.open = false;
+                root.settings(page);
+            }
+            launch(id) => {
+                root.open = false;
+                root.launch(id);
+            }
+        }
+    }
+}

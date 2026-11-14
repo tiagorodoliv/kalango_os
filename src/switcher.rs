@@ -115,7 +115,9 @@ pub fn spawn_background() {
 }
 
 struct State {
-    weak: slint::Weak<AppWindow>,
+    /// Janela do Alt+Tab aberta agora (criada a cada uso, destruída ao
+    /// terminar).
+    window: Option<AppWindow>,
     tracker: Option<Tracker>,
     /// Janelas mostradas (mesma ordem de `Switcher.items`).
     windows: Vec<Window>,
@@ -126,6 +128,14 @@ struct State {
     reveal: Option<slint::Timer>,
 }
 
+/// Diagnóstico (`KALANGO_DEBUG_ALTERNAR=1`): eventos e pedidos na saída de erro.
+fn debug(msg: impl FnOnce() -> String) {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    if *ON.get_or_init(|| std::env::var_os("KALANGO_DEBUG_ALTERNAR").is_some()) {
+        eprintln!("alternar: {}", msg());
+    }
+}
+
 thread_local! {
     static STATE: RefCell<Option<State>> = const { RefCell::new(None) };
 }
@@ -134,19 +144,46 @@ fn with_state<R>(f: impl FnOnce(&mut State) -> R) -> Option<R> {
     STATE.with_borrow_mut(|s| s.as_mut().map(f))
 }
 
-/// Esconde a janela (o processo continua).
+/// Fecha a janela (o processo continua).
 fn hide() {
     let ui = with_state(|s| {
         s.visible = false;
         s.focused = false;
         s.reveal = None;
-        s.weak.upgrade()
+        s.window.take()
     })
     .flatten();
     if let Some(ui) = ui {
-        ui.global::<Switcher>().set_items(ModelRc::default());
         let _ = ui.hide();
     }
+}
+
+/// A janela aberta agora, se houver.
+fn current() -> Option<AppWindow> {
+    with_state(|s| s.window.as_ref().map(|w| w.clone_strong())).flatten()
+}
+
+/// Cria a janela do Alt+Tab.
+///
+/// No Wayland o winit não mapeia de novo uma janela escondida (`show()`
+/// depois de `hide()` não faz nada), então cada Alt+Tab ganha uma janela
+/// nova, só com o que o painel usa: modo, ícones dos apps e aparência.
+fn new_window() -> Option<AppWindow> {
+    let ui = AppWindow::new().map_err(|e| eprintln!("kalango-shell: Alt+Tab: {e}")).ok()?;
+    let _ = slint::set_xdg_app_id(Mode::Switcher.app_id());
+    // A tradução só pode ser escolhida depois de criar um componente.
+    crate::i18n::apply();
+    crate::session::install(&ui, Mode::Switcher);
+    crate::apps::install(&ui, false, crate::session::is_native());
+    crate::appearance::load(&ui);
+    let sw = ui.global::<Switcher>();
+    sw.on_choose(choose);
+    sw.on_cancel(hide);
+    ui.window().on_winit_window_event(|_, event| {
+        on_window_event(event);
+        EventResult::Propagate
+    });
+    Some(ui)
 }
 
 /// Põe a janela escolhida em foco e esconde.
@@ -155,26 +192,27 @@ fn commit() {
         if !s.visible {
             return None;
         }
-        let ui = s.weak.upgrade()?;
+        let ui = s.window.as_ref()?.clone_strong();
         let i = ui.global::<Switcher>().get_selected().max(0) as usize;
         Some((s.tracker.clone()?, s.windows.get(i)?.id))
     })
     .flatten();
     hide();
+    debug(|| format!("escolhida {target:?}", target = target.as_ref().map(|t| t.1)));
     if let Some((tracker, id)) = target {
         tracker.activate(id);
     }
 }
 
 fn choose(index: i32) {
-    if let Some(ui) = with_state(|s| s.weak.upgrade()).flatten() {
+    if let Some(ui) = current() {
         ui.global::<Switcher>().set_selected(index);
     }
     commit();
 }
 
 fn move_selection(forward: bool) {
-    let Some(Some(ui)) = with_state(|s| if s.visible { s.weak.upgrade() } else { None }) else { return };
+    let Some(ui) = current() else { return };
     let n = with_state(|s| s.windows.len()).unwrap_or(0);
     let sw = ui.global::<Switcher>();
     sw.set_selected(step(sw.get_selected().max(0) as usize, n, forward) as i32);
@@ -182,6 +220,7 @@ fn move_selection(forward: bool) {
 
 /// Trata um pedido do atalho.
 fn handle(request: Request) {
+    debug(|| format!("pedido {request:?}"));
     if request == Request::Start {
         return;
     }
@@ -190,7 +229,6 @@ fn handle(request: Request) {
         move_selection(request == Request::Next);
         return;
     }
-    let Some(Some(ui)) = with_state(|s| s.weak.upgrade()) else { return };
     let windows: Vec<Window> = with_state(|s| s.tracker.as_ref().map(|t| t.windows()))
         .flatten()
         .map(crate::taskbar::with_ids)
@@ -198,9 +236,11 @@ fn handle(request: Request) {
         .into_iter()
         .map(|(w, _)| w)
         .collect();
+    debug(|| format!("{} janelas: {:?}", windows.len(), windows.iter().map(|w| (&w.app_id, w.active)).collect::<Vec<_>>()));
     if windows.is_empty() {
         return;
     }
+    let Some(ui) = new_window() else { return };
     let items: Vec<SwitcherItem> = windows
         .iter()
         .map(|w| {
@@ -227,16 +267,21 @@ fn handle(request: Request) {
         }
     });
     with_state(|s| {
+        s.window = Some(ui.clone_strong());
         s.windows = windows;
         s.visible = true;
         s.focused = false;
         s.reveal = Some(reveal);
     });
-    let _ = ui.show();
+    let shown = ui.show();
+    debug(|| format!("show: {shown:?}"));
 }
 
 /// Eventos crus da janela: soltar o Alt, Esc, setas, perder o foco.
 fn on_window_event(event: &WindowEvent) {
+    if !matches!(event, WindowEvent::RedrawRequested | WindowEvent::CursorMoved { .. }) {
+        debug(|| format!("evento {event:?}"));
+    }
     // Fora do laço do winit (esconder a janela aqui dentro a destruiria no
     // meio do evento).
     let later = |f: fn()| {
@@ -280,18 +325,9 @@ pub fn run() -> Result<(), slint::PlatformError> {
         }
     };
     crate::select_renderer(Mode::Switcher);
-    let (ui, _timers) = crate::build_mode(Mode::Switcher)?;
-    let weak = ui.as_weak();
     let tracker = Tracker::start(|_| {});
     STATE.with_borrow_mut(|s| {
-        *s = Some(State { weak, tracker, windows: Vec::new(), visible: false, focused: false, reveal: None })
-    });
-    let sw = ui.global::<Switcher>();
-    sw.on_choose(choose);
-    sw.on_cancel(hide);
-    ui.window().on_winit_window_event(|_, event| {
-        on_window_event(event);
-        EventResult::Propagate
+        *s = Some(State { window: None, tracker, windows: Vec::new(), visible: false, focused: false, reveal: None })
     });
 
     std::thread::spawn(move || {

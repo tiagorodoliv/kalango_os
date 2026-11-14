@@ -245,6 +245,35 @@ fn main() {
         window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
     }
 
+    // Usuários: a própria conta, outras pessoas e os formulários.
+    {
+        let a = ui.global::<kalango_os::Accounts>();
+        let acc = |login: &str, name: &str, admin: bool, me: bool, signed_in: bool| kalango_os::UserAccount {
+            login: login.into(),
+            name: name.into(),
+            initial: name[..1].into(),
+            admin,
+            me,
+            signed_in,
+        };
+        a.set_me(acc("tiago", "Tiago Silas", true, true, true));
+        a.set_others(slint::ModelRc::from(Rc::new(slint::VecModel::from(vec![
+            acc("maria", "Maria Silva", false, false, false),
+            acc("joao", "João Souza", true, false, true),
+        ]))));
+        a.set_can_manage(true);
+        window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (1100.0 * SCALE) as u32));
+        ui.set_settings_page(7);
+        save(&window, &out.join("config_usuarios.png"));
+        a.set_form("add".into());
+        save(&window, &out.join("config_usuarios_novo.png"));
+        a.set_form("password".into());
+        save(&window, &out.join("config_usuarios_senha.png"));
+        a.set_form("".into());
+        ui.set_settings_page(2);
+        window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
+    }
+
     // Dock com um app aberto que não está fixado (VS Code), Alt+Tab e o
     // menu do botão direito da dock.
     {

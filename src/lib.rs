@@ -25,7 +25,8 @@
 //! - `toplevels` (Linux): janelas abertas (wlr-foreign-toplevel);
 //! - `taskbar` (Linux): apps abertos na dock e o menu do botão direito dela;
 //! - `switcher` (Linux): Alt+Tab com os ícones das janelas;
-//! - [`power`]: energia (modo de desempenho, apagar a tela, suspender, tampa).
+//! - [`power`]: energia (modo de desempenho, apagar a tela, suspender, tampa);
+//! - [`users`]: contas de usuário (senha, criar, tipo, remover).
 //!
 //! A lógica fica na biblioteca (e não no `main.rs`) para poder ser reusada
 //! por testes e por ferramentas como um gerador de capturas das telas.
@@ -51,6 +52,7 @@ pub mod sharing;
 pub mod system;
 pub mod terminal;
 pub mod usb;
+pub mod users;
 #[cfg(target_os = "linux")]
 pub mod switcher;
 #[cfg(target_os = "linux")]
@@ -136,6 +138,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
         }
     }
     timers.extend(power::install(&ui, mode));
+    users::install(&ui, mode);
     Ok((ui, timers))
 }
 
