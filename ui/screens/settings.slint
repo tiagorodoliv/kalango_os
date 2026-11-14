@@ -24,6 +24,8 @@ struct Section {
 component SidebarItem inherits Rectangle {
     in property <Section> section;
     in property <bool> selected;
+    /// Só o ícone (janela estreita).
+    in property <bool> compact: false;
     callback clicked();
 
     height: 42px;
@@ -33,14 +35,16 @@ component SidebarItem inherits Rectangle {
     border-color: Theme.accent.with-alpha(0.45);
 
     Image {
-        x: 14px;
+        x: root.compact ? (parent.width - self.width) / 2 : 14px;
         source: root.section.icon;
-        colorize: Theme.text;
+        colorize: root.compact && root.selected ? Theme.accent : Theme.text;
         width: 18px;
         height: 18px;
     }
-    Text {
+    if !root.compact: Text {
         x: 44px;
+        width: parent.width - 44px - 8px;
+        overflow: elide;
         text: root.section.name;
         color: Theme.text;
         font-family: Theme.sans;
@@ -48,7 +52,7 @@ component SidebarItem inherits Rectangle {
         font-weight: root.selected ? 600 : 400;
         vertical-alignment: center;
     }
-    if root.section.badge > 0: Rectangle {
+    if root.section.badge > 0 && !root.compact: Rectangle {
         x: parent.width - self.width - 12px;
         width: 22px;
         height: 22px;
@@ -69,7 +73,7 @@ component SidebarItem inherits Rectangle {
     }
 }
 
-/// Card de prévia de tema (220×158) com miniatura de janela, destaque e dock.
+/// Card de prévia de tema (até 220×158) com miniatura de janela, destaque e dock.
 component ThemeCard inherits Rectangle {
     in property <string> label;
     in property <ThemeMode> mode;
@@ -102,7 +106,7 @@ component ThemeCard inherits Rectangle {
         Rectangle {
             x: 14px;
             y: 14px;
-            width: 112px;
+            width: min(112px, parent.width - 70px);
             height: 65px;
             border-radius: 4px;
             background: root.preview-window;
@@ -129,6 +133,8 @@ component ThemeCard inherits Rectangle {
     Text {
         x: 10px;
         y: 128px;
+        width: parent.width - 20px;
+        overflow: elide;
         text: root.label;
         color: Theme.text;
         font-family: Theme.sans;
@@ -148,6 +154,8 @@ component OptionRow inherits Rectangle {
     in property <string> subtitle;
     /// Desenha a linha divisória no topo (todas menos a primeira).
     in property <bool> divider: true;
+    /// Espaço do controle à direita (o texto corta com "…" antes dele).
+    in property <length> control-width: 80px;
 
     height: 67px;
 
@@ -158,222 +166,250 @@ component OptionRow inherits Rectangle {
     }
     VerticalLayout {
         x: 20px;
+        width: max(0px, parent.width - 40px - root.control-width);
         alignment: center;
         spacing: 3px;
-        Text { text: root.title; color: Theme.text; font-family: Theme.sans; font-size: 14.5px; font-weight: 600; }
-        Text { text: root.subtitle; color: Theme.text-muted; font-family: Theme.sans; font-size: 13.5px; }
+        Text { text: root.title; color: Theme.text; font-family: Theme.sans; font-size: 14.5px; font-weight: 600; overflow: elide; }
+        Text { text: root.subtitle; color: Theme.text-muted; font-family: Theme.sans; font-size: 13.5px; overflow: elide; }
     }
     // Controle (Toggle/Slider) vem como filho e se alinha pela direita.
     @children
 }
 
-/// Página Aparência.
+/// Página Aparência. Responsiva: os cards encolhem e as miniaturas de papel
+/// de parede quebram linha quando a janela é estreita.
 component AppearancePage inherits Rectangle {
-    // Com rolagem abaixo do título: a página é mais alta que a janela
-    // maximizada. O conteúdo é deslocado 100px para cima para manter as
-    // posições (y) originais dos elementos.
+    // Rolagem abaixo do título (a página é mais alta que a janela).
     Flickable {
         y: 100px;
         height: parent.height - 100px;
-        content-height: 810px;
-        Rectangle {
-        y: -100px;
-        height: 910px;
+        content-height: col.preferred-height + 40px;
 
-        // --- Tema ---
-        SectionLabel { x: 0; y: 113px; text: @tr("THEME"); }
-        HorizontalLayout {
+        col := VerticalLayout {
             x: 0;
-            y: 135px;
-            spacing: 17px;
-            ThemeCard {
-                label: @tr("Dark (glass)");
-                mode: ThemeMode.glass;
-                preview-bg: #07090d;
-                preview-window: #17222b;
-                preview-dock: #2a3540;
-                preview-accent: Theme.accents[Theme.accent-index];
-                clicked => { Theme.mode = ThemeMode.glass; }
-            }
-            ThemeCard {
-                label: @tr("Solid dark (OLED)");
-                mode: ThemeMode.oled;
-                preview-bg: #000000;
-                preview-window: #0e0e0e;
-                preview-dock: #262626;
-                preview-accent: Theme.accents[Theme.accent-index];
-                clicked => { Theme.mode = ThemeMode.oled; }
-            }
-            ThemeCard {
-                label: @tr("Light");
-                mode: ThemeMode.light;
-                preview-bg: #eef1f4;
-                preview-window: #ffffff;
-                preview-dock: #d4dbe2;
-                preview-accent: Theme.accents[Theme.accent-index].darker(0.45);
-                clicked => { Theme.mode = ThemeMode.light; }
-            }
-        }
-
-        // --- Cor de destaque ---
-        SectionLabel { x: 0; y: 333px; text: @tr("ACCENT COLOR"); }
-        for c[i] in Theme.accents: Rectangle {
-            x: i * (44px + 14px);
-            y: 355px;
-            width: 44px;
-            height: 44px;
-            border-radius: 22px;
-            // Selecionado: anel claro com uma folga até o círculo de cor.
-            border-width: Theme.accent-index == i ? 2px : 0;
-            border-color: Theme.text;
-
-            Rectangle {
-                width: Theme.accent-index == i ? 34px : 44px;
-                height: self.width;
-                border-radius: self.width / 2;
-                background: c;
-                animate width { duration: Theme.anim; }
-            }
-            TouchArea {
-                mouse-cursor: pointer;
-                clicked => { Theme.accent-index = i; }
-            }
-        }
-
-        // --- Painel de opções ---
-        Rectangle {
-            x: 0;
-            y: 432px;
+            y: 13px;
             width: min(721px, parent.width);
-            height: 3 * 67px;
-            border-radius: Theme.radius;
-            background: Theme.panel;
-            border-width: 1px;
-            border-color: Theme.border;
+            alignment: start;
+            spacing: 0;
+            property <length> w: self.width;
 
-            VerticalLayout {
-                OptionRow {
-                    title: @tr("Window transparency");
-                    subtitle: @tr("How much of the background shows through the glass");
-                    divider: false;
-                    SliderBar {
-                        x: parent.width - self.width - 72px;
-                        value <=> Theme.transparency;
+            // --- Tema ---
+            SectionLabel { text: @tr("THEME"); }
+            Rectangle { height: 10px; }
+            HorizontalLayout {
+                alignment: start;
+                spacing: 17px;
+                height: 158px;
+                ThemeCard {
+                    width: min(220px, (col.w - 34px) / 3);
+                    label: @tr("Dark (glass)");
+                    mode: ThemeMode.glass;
+                    preview-bg: #07090d;
+                    preview-window: #17222b;
+                    preview-dock: #2a3540;
+                    preview-accent: Theme.accents[Theme.accent-index];
+                    clicked => { Theme.mode = ThemeMode.glass; }
+                }
+                ThemeCard {
+                    width: min(220px, (col.w - 34px) / 3);
+                    label: @tr("Solid dark (OLED)");
+                    mode: ThemeMode.oled;
+                    preview-bg: #000000;
+                    preview-window: #0e0e0e;
+                    preview-dock: #262626;
+                    preview-accent: Theme.accents[Theme.accent-index];
+                    clicked => { Theme.mode = ThemeMode.oled; }
+                }
+                ThemeCard {
+                    width: min(220px, (col.w - 34px) / 3);
+                    label: @tr("Light");
+                    mode: ThemeMode.light;
+                    preview-bg: #eef1f4;
+                    preview-window: #ffffff;
+                    preview-dock: #d4dbe2;
+                    preview-accent: Theme.accents[Theme.accent-index].darker(0.45);
+                    clicked => { Theme.mode = ThemeMode.light; }
+                }
+            }
+
+            // --- Cor de destaque ---
+            Rectangle { height: 40px; }
+            SectionLabel { text: @tr("ACCENT COLOR"); }
+            Rectangle { height: 10px; }
+            HorizontalLayout {
+                alignment: start;
+                spacing: 14px;
+                height: 44px;
+                for c[i] in Theme.accents: Rectangle {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 22px;
+                    // Selecionado: anel claro com uma folga até o círculo de cor.
+                    border-width: Theme.accent-index == i ? 2px : 0;
+                    border-color: Theme.text;
+
+                    Rectangle {
+                        width: Theme.accent-index == i ? 34px : 44px;
+                        height: self.width;
+                        border-radius: self.width / 2;
+                        background: c;
+                        animate width { duration: Theme.anim; }
+                    }
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { Theme.accent-index = i; }
+                    }
+                }
+            }
+
+            // --- Painel de opções ---
+            Rectangle { height: 33px; }
+            Rectangle {
+                height: 3 * 67px;
+                border-radius: Theme.radius;
+                background: Theme.panel;
+                border-width: 1px;
+                border-color: Theme.border;
+
+                VerticalLayout {
+                    OptionRow {
+                        title: @tr("Window transparency");
+                        subtitle: @tr("How much of the background shows through the glass");
+                        divider: false;
+                        // Slider mais estreito em janela estreita.
+                        property <length> slider-w: clamp(col.w * 0.3, 100px, 180px);
+                        control-width: self.slider-w + 62px;
+                        SliderBar {
+                            x: parent.width - self.width - 72px;
+                            width: parent.slider-w;
+                            value <=> Theme.transparency;
+                        }
+                        Text {
+                            x: parent.width - self.width - 20px;
+                            width: 42px;
+                            text: round(Theme.transparency * 100) + "%";
+                            color: Theme.text;
+                            font-family: Theme.mono;
+                            font-size: 13px;
+                            horizontal-alignment: right;
+                            vertical-alignment: center;
+                        }
+                    }
+                    OptionRow {
+                        title: @tr("Background blur");
+                        subtitle: @tr("Turning it off saves GPU on older hardware");
+                        Toggle {
+                            x: parent.width - self.width - 20px;
+                            checked <=> Theme.blur;
+                        }
+                    }
+                    OptionRow {
+                        title: @tr("Reduce animations");
+                        subtitle: @tr("Instant transitions");
+                        Toggle {
+                            x: parent.width - self.width - 20px;
+                            checked <=> Theme.reduce-motion;
+                        }
+                    }
+                }
+            }
+
+            // --- Papel de parede (a dock fica em Barra de tarefas) ---
+            Rectangle { height: 24px; }
+            SectionLabel { text: @tr("WALLPAPER"); }
+            Rectangle { height: 10px; }
+            wallpapers := Rectangle {
+                // Miniaturas de 80×45 em grade: quantas couberem por linha.
+                property <int> cols: max(1, floor((col.w + 10px) / 90px));
+                height: ceil(Theme.wallpaper-names.length / self.cols) * 55px - 10px;
+                for nome[i] in Theme.wallpaper-names: Rectangle {
+                    x: Math.mod(i, wallpapers.cols) * (80px + 10px);
+                    y: floor(i / wallpapers.cols) * 55px;
+                    width: 80px;
+                    height: 45px;
+                    border-radius: 6px;
+                    clip: true;
+                    background: Theme.background;
+                    // Circuitos (sem miniatura): linha e nó na cor de destaque.
+                    if i == 0: Rectangle {
+                        Rectangle { x: 8px; y: 30px; width: 40px; height: 1.5px; background: Theme.circuit; }
+                        Rectangle { x: 47px; y: 14px; width: 1.5px; height: 17px; background: Theme.circuit; }
+                        Rectangle {
+                            x: 43px; y: 9px; width: 10px; height: 10px; border-radius: 5px;
+                            border-width: 1.5px; border-color: Theme.accent; background: transparent;
+                        }
+                    }
+                    if i > 0 && i < Shell.wallpaper-thumbs.length: Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: Shell.wallpaper-thumbs[i];
+                        image-fit: cover;
+                    }
+                    Rectangle {
+                        border-radius: 6px;
+                        border-width: Theme.wallpaper == i ? 2px : 1px;
+                        border-color: Theme.wallpaper == i ? Theme.accent : Theme.border;
+                    }
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { Theme.wallpaper = i; }
+                    }
+                }
+            }
+            Rectangle { height: 8px; }
+            Text {
+                text: Theme.wallpaper-names[Theme.wallpaper];
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13px;
+            }
+
+            // --- Ícones (as pastas seguem a cor de destaque nos três) ---
+            Rectangle { height: 22px; }
+            SectionLabel { text: @tr("ICONS"); }
+            Rectangle { height: 10px; }
+            HorizontalLayout {
+                alignment: start;
+                spacing: 17px;
+                height: 92px;
+                for nome[i] in Theme.icon-theme-names: Rectangle {
+                    width: min(229px, (col.w - 34px) / 3);
+                    height: 92px;
+                    border-radius: Theme.radius;
+                    background: Theme.panel;
+                    border-width: Theme.icon-theme == i ? 2px : 1px;
+                    border-color: Theme.icon-theme == i ? Theme.accent : Theme.border;
+                    clip: true;
+
+                    HorizontalLayout {
+                        y: 12px;
+                        height: 40px;
+                        alignment: center;
+                        spacing: 8px;
+                        if i < Shell.icon-previews.length: HorizontalLayout {
+                            spacing: 8px;
+                            for icone in Shell.icon-previews[i].icons: Image {
+                                width: 34px;
+                                height: 34px;
+                                source: icone;
+                            }
+                        }
                     }
                     Text {
-                        x: parent.width - self.width - 20px;
-                        width: 42px;
-                        text: round(Theme.transparency * 100) + "%";
+                        y: 62px;
+                        text: nome;
                         color: Theme.text;
-                        font-family: Theme.mono;
-                        font-size: 13px;
-                        horizontal-alignment: right;
-                        vertical-alignment: center;
+                        font-family: Theme.sans;
+                        font-size: 14px;
+                        font-weight: Theme.icon-theme == i ? 600 : 400;
                     }
-                }
-                OptionRow {
-                    title: @tr("Background blur");
-                    subtitle: @tr("Turning it off saves GPU on older hardware");
-                    Toggle {
-                        x: parent.width - self.width - 20px;
-                        checked <=> Theme.blur;
-                    }
-                }
-                OptionRow {
-                    title: @tr("Reduce animations");
-                    subtitle: @tr("Instant transitions");
-                    Toggle {
-                        x: parent.width - self.width - 20px;
-                        checked <=> Theme.reduce-motion;
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { Theme.icon-theme = i; }
                     }
                 }
             }
         }
-
-        // --- Papel de parede (a dock fica em Barra de tarefas) ---
-        SectionLabel { x: 0; y: 657px; text: @tr("WALLPAPER"); }
-        for nome[i] in Theme.wallpaper-names: Rectangle {
-            x: i * (80px + 10px);
-            y: 681px;
-            width: 80px;
-            height: 45px;
-            border-radius: 6px;
-            clip: true;
-            background: Theme.background;
-            // Circuitos (sem miniatura): linha e nó na cor de destaque.
-            if i == 0: Rectangle {
-                Rectangle { x: 8px; y: 30px; width: 40px; height: 1.5px; background: Theme.circuit; }
-                Rectangle { x: 47px; y: 14px; width: 1.5px; height: 17px; background: Theme.circuit; }
-                Rectangle {
-                    x: 43px; y: 9px; width: 10px; height: 10px; border-radius: 5px;
-                    border-width: 1.5px; border-color: Theme.accent; background: transparent;
-                }
-            }
-            if i > 0 && i < Shell.wallpaper-thumbs.length: Image {
-                width: parent.width;
-                height: parent.height;
-                source: Shell.wallpaper-thumbs[i];
-                image-fit: cover;
-            }
-            Rectangle {
-                border-radius: 6px;
-                border-width: Theme.wallpaper == i ? 2px : 1px;
-                border-color: Theme.wallpaper == i ? Theme.accent : Theme.border;
-            }
-            TouchArea {
-                mouse-cursor: pointer;
-                clicked => { Theme.wallpaper = i; }
-            }
-        }
-        Text {
-            x: 0;
-            y: 734px;
-            text: Theme.wallpaper-names[Theme.wallpaper];
-            color: Theme.text-muted;
-            font-family: Theme.sans;
-            font-size: 13px;
-        }
-
-        // --- Ícones (as pastas seguem a cor de destaque nos três) ---
-        SectionLabel { x: 0; y: 768px; text: @tr("ICONS"); }
-        for nome[i] in Theme.icon-theme-names: Rectangle {
-            x: i * (229px + 17px);
-            y: 792px;
-            width: 229px;
-            height: 92px;
-            border-radius: Theme.radius;
-            background: Theme.panel;
-            border-width: Theme.icon-theme == i ? 2px : 1px;
-            border-color: Theme.icon-theme == i ? Theme.accent : Theme.border;
-
-            HorizontalLayout {
-                y: 12px;
-                height: 40px;
-                alignment: center;
-                spacing: 8px;
-                if i < Shell.icon-previews.length: HorizontalLayout {
-                    spacing: 8px;
-                    for icone in Shell.icon-previews[i].icons: Image {
-                        width: 34px;
-                        height: 34px;
-                        source: icone;
-                    }
-                }
-            }
-            Text {
-                y: 62px;
-                text: nome;
-                color: Theme.text;
-                font-family: Theme.sans;
-                font-size: 14px;
-                font-weight: Theme.icon-theme == i ? 600 : 400;
-            }
-            TouchArea {
-                mouse-cursor: pointer;
-                clicked => { Theme.icon-theme = i; }
-            }
-        }
-    }
     }
 }
 
@@ -397,10 +433,16 @@ export component SettingsScreen inherits Rectangle {
     /// Página aberta (índice em `sections`).
     in-out property <int> current: 2;
 
+    /// Janela estreita (meia tela num notebook): barra lateral só com ícones.
+    property <bool> narrow: root.width < 900px;
+    property <length> sidebar-w: root.narrow ? 64px : root.width < 1150px ? 230px : 280px;
+    /// Margem do conteúdo dos dois lados.
+    property <length> content-pad: root.narrow ? 24px : 48px;
+
     // --- Barra lateral ---
     Rectangle {
         x: 0;
-        width: 280px;
+        width: root.sidebar-w;
         background: Theme.panel;
 
         Rectangle {
@@ -409,7 +451,7 @@ export component SettingsScreen inherits Rectangle {
             background: Theme.border;
         }
 
-        Text {
+        if !root.narrow: Text {
             x: 24px;
             y: 22px;
             text: @tr("Settings");
@@ -420,7 +462,7 @@ export component SettingsScreen inherits Rectangle {
         }
 
         // Busca (visual)
-        Rectangle {
+        if !root.narrow: Rectangle {
             x: 14px;
             y: 65px;
             width: parent.width - 28px;
@@ -456,11 +498,12 @@ export component SettingsScreen inherits Rectangle {
         }
 
         VerticalLayout {
-            x: 14px;
-            y: 120px;
-            width: parent.width - 28px;
+            x: root.narrow ? 8px : 14px;
+            y: root.narrow ? 20px : 120px;
+            width: parent.width - 2 * self.x;
             alignment: start;
             for s[i] in root.sections: SidebarItem {
+                compact: root.narrow;
                 section: s;
                 selected: root.current == i;
                 clicked => { root.current = i; }
@@ -470,8 +513,8 @@ export component SettingsScreen inherits Rectangle {
 
     // --- Conteúdo ---
     Rectangle {
-        x: 280px + 48px;
-        width: root.width - 280px - 96px;
+        x: root.sidebar-w + root.content-pad;
+        width: root.width - root.sidebar-w - 2 * root.content-pad;
 
         Text {
             y: 34px;

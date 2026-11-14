@@ -150,8 +150,28 @@ fn sync_system(ui: &AppWindow, now: &Prefs, before: Option<&Prefs>) {
     }
 }
 
-/// Nomes do tamanho da dock no arquivo (índice = `dock_size`).
-const DOCK_SIZES: [&str; 3] = ["pequena", "media", "grande"];
+/// Tamanho da dock (lado do botão, px): limites e o padrão.
+const DOCK_SIZE_MIN: i32 = 36;
+const DOCK_SIZE_MAX: i32 = 72;
+const DOCK_SIZE_DEFAULT: i32 = 52;
+
+/// Tamanho da dock lido do arquivo: px (`52`) ou os nomes antigos
+/// (`pequena`, `media`, `grande`), sempre de 4 em 4 entre 36 e 72.
+pub fn parse_dock_size(value: &str) -> Option<i32> {
+    let px = match value {
+        "pequena" => 44,
+        "media" => 52,
+        "grande" => 60,
+        _ => value.parse().ok()?,
+    };
+    Some(clamp_dock_size(px))
+}
+
+/// Põe o tamanho da dock entre os limites, de 4 em 4.
+pub fn clamp_dock_size(px: i32) -> i32 {
+    let px = px.clamp(DOCK_SIZE_MIN, DOCK_SIZE_MAX);
+    DOCK_SIZE_MIN + (px - DOCK_SIZE_MIN + 2) / 4 * 4
+}
 
 impl Prefs {
     /// Lê as preferências atuais do global `Theme`.
@@ -207,11 +227,7 @@ impl Prefs {
         if !self.dock_always_visible {
             return m;
         }
-        let item = match self.dock_size {
-            0 => 44,
-            2 => 60,
-            _ => 52,
-        };
+        let item = clamp_dock_size(self.dock_size) as u32;
         let size = if self.dock_style == 1 { item + 12 } else { item + 18 + 18 };
         match self.dock_position {
             1 => m.left = size,
@@ -246,7 +262,7 @@ impl Prefs {
             self.bar_show_seconds,
             self.bar_show_cpu,
             self.bar_show_battery,
-            DOCK_SIZES[self.dock_size.clamp(0, 2) as usize],
+            clamp_dock_size(self.dock_size),
             self.dock_apps,
             DOCK_POSITIONS[self.dock_position.clamp(0, 2) as usize],
             DOCK_STYLES[self.dock_style.clamp(0, 1) as usize],
@@ -297,8 +313,8 @@ impl Prefs {
                     p.bar_show_battery = value.parse().unwrap_or(p.bar_show_battery)
                 }
                 "dock-tamanho" => {
-                    if let Some(i) = DOCK_SIZES.iter().position(|s| *s == value) {
-                        p.dock_size = i as i32;
+                    if let Some(px) = parse_dock_size(value) {
+                        p.dock_size = px;
                     }
                 }
                 "dock-posicao" => {
@@ -418,7 +434,7 @@ mod tests {
             bar_show_seconds: false,
             bar_show_cpu: true,
             bar_show_battery: true,
-            dock_size: 1,
+            dock_size: 52,
             dock_apps: "files,terminal,browser,code,store".into(),
             dock_position: 0,
             dock_style: 0,
@@ -440,7 +456,7 @@ mod tests {
             bar_show_seconds: true,
             bar_show_cpu: false,
             bar_show_battery: false,
-            dock_size: 2,
+            dock_size: 60,
             dock_apps: "files,music,calendar".into(),
             dock_position: 1,
             dock_style: 1,
@@ -463,7 +479,7 @@ mod tests {
         // aparencia.conf de antes da Barra de tarefas: só as chaves da Aparência.
         let p = Prefs::parse("destaque=2\ndock-tamanho=enorme\ndock-apps= , \n", &padrao());
         assert_eq!(p.accent_index, 2);
-        assert_eq!(p.dock_size, 1);
+        assert_eq!(p.dock_size, 52);
         assert_eq!(p.dock_apps, "files,terminal,browser,code,store");
     }
 
@@ -482,13 +498,24 @@ mod tests {
     }
 
     #[test]
+    fn tamanho_da_dock_em_px_e_nomes_antigos() {
+        assert_eq!(parse_dock_size("pequena"), Some(44));
+        assert_eq!(parse_dock_size("grande"), Some(60));
+        assert_eq!(parse_dock_size("64"), Some(64));
+        assert_eq!(parse_dock_size("65"), Some(64));
+        assert_eq!(parse_dock_size("10"), Some(36));
+        assert_eq!(parse_dock_size("999"), Some(72));
+        assert_eq!(parse_dock_size("enorme"), None);
+    }
+
+    #[test]
     fn margens_da_dock() {
         use crate::labwc::Margins;
         let mut p = padrao();
         assert_eq!(p.dock_margins(), Margins { bottom: 88, left: 0, right: 0 });
-        p.dock_size = 0;
+        p.dock_size = 44;
         assert_eq!(p.dock_margins().bottom, 80);
-        p.dock_size = 2;
+        p.dock_size = 60;
         p.dock_position = 1;
         assert_eq!(p.dock_margins(), Margins { bottom: 0, left: 96, right: 0 });
         p.dock_style = 1;

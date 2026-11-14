@@ -117,6 +117,17 @@ fn main() {
     ui.set_screen(Screen::Settings);
     save(&window, &out.join("config_aparencia.png"));
 
+    // Configurações em meia tela de um notebook 1366×768 (janela estreita:
+    // barra lateral só com ícones, cards menores).
+    window.set_size(PhysicalSize::new((683.0 * SCALE) as u32, (645.0 * SCALE) as u32));
+    save(&window, &out.join("config_estreita.png"));
+    ui.set_settings_page(0);
+    save(&window, &out.join("config_estreita_rede.png"));
+    ui.set_settings_page(3);
+    save(&window, &out.join("config_estreita_barra.png"));
+    ui.set_settings_page(2);
+    window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
+
     // Variações de tema para conferir a troca ao vivo.
     let theme = ui.global::<Theme>();
     theme.set_accent_index(1);

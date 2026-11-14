@@ -771,3 +771,6 @@ msgstr "Configurações de Wi-Fi..."
 
 msgid "Forget"
 msgstr "Esquecer"
+
+msgid "Icon size, from 36 to 72 px"
+msgstr "Tamanho dos ícones, de 36 a 72 px"

@@ -41,8 +41,9 @@ export global Theme {
     in-out property <bool> bar-show-cpu: true;
     /// Barra superior: mostrar a carga da bateria (só aparece se houver bateria).
     in-out property <bool> bar-show-battery: true;
-    /// Tamanho da dock: 0 = pequena, 1 = média (padrão), 2 = grande.
-    in-out property <int> dock-size: 1;
+    /// Tamanho do botão de app da dock, em px (36–72, de 4 em 4; padrão 52),
+    /// como o "Tamanho dos ícones" do Ubuntu.
+    in-out property <int> dock-size: 52;
     /// Borda da dock: 0 = embaixo (padrão), 1 = esquerda, 2 = direita.
     in-out property <int> dock-position: 0;
     /// Estilo: 0 = dock flutuante centralizada, 1 = barra encostada na borda,
@@ -114,12 +115,13 @@ export global Theme {
     out property <length> bar-height: 35px;
     out property <length> radius: 12px;
     out property <length> radius-small: 8px;
-    /// Lado do botão de app da dock, conforme `dock-size`.
-    out property <length> dock-item: dock-size == 0 ? 44px : dock-size == 2 ? 60px : 52px;
+    /// Lado do botão de app da dock (`dock-size`).
+    out property <length> dock-item: clamp(dock-size, 36, 72) * 1px;
     /// Espessura da dock (o botão mais o respiro dos dois lados).
     out property <length> dock-thickness: dock-item + (dock-style == 1 ? 12px : 18px);
     /// Lado do ícone dentro do botão da dock.
-    out property <length> dock-icon: dock-size == 0 ? 20px : dock-size == 2 ? 28px : 24px;
+    /// (Proporção dos tamanhos antigos: 44 → 20, 52 → 24, 60 → 28.)
+    out property <length> dock-icon: round(clamp(dock-size, 36, 72) * 6 / 13) * 1px;
 
     /// Duração padrão das transições; zero quando "Reduzir animações" está ligado.
     out property <duration> anim: reduce-motion ? 0ms : 180ms;

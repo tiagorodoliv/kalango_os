@@ -82,7 +82,7 @@ component Row inherits Rectangle {
     }
     VerticalLayout {
         x: 20px;
-        width: parent.width * 0.55;
+        width: parent.width * 0.5;
         alignment: center;
         spacing: 3px;
         Text { text: root.title; color: Theme.text; font-family: Theme.sans; font-size: 14.5px; font-weight: 600; overflow: elide; }
@@ -226,7 +226,6 @@ component EmptyNotice inherits Rectangle {
     in property <string> text;
 
     height: 150px;
-    width: Page.max-width;
     border-radius: Theme.radius;
     background: Theme.panel;
     border-width: 1px;
@@ -235,6 +234,8 @@ component EmptyNotice inherits Rectangle {
     VerticalLayout {
         alignment: center;
         spacing: 10px;
+        padding-left: 20px;
+        padding-right: 20px;
         Image {
             source: root.icon;
             colorize: Theme.text-muted;
@@ -360,7 +361,7 @@ export component SoundPage inherits Rectangle {
                     title: "Volume";
                     SliderBar {
                         x: parent.width - self.width - 72px;
-                        width: 240px;
+                        width: clamp(parent.width * 0.3, 100px, 240px);
                         value <=> Device.volume;
                         changed(v) => { Device.set-volume(v); }
                     }
@@ -731,6 +732,8 @@ export component RegionPage inherits Rectangle {
                     subtitle: @tr("Menus, settings and apps");
                     divider: false;
                     Dropdown {
+                        // Encolhe em janela estreita.
+                        width: clamp(parent.width * 0.4, 150px, 250px);
                         x: parent.width - self.width - 20px;
                         options: Device.languages;
                         selected: Device.language-index;
@@ -741,6 +744,8 @@ export component RegionPage inherits Rectangle {
                     title: @tr("Keyboard");
                     subtitle: Device.keyboard-message != "" ? Device.keyboard-message : @tr("Layout of the keys");
                     Dropdown {
+                        // Encolhe em janela estreita.
+                        width: clamp(parent.width * 0.4, 150px, 250px);
                         x: parent.width - self.width - 20px;
                         options: Device.keyboard-layouts;
                         selected: Device.keyboard-index;
@@ -908,6 +913,8 @@ export component DisplaysPage inherits Rectangle {
                 Row {
                     title: @tr("Resolution");
                     Dropdown {
+                        // Encolhe em janela estreita.
+                        width: clamp(parent.width * 0.4, 150px, 250px);
                         x: parent.width - self.width - 20px;
                         options: root.out.resolution-labels;
                         selected: root.res;
@@ -921,6 +928,8 @@ export component DisplaysPage inherits Rectangle {
                 Row {
                     title: @tr("Refresh rate");
                     Dropdown {
+                        // Encolhe em janela estreita.
+                        width: clamp(parent.width * 0.4, 150px, 250px);
                         x: parent.width - self.width - 20px;
                         options: root.mode.rates;
                         selected: root.rate;
@@ -932,6 +941,8 @@ export component DisplaysPage inherits Rectangle {
                     title: @tr("Scale");
                     subtitle: root.fits ? @tr("Makes text and windows larger") : @tr("Too large for this resolution");
                     Dropdown {
+                        // Encolhe em janela estreita.
+                        width: clamp(parent.width * 0.4, 150px, 250px);
                         x: parent.width - self.width - 20px;
                         options: Device.display-scales;
                         selected: root.scale;
@@ -942,6 +953,8 @@ export component DisplaysPage inherits Rectangle {
                 Row {
                     title: @tr("Rotation");
                     Dropdown {
+                        // Encolhe em janela estreita.
+                        width: clamp(parent.width * 0.4, 150px, 250px);
                         x: parent.width - self.width - 20px;
                         options: Device.display-rotations;
                         selected: root.rot;
@@ -1083,11 +1096,23 @@ export component TaskbarPage inherits Rectangle {
                     }
                     Row {
                         title: @tr("Size");
-                        Segmented {
+                        subtitle: @tr("Icon size, from 36 to 72 px");
+                        // 36–72 px de 4 em 4 (10 posições no slider).
+                        SliderBar {
+                            x: parent.width - self.width - 82px;
+                            width: clamp(parent.width * 0.3, 100px, 240px);
+                            value: (Theme.dock-size - 36) / 36;
+                            changed(v) => { Theme.dock-size = 36 + round(v * 9) * 4; }
+                        }
+                        Text {
                             x: parent.width - self.width - 20px;
-                            options: [@tr("Small"), @tr("Medium"), @tr("Large")];
-                            selected: Theme.dock-size;
-                            chosen(i) => { Theme.dock-size = i; }
+                            width: 52px;
+                            text: Theme.dock-size + " px";
+                            color: Theme.text;
+                            font-family: Theme.mono;
+                            font-size: 13px;
+                            horizontal-alignment: right;
+                            vertical-alignment: center;
                         }
                     }
                 }
