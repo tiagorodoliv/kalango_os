@@ -68,6 +68,9 @@ pavucontrol
 
 # Monitores (Configurações → Monitores): resolução, escala e rotação
 wlr-randr
+# Traz para a frente uma janela já aberta (Configurações abertas de novo pelo
+# menu): o protocolo wlr-foreign-toplevel do labwc (session::raise).
+wlrctl
 
 # Idioma e fontes (as fontes do shell já vão embutidas no binário)
 locales

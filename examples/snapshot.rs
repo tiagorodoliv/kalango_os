@@ -104,7 +104,7 @@ fn main() {
     let nets: Vec<kalango_os::WifiNetwork> = [("Casa", 92, true, true), ("Vizinho 5G", 70, true, false),
         ("Cafe Aberto", 55, false, false), ("Escritorio", 31, true, false)]
         .into_iter()
-        .map(|(ssid, signal, secure, active)| kalango_os::WifiNetwork { ssid: ssid.into(), signal, secure, active })
+        .map(|(ssid, signal, secure, active)| kalango_os::WifiNetwork { ssid: ssid.into(), signal, secure, active, saved: active })
         .collect();
     device.set_networks(slint::ModelRc::new(slint::VecModel::from(nets)));
     ui.set_quick_wifi_open(true);

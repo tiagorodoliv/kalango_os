@@ -57,6 +57,26 @@ component SmallButton inherits Rectangle {
     }
 }
 
+/// "Esquecer" de uma rede salva (texto que fica em destaque ao passar o mouse).
+component ForgetLink inherits Rectangle {
+    in property <length> font-size;
+    callback clicked();
+    width: label.preferred-width + 12px;
+    border-radius: 6px;
+    background: touch.has-hover ? Theme.tile : transparent;
+    label := Text {
+        text: @tr("Forget");
+        color: touch.has-hover ? Theme.danger : Theme.text-muted;
+        font-family: Theme.sans;
+        font-size: root.font-size;
+        vertical-alignment: center;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
 export component WifiList inherits Rectangle {
     /// Versão menor, para o painel rápido.
     in property <bool> compact: false;
@@ -115,10 +135,38 @@ export component WifiList inherits Rectangle {
             vertical-alignment: center;
             overflow: elide;
         }
+        net-touch := TouchArea {
+            mouse-cursor: net.active ? default : pointer;
+            clicked => {
+                if (!net.active) {
+                    Device.network-message = "";
+                    if (!net.secure || net.saved) {
+                        // Rede aberta ou já salva: conecta direto.
+                        root.selected = "";
+                        Device.connect-wifi(net.ssid, "");
+                    } else if (root.selected == net.ssid) {
+                        root.selected = "";
+                    } else {
+                        root.selected = net.ssid;
+                        password.text = "";
+                        password.focus();
+                    }
+                }
+            }
+        }
         right := HorizontalLayout {
             x: parent.width - self.preferred-width - root.pad;
             width: self.preferred-width;
             spacing: 10px;
+            if net.saved: ForgetLink {
+                font-size: root.font-size - 2px;
+                clicked => {
+                    if (root.selected == net.ssid) {
+                        root.selected = "";
+                    }
+                    Device.forget-wifi(net.ssid);
+                }
+            }
             if net.active: Text {
                 text: @tr("Connected");
                 color: Theme.accent;
@@ -132,25 +180,6 @@ export component WifiList inherits Rectangle {
                 width: 14px;
                 height: 14px;
                 y: (parent.height - self.height) / 2;
-            }
-        }
-        net-touch := TouchArea {
-            mouse-cursor: net.active ? default : pointer;
-            clicked => {
-                if (!net.active) {
-                    Device.network-message = "";
-                    if (!net.secure) {
-                        // Rede aberta (ou já salva sem senha): conecta direto.
-                        root.selected = "";
-                        Device.connect-wifi(net.ssid, "");
-                    } else if (root.selected == net.ssid) {
-                        root.selected = "";
-                    } else {
-                        root.selected = net.ssid;
-                        password.text = "";
-                        password.focus();
-                    }
-                }
             }
         }
     }

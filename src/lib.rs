@@ -143,10 +143,13 @@ pub fn run() -> Result<(), slint::PlatformError> {
     select_renderer(mode);
     let page = session::page_from_args(std::env::args());
     // Super com o menu aberto: o novo processo fecha o antigo e sai.
-    // Configurações já abertas: só pede a página a elas.
+    // Configurações já abertas: pede a página a elas e as traz para a frente.
     if !session::claim_instance(mode) {
         if let (Mode::Settings, Some(page)) = (mode, page) {
             session::request_page(page);
+        }
+        if mode == Mode::Settings {
+            session::raise(mode);
         }
         return Ok(());
     }

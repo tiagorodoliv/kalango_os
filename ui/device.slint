@@ -19,6 +19,8 @@ export struct WifiNetwork {
     secure: bool,
     /// É a rede conectada agora.
     active: bool,
+    /// Tem perfil salvo no NetworkManager (dá para esquecer).
+    saved: bool,
 }
 
 /// Uma resolução de um monitor, com as taxas de atualização disponíveis.
@@ -101,6 +103,8 @@ export global Device {
     callback connect-wifi(string /* ssid */, string /* senha */);
     /// Posição da rede `ssid` na lista (-1 se não está). A lista vai como
     /// argumento para a ligação ser refeita quando ela muda.
+    /// Esquece uma rede salva (apaga o perfil; desconecta se for a atual).
+    callback forget-wifi(string /* ssid */);
     pure callback network-index([WifiNetwork], string /* ssid */) -> int;
 
     // --- Som (PipeWire/WirePlumber) ---

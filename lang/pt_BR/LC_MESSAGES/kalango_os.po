@@ -768,3 +768,6 @@ msgstr "O Wi-Fi está desligado."
 
 msgid "Wi-Fi settings..."
 msgstr "Configurações de Wi-Fi..."
+
+msgid "Forget"
+msgstr "Esquecer"

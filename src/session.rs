@@ -264,6 +264,20 @@ pub fn request_page(page: i32) {
     }
 }
 
+/// Traz para a frente a janela de outra instância já aberta (Configurações
+/// abertas de novo pelo menu, pela dock ou pelo painel).
+///
+/// No Wayland um app não pode se pôr na frente sozinho; o `wlrctl` usa o
+/// protocolo de controle de janelas (wlr-foreign-toplevel), que o labwc tem.
+pub fn raise(mode: Mode) {
+    let _ = Command::new("wlrctl")
+        .args(["toplevel", "focus", &format!("app_id:{}", mode.app_id())])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+}
+
 /// Nas Configurações: confere os pedidos de página e troca a página aberta.
 /// O timer devolvido precisa ficar vivo.
 pub fn watch_page_requests(ui: &AppWindow) -> Option<Timer> {

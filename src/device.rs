@@ -95,6 +95,18 @@ pub fn parse_wifi_list(text: &str) -> Vec<Net> {
     nets
 }
 
+/// Nomes dos perfis Wi-Fi salvos, de `nmcli -t -f NAME,TYPE connection show`.
+///
+/// O `nmcli device wifi connect` (Configurações, painel, nmtui) dá ao perfil
+/// o nome da rede, então o nome serve para achar a rede salva na lista.
+pub fn parse_saved_wifi(text: &str) -> Vec<String> {
+    text.lines()
+        .map(split_terse)
+        .filter(|f| f.len() >= 2 && f[1] == "802-11-wireless")
+        .map(|f| f[0].clone())
+        .collect()
+}
+
 /// Resumo dos dispositivos de rede, de `nmcli -t -f TYPE,STATE,CONNECTION device`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct NetStatus {
@@ -407,6 +419,8 @@ struct Snapshot {
     network: Option<NetStatus>,
     wifi_enabled: bool,
     networks: Vec<Net>,
+    /// Perfis Wi-Fi salvos (redes que dá para esquecer).
+    saved: Vec<String>,
     sound: Option<(f32, bool, String)>,
     battery: Option<(u32, bool)>,
 }
@@ -425,6 +439,9 @@ fn read_snapshot(rescan: bool) -> Snapshot {
                 &["-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", rescan],
             ) {
                 s.networks = parse_wifi_list(&list);
+            }
+            if let Some(text) = output("nmcli", &["-t", "-f", "NAME,TYPE", "connection", "show"]) {
+                s.saved = parse_saved_wifi(&text);
             }
         }
         s.network = Some(status);
@@ -495,7 +512,13 @@ fn apply(ui: &AppWindow, s: Snapshot, hold_volume: bool, rescan: bool) {
     let nets: Vec<WifiNetwork> = s
         .networks
         .into_iter()
-        .map(|n| WifiNetwork { ssid: n.ssid.into(), signal: n.signal, secure: n.secure, active: n.active })
+        .map(|n| WifiNetwork {
+            saved: s.saved.contains(&n.ssid),
+            ssid: n.ssid.into(),
+            signal: n.signal,
+            secure: n.secure,
+            active: n.active,
+        })
         .collect();
     d.set_networks(ModelRc::from(Rc::new(VecModel::from(nets))));
     if rescan {
@@ -543,7 +566,10 @@ fn connect(weak: Weak<AppWindow>, shared: Arc<Shared>, ssid: SharedString, passw
             // "key-mgmt: property is missing". Senha digitada = perfil novo.
             forget_network(&ssid);
         }
-        let ok = output("nmcli", &args).is_some();
+        // Sem senha: usa o perfil salvo, se houver (rede já conhecida).
+        let ok = (password.is_empty()
+            && output("nmcli", &["connection", "up", "id", ssid.as_str()]).is_some())
+            || output("nmcli", &args).is_some();
         if !ok && !password.is_empty() {
             // Não deixa salvo um perfil com a senha errada.
             forget_network(&ssid);
@@ -565,6 +591,26 @@ fn connect(weak: Weak<AppWindow>, shared: Arc<Shared>, ssid: SharedString, passw
                 let d = ui.global::<Device>();
                 d.set_network_busy(false);
                 d.set_network_message(message.into());
+            }
+        });
+        refresh_from_thread(weak, shared);
+    });
+}
+
+/// Esquece uma rede salva (botão "Esquecer"): apaga o perfil numa thread e
+/// relê a lista. Se era a rede conectada, o Wi-Fi desconecta.
+fn forget(weak: Weak<AppWindow>, shared: Arc<Shared>, ssid: SharedString) {
+    std::thread::spawn(move || {
+        let ok = output("nmcli", &["connection", "delete", "id", ssid.as_str()]).is_some();
+        let message = if ok {
+            format!("{} {ssid}", tr("Forgot", "Rede esquecida:"))
+        } else {
+            format!("{} {ssid}", tr("Could not forget", "Não foi possível esquecer"))
+        };
+        let weak2 = weak.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(ui) = weak2.upgrade() {
+                ui.global::<Device>().set_network_message(message.into());
             }
         });
         refresh_from_thread(weak, shared);
@@ -680,6 +726,11 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         let shared = shared.clone();
         d.on_connect_wifi(move |ssid, password| connect(weak.clone(), shared.clone(), ssid, password));
     }
+    {
+        let weak = ui.as_weak();
+        let shared = shared.clone();
+        d.on_forget_wifi(move |ssid| forget(weak.clone(), shared.clone(), ssid));
+    }
 
     let weak = ui.as_weak();
     // Nas Configurações, procura redes de verdade ao abrir (a lista guardada
@@ -693,6 +744,12 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn le_perfis_wifi_salvos() {
+        let text = "Cats:802-11-wireless\nlo:loopback\nWired connection 1:802-3-ethernet\nCafe\\: 2:802-11-wireless\n";
+        assert_eq!(parse_saved_wifi(text), vec!["Cats".to_string(), "Cafe: 2".to_string()]);
+    }
 
     #[test]
     fn separa_campos_do_nmcli_com_escape() {
