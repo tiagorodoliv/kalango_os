@@ -274,6 +274,10 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `run-qemu.sh --secureboot` (OVMF com chaves da Microsoft; variáveis em `out/ovmf-vars-secureboot.fd`).
 - `run-qemu.sh --disco` liga um disco de 20 GB (`distro/out/disco-teste.qcow2`) para testar o instalador;
   `--so-disco` dá boot pelo disco sem a ISO.
+- **`/tmp` no disco (2026-11-14), como no Ubuntu:** o Debian 13 põe o `/tmp` em memória (metade da RAM) e o
+  ESP-IDF falhava com "No space left on device". `etc/systemd/system/tmp.mount` → `/dev/null` (mascarado) e
+  `etc/calamares/modules/fstab.conf` (o do Debian + `tmpOptions` com `tmpfs: false`, senão o Calamares grava
+  `tmpfs /tmp` no fstab).
 - `auto/config` usa `noeject` (desligar não para pedindo para remover a mídia).
 - `distro/auto/config`: trixie amd64, main+contrib+non-free-firmware, en_US (+ pt_BR), teclado us, usuário live `user`.
 - Pacotes em `distro/config/package-lists/kalango.list.chroot`; configs de sistema em `distro/config/includes.chroot/`.
