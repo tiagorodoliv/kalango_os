@@ -1,0 +1,42 @@
+#!/bin/sh
+# Tampa e botão de ligar do Kalango OS (Configurações → Energia).
+# Roda como root pelo pkexec (política org.kalango.energia).
+#
+#   kalango-energia TAMPA TAMPA_NA_TOMADA BOTAO
+#       TAMPA*: suspend | lock | ignore | poweroff
+#       BOTAO:  poweroff | suspend | ignore
+#
+# Grava /etc/systemd/logind.conf.d/50-kalango.conf e manda o logind reler.
+set -eu
+
+CONF=/etc/systemd/logind.conf.d/50-kalango.conf
+
+valida() {
+	case "$1" in
+	suspend | lock | ignore | poweroff) ;;
+	*)
+		echo "kalango-energia: ação inválida: $1" >&2
+		exit 1
+		;;
+	esac
+}
+
+[ $# -eq 3 ] || {
+	echo "uso: kalango-energia TAMPA TAMPA_NA_TOMADA BOTAO" >&2
+	exit 1
+}
+valida "$1"
+valida "$2"
+valida "$3"
+[ "$3" != lock ] || exit 1
+
+mkdir -p "$(dirname "$CONF")"
+cat >"$CONF" <<FIM
+# Gerado pelo kalango-shell (Configurações → Energia).
+[Login]
+HandleLidSwitch=$1
+HandleLidSwitchExternalPower=$2
+HandlePowerKey=$3
+FIM
+# O logind relê a configuração com SIGHUP (sem derrubar as sessões).
+systemctl kill -s HUP systemd-logind.service

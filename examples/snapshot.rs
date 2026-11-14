@@ -13,7 +13,7 @@ use std::rc::Rc;
 use kalango_os::{Screen, Theme};
 use slint::platform::software_renderer::{MinimalSoftwareWindow, RepaintBufferType};
 use slint::platform::{Platform, WindowAdapter};
-use slint::{ComponentHandle, PhysicalSize, Rgb8Pixel};
+use slint::{Model, ComponentHandle, PhysicalSize, Rgb8Pixel};
 
 /// Tamanho lógico de referência do layout.
 const WIDTH: u32 = 1440;
@@ -229,6 +229,74 @@ fn main() {
         ui.set_settings_page(4);
         save(&window, &out.join("config_monitores.png"));
         ui.set_settings_page(2);
+    }
+
+    // Energia: modo de energia, apagar/suspender, tampa e botão.
+    {
+        let pw = ui.global::<kalango_os::Power>();
+        pw.set_profiles_available(true);
+        pw.set_has_performance(true);
+        pw.set_has_battery(true);
+        pw.set_has_lid(true);
+        window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (1150.0 * SCALE) as u32));
+        ui.set_settings_page(6);
+        save(&window, &out.join("config_energia.png"));
+        ui.set_settings_page(2);
+        window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
+    }
+
+    // Dock com um app aberto que não está fixado (VS Code), Alt+Tab e o
+    // menu do botão direito da dock.
+    {
+        let shell = ui.global::<kalango_os::Shell>();
+        let apps = ui.global::<kalango_os::Apps>();
+        let pinned: Vec<kalango_os::AppEntry> = apps.get_pinned().iter().collect();
+        let vscode = kalango_os::AppEntry {
+            id: "desktop:/usr/share/applications/com.microsoft.VSCode.desktop".into(),
+            name: "Visual Studio Code".into(),
+            letter: "V".into(),
+            tint: slint::Color::from_rgb_u8(0x3d, 0x9b, 0xf5),
+            ..Default::default()
+        };
+        shell.set_native(true);
+        shell.set_running_ids(format!("files,terminal,{}", vscode.id).into());
+        shell.set_active_app(vscode.id.clone());
+        shell.set_running_extra(slint::ModelRc::new(slint::VecModel::from(vec![vscode.clone()])));
+        ui.set_screen(Screen::Desktop);
+        save(&window, &out.join("dock_apps_abertos.png"));
+
+        let item = |app: &kalango_os::AppEntry, title: &str| kalango_os::SwitcherItem {
+            app: app.clone(),
+            title: title.into(),
+            minimized: false,
+        };
+        let items = vec![
+            item(&vscode, "main.rs — kalango_os — Visual Studio Code"),
+            item(&pinned[1], "tiago@hp: ~/git/kalango_os"),
+            item(&pinned[0], "Projetos — Arquivos"),
+            item(&pinned[2], "Kalango OS — Mozilla Firefox"),
+        ];
+        let sw = ui.global::<kalango_os::Switcher>();
+        sw.set_items(slint::ModelRc::new(slint::VecModel::from(items)));
+        sw.set_selected(1);
+        ui.set_mode(kalango_os::ShellMode::Switcher);
+        save(&window, &out.join("alt_tab.png"));
+
+        let menu = ui.global::<kalango_os::DockMenu>();
+        menu.set_app(vscode.clone());
+        menu.set_pinned(false);
+        menu.set_total(6);
+        menu.set_offset(5.0 * 44.0 + 9.0 + 18.0);
+        let wins = vec![
+            kalango_os::DockMenuWindow { id: 1, title: "main.rs — kalango_os — Visual Studio Code".into() },
+            kalango_os::DockMenuWindow { id: 2, title: "README.md — notas — Visual Studio Code".into() },
+        ];
+        menu.set_windows(slint::ModelRc::new(slint::VecModel::from(wins)));
+        ui.set_mode(kalango_os::ShellMode::DockMenu);
+        save(&window, &out.join("dock_menu.png"));
+        ui.set_mode(kalango_os::ShellMode::Desktop);
+        shell.set_native(false);
+        shell.set_running_extra(slint::ModelRc::default());
     }
 
     // Variações de tema para conferir a troca ao vivo.

@@ -345,3 +345,34 @@ export global Device {
     callback connect-server(string);
     callback set-keyboard(int);
 }
+
+/// Energia (Configurações → Energia, `src/power.rs`). As listas são índices
+/// das opções da página (minutos em `BLANK_MINUTES`/`SUSPEND_MINUTES`).
+export global Power {
+    /// `power-profiles-daemon` instalado e rodando.
+    in property <bool> profiles-available: false;
+    in property <bool> has-performance: false;
+    /// 0 economia, 1 equilibrado, 2 desempenho.
+    in-out property <int> profile: 1;
+    callback set-profile(int);
+    /// Apagar a tela depois de (índice) e suspender na bateria/na tomada.
+    in-out property <int> blank: 4;
+    in-out property <int> suspend-battery: 3;
+    in-out property <int> suspend-ac: 0;
+    /// Bloquear a tela ao apagar e antes de suspender.
+    in-out property <bool> lock-on-blank: true;
+    in property <bool> has-battery: false;
+    in property <bool> has-lid: false;
+    /// Tampa (na bateria e na tomada): 0 suspender, 1 bloquear, 2 nada, 3 desligar.
+    in-out property <int> lid-battery: 0;
+    in-out property <int> lid-ac: 0;
+    /// Botão de ligar: 0 desligar, 1 suspender, 2 nada.
+    in-out property <int> power-button: 0;
+    /// Pedindo a senha do administrador (tampa e botão).
+    in property <bool> system-busy: false;
+    in property <string> message: "";
+    /// Grava as escolhas da pessoa (`energia.conf`).
+    callback save();
+    /// Grava tampa e botão no sistema (pkexec).
+    callback save-system();
+}

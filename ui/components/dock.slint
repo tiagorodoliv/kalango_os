@@ -19,6 +19,8 @@ component DockItem inherits Rectangle {
     /// fica do lado de dentro da tela.
     in property <int> edge: 0;
     callback clicked();
+    /// Botão direito (menu do app).
+    callback menu();
 
     /// Ícone colorido do tema de ícones (sessão real): desenhado grande e sem
     /// colorir, sem o quadradinho de fundo (só aparece ao passar o mouse).
@@ -30,11 +32,19 @@ component DockItem inherits Rectangle {
     background: touch.has-hover ? Theme.tile-hover : root.own-icon ? transparent : Theme.tile;
     animate background { duration: Theme.anim; }
 
-    Image {
+    if root.app.letter == "": Image {
         source: root.app.icon;
         colorize: root.own-icon ? transparent : root.app.id == "files" ? Theme.accent : root.app.tint;
         width: root.own-icon ? Theme.dock-item * 0.82 : Theme.dock-icon;
         height: self.width;
+    }
+    // App sem ícone: a inicial na cor do app.
+    if root.app.letter != "": Text {
+        text: root.app.letter;
+        color: root.app.tint;
+        font-family: Theme.sans;
+        font-size: Theme.dock-item * 0.45;
+        font-weight: 600;
     }
 
     // Indicador: traço quando ativo, ponto quando só aberto.
@@ -52,6 +62,11 @@ component DockItem inherits Rectangle {
     touch := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.clicked(); }
+        pointer-event(ev) => {
+            if (ev.kind == PointerEventKind.down && ev.button == PointerEventButton.right) {
+                root.menu();
+            }
+        }
     }
 }
 
@@ -66,12 +81,15 @@ export component Dock inherits Rectangle {
     /// transparência, e os cantos ficariam pretos).
     in property <bool> square: false;
     callback launch(string);
+    /// Botão direito num app: id e centro do item ao longo da dock.
+    callback menu(string, length);
 
     property <bool> vertical: Theme.dock-position != 0;
     property <bool> bar: Theme.dock-style == 1;
     property <length> pad: (Theme.dock-thickness - Theme.dock-item) / 2;
     property <length> step: Theme.dock-item + 8px;
-    property <int> count: Apps.dock.length;
+    /// Apps fixados + apps abertos que não estão fixados.
+    property <int> count: Apps.dock.length + Shell.running-extra.length;
     /// Comprimento dos itens: apps, separador e Configurações.
     property <length> run: root.count * root.step + 17px + Theme.dock-item;
     property <length> along: root.bar ? root.bar-length : root.run + 2 * root.pad;
@@ -107,14 +125,26 @@ export component Dock inherits Rectangle {
         y: root.vertical ? root.start + i * root.step : root.pad;
         app: app;
         edge: Theme.dock-position;
-        // Sessão real: apps abertos de verdade (o shell não sabe qual está
-        // em foco, então só mostra o ponto). Protótipo: janelas de demonstração.
+        // Sessão real: janelas abertas de verdade (`src/taskbar.rs`).
+        // Protótipo: janelas de demonstração.
         running: Shell.native
-            ? (app.id == "files" && Shell.files-running) || (app.id == "terminal" && Shell.terminal-running)
-              || (app.id == "browser" && Shell.browser-running) || (app.id == "code" && Shell.code-running)
+            ? Shell.dock-has(Shell.running-ids, app.id)
             : (app.id == "files" && root.files-open) || (app.id == "terminal" && root.terminal-open);
-        active: !Shell.native && app.id == root.focused-app && self.running;
+        active: Shell.native ? app.id == Shell.active-app : app.id == root.focused-app && self.running;
         clicked => { root.launch(app.id); }
+        menu => { root.menu(app.id, root.start + i * root.step + Theme.dock-item / 2); }
+    }
+
+    // Apps abertos que não estão fixados (VS Code, GIMP...).
+    for app[j] in Shell.running-extra: DockItem {
+        x: root.vertical ? root.pad : root.start + (Apps.dock.length + j) * root.step;
+        y: root.vertical ? root.start + (Apps.dock.length + j) * root.step : root.pad;
+        app: app;
+        edge: Theme.dock-position;
+        running: true;
+        active: app.id == Shell.active-app;
+        clicked => { root.launch(app.id); }
+        menu => { root.menu(app.id, root.start + (Apps.dock.length + j) * root.step + Theme.dock-item / 2); }
     }
 
     // Separador antes de Configurações
@@ -131,6 +161,9 @@ export component Dock inherits Rectangle {
         y: root.vertical ? root.start + root.count * root.step + 17px : root.pad;
         app: Apps.pinned[5];
         edge: Theme.dock-position;
+        running: Shell.native && Shell.dock-has(Shell.running-ids, "settings");
+        active: Shell.native && Shell.active-app == "settings";
         clicked => { root.launch("settings"); }
+        menu => { root.menu("settings", root.start + root.count * root.step + 17px + Theme.dock-item / 2); }
     }
 }

@@ -12,6 +12,8 @@ import { SectionLabel, Avatar, IconButton, LinkText } from "../components/widget
 component AppTile inherits Rectangle {
     in property <AppEntry> app;
     callback clicked();
+    /// Botão direito: menu do app (fixar na dock).
+    callback menu();
 
     width: 108px;
     height: 101px;
@@ -61,6 +63,11 @@ component AppTile inherits Rectangle {
     touch := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.clicked(); }
+        pointer-event(ev) => {
+            if (ev.kind == PointerEventKind.down && ev.button == PointerEventButton.right) {
+                root.menu();
+            }
+        }
     }
 }
 
@@ -75,6 +82,11 @@ export component Launcher inherits Rectangle {
     property <string> query: search.text;
     /// Página "Todos os apps" aberta (no lugar dos fixados e recentes).
     property <bool> all-view: false;
+    /// Menu do botão direito: app e onde fica (no card).
+    property <AppEntry> menu-app;
+    property <bool> menu-open: false;
+    property <length> menu-x;
+    property <length> menu-y;
     /// Grade grande e com rolagem: busca ou "Todos os apps". Sem ela, a grade
     /// dos fixados (2 linhas) divide o card com os recentes.
     property <bool> tall-grid: root.query != "" || root.all-view;
@@ -208,6 +220,15 @@ export component Launcher inherits Rectangle {
                 y: floor(i / 6) * (101px + 11px);
                 app: app;
                 clicked => { root.launch(app.id); }
+                menu => {
+                    // As Configurações ficam sempre na dock.
+                    if (Shell.native && app.id != "settings") {
+                        root.menu-app = app;
+                        root.menu-x = grid.x + self.x + 20px;
+                        root.menu-y = grid.y + self.y + grid.content-y + 70px;
+                        root.menu-open = true;
+                    }
+                }
             }
         }
 
@@ -335,6 +356,56 @@ export component Launcher inherits Rectangle {
                 icon: Icons.power;
                 icon-color: Theme.danger;
                 clicked => { Shell.power-off(); }
+            }
+        }
+
+        // Menu do botão direito num app: abrir e fixar/desafixar na dock.
+        if root.menu-open: TouchArea {
+            pointer-event(ev) => {
+                if (ev.kind == PointerEventKind.down) {
+                    root.menu-open = false;
+                }
+            }
+        }
+        if root.menu-open: Rectangle {
+            x: min(root.menu-x, parent.width - self.width - 12px);
+            y: min(root.menu-y, parent.height - self.height - 12px);
+            width: 210px;
+            height: menu-col.preferred-height;
+            border-radius: 12px;
+            background: Theme.panel-solid;
+            border-width: 1px;
+            border-color: Theme.border;
+            drop-shadow-blur: 24px;
+            drop-shadow-color: #00000090;
+            TouchArea { }
+            menu-col := VerticalLayout {
+                padding: 5px;
+                for item[k] in [@tr("Open"), Shell.dock-has(Theme.dock-apps, root.menu-app.id) ? @tr("Unpin from dock") : @tr("Pin to dock")]: Rectangle {
+                    height: 34px;
+                    border-radius: 7px;
+                    background: menu-touch.has-hover ? Theme.tile-hover : transparent;
+                    Text {
+                        x: 10px;
+                        text: item;
+                        color: Theme.text;
+                        font-family: Theme.sans;
+                        font-size: 14px;
+                        vertical-alignment: center;
+                    }
+                    menu-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            root.menu-open = false;
+                            if (k == 0) {
+                                root.launch(root.menu-app.id);
+                            } else {
+                                Theme.dock-apps = Shell.dock-toggle(Theme.dock-apps, root.menu-app.id);
+                                Shell.save-prefs();
+                            }
+                        }
+                    }
+                }
             }
         }
     }

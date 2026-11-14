@@ -9,6 +9,10 @@
   - "kalango-quick-settings": o painel rápido do canto da barra (volume,
     brilho, Wi-Fi, desligar). Tela cheia, transparente, por cima;
   - "kalango-settings": as Configurações, janela comum.
+  - "kalango-alternar": o Alt+Tab (src/switcher.rs). Tela cheia, transparente,
+    por cima; o processo fica aberto e a janela só aparece no Alt+Tab;
+  - "kalango-dock-menu": o menu do botão direito de um app da dock, no
+    monitor principal (o shell põe o nome dele). Tela cheia, transparente;
   - "kalango-dock": a dock em janela própria, sempre por cima das janelas
     (como a do Ubuntu). A posição (MoveTo) é gerada pelo shell em
     ~/.config/labwc/rc.xml conforme a tela e a dock (src/dock.rs).
@@ -76,6 +80,20 @@
     <keybind key="W-space">
       <action name="Execute" command="kalango-shell --launcher" />
     </keybind>
+    <!-- Alt+Tab (e Super+Tab) com os ícones das janelas, como no Ubuntu
+         (src/switcher.rs). Com Shift, para trás. -->
+    <keybind key="A-Tab">
+      <action name="Execute" command="kalango-shell --alternar" />
+    </keybind>
+    <keybind key="A-S-Tab">
+      <action name="Execute" command="kalango-shell --alternar=anterior" />
+    </keybind>
+    <keybind key="W-Tab">
+      <action name="Execute" command="kalango-shell --alternar" />
+    </keybind>
+    <keybind key="W-S-Tab">
+      <action name="Execute" command="kalango-shell --alternar=anterior" />
+    </keybind>
     <!-- O padrão do labwc chama o alacritty, que não vem no sistema. -->
     <keybind key="W-Return">
       <action name="Execute" command="foot" />
@@ -135,6 +153,23 @@
                 serverDecoration="no"
                 skipTaskbar="yes"
                 skipWindowSwitcher="yes">
+      <action name="ToggleFullscreen"/>
+      <action name="ToggleAlwaysOnTop"/>
+      <action name="ToggleOmnipresent"/>
+    </windowRule>
+    <windowRule identifier="kalango-alternar"
+                serverDecoration="no"
+                skipTaskbar="yes"
+                skipWindowSwitcher="yes">
+      <action name="ToggleFullscreen"/>
+      <action name="ToggleAlwaysOnTop"/>
+      <action name="ToggleOmnipresent"/>
+    </windowRule>
+    <windowRule identifier="kalango-dock-menu"
+                serverDecoration="no"
+                skipTaskbar="yes"
+                skipWindowSwitcher="yes">
+      <action name="MoveToOutput" output="" />
       <action name="ToggleFullscreen"/>
       <action name="ToggleAlwaysOnTop"/>
       <action name="ToggleOmnipresent"/>

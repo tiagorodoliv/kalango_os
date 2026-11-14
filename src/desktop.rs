@@ -28,6 +28,9 @@ pub struct DesktopApp {
     pub argv: Vec<String>,
     /// `Terminal=true`: o programa roda dentro do foot.
     pub terminal: bool,
+    /// `StartupWMClass=`: classe/app_id da janela do app (para reconhecer
+    /// a janela aberta na dock e no Alt+Tab).
+    pub wm_class: String,
 }
 
 impl DesktopApp {
@@ -81,6 +84,7 @@ pub fn parse(path: &Path, content: &str) -> Option<DesktopApp> {
     let mut icon = String::new();
     let mut exec = None;
     let mut terminal = false;
+    let mut wm_class = String::new();
 
     for line in content.lines() {
         let line = line.trim();
@@ -114,6 +118,7 @@ pub fn parse(path: &Path, content: &str) -> Option<DesktopApp> {
             "Icon" => icon = value.to_string(),
             "Exec" => exec = Some(value.to_string()),
             "Terminal" => terminal = value == "true",
+            "StartupWMClass" => wm_class = value.to_string(),
             _ => {}
         }
     }
@@ -133,6 +138,7 @@ pub fn parse(path: &Path, content: &str) -> Option<DesktopApp> {
         icon,
         argv,
         terminal,
+        wm_class,
     };
     if HIDDEN_PROGRAMS.contains(&app.program()) {
         return None;

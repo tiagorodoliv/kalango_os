@@ -105,6 +105,8 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     // Posição e tamanho da janela aberta agora e o processo dela.
     let mut current: Option<crate::labwc::DockGeometry> = None;
     let mut child: Option<Child> = None;
+    // Janelas antigas: a nova as fecha depois de aparecer (session::claim_instance).
+    let mut retired: Vec<Child> = Vec::new();
     let mut failures = 0u32;
     let timer = Timer::default();
     timer.start(TimerMode::Repeated, Duration::from_millis(800), move || {
@@ -122,7 +124,8 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             bar: theme.get_dock_style() == 1,
             item: theme.get_dock_item(),
             thickness: theme.get_dock_thickness(),
-            count: ui.global::<crate::Apps>().get_dock().row_count(),
+            // Fixados + abertos que não estão fixados.
+            count: ui.global::<crate::Apps>().get_dock().row_count() + shell.get_running_extra().row_count(),
         };
         // No monitor principal (com vários monitores, a origem dele).
         let (ox, oy) = crate::outputs::primary_origin();
@@ -141,10 +144,16 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             }
         }
 
+        retired.retain_mut(|c| c.try_wait().ok().flatten().is_none());
         if wanted != current {
             if let Some(mut c) = child.take() {
-                let _ = c.kill();
-                let _ = c.wait();
+                if wanted.is_some() {
+                    // Outra dock vai abrir: a antiga fica até a nova aparecer.
+                    retired.push(c);
+                } else {
+                    let _ = c.kill();
+                    let _ = c.wait();
+                }
             }
             current = wanted;
             match wanted {

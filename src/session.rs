@@ -35,6 +35,12 @@ pub enum Mode {
     Dock,
     /// Papel de parede de um monitor extra (`--fundo=<saída>`, `src/outputs.rs`).
     Fundo,
+    /// Alt+Tab (`--alternar`, `src/switcher.rs`): um processo que fica
+    /// aberto (escondido) e mostra as janelas a cada Alt+Tab.
+    Switcher,
+    /// Menu do botão direito de um app da dock (`--menu-dock=<id>`,
+    /// `src/taskbar.rs`).
+    DockMenu,
 }
 
 impl Mode {
@@ -49,6 +55,8 @@ impl Mode {
                 "--quick-settings" => mode = Mode::QuickSettings,
                 "--dock" => mode = Mode::Dock,
                 a if a.starts_with("--fundo=") => mode = Mode::Fundo,
+                a if a == "--alternar" || a.starts_with("--alternar=") => mode = Mode::Switcher,
+                a if a.starts_with("--menu-dock=") => mode = Mode::DockMenu,
                 _ => {}
             }
         }
@@ -67,6 +75,8 @@ impl Mode {
             Mode::Dock => "kalango-dock",
             // O de verdade leva a saída: ver `fundo_app_id`.
             Mode::Fundo => "kalango-fundo",
+            Mode::Switcher => "kalango-alternar",
+            Mode::DockMenu => "kalango-dock-menu",
         }
     }
 
@@ -79,7 +89,7 @@ impl Mode {
             Mode::Greeter => Some("--greeter"),
             Mode::QuickSettings => Some("--quick-settings"),
             Mode::Dock => Some("--dock"),
-            Mode::Fundo => None,
+            Mode::Fundo | Mode::Switcher | Mode::DockMenu => None,
         }
     }
 
@@ -92,6 +102,8 @@ impl Mode {
             Mode::QuickSettings => ShellMode::QuickSettings,
             Mode::Dock => ShellMode::Dock,
             Mode::Fundo => ShellMode::Fundo,
+            Mode::Switcher => ShellMode::Switcher,
+            Mode::DockMenu => ShellMode::DockMenu,
         }
     }
 }
@@ -309,7 +321,7 @@ pub fn request_page(page: i32) {
 /// Se o binário foi trocado com o shell rodando (atualização), o caminho
 /// antigo vira "... (deleted)" e não existe mais: usa o `kalango-shell` do
 /// PATH, que é a versão nova.
-fn own_exe() -> PathBuf {
+pub(crate) fn own_exe() -> PathBuf {
     std::env::current_exe()
         .ok()
         .filter(|path| path.exists())
@@ -354,7 +366,7 @@ pub fn watch_page_requests(ui: &AppWindow) -> Option<Timer> {
 /// fecha) e as Configurações não abrem outra janela. Devolve `false` quando este processo
 /// deve sair sem mostrar nada.
 pub fn claim_instance(mode: Mode) -> bool {
-    if matches!(mode, Mode::Desktop | Mode::Greeter) {
+    if matches!(mode, Mode::Desktop | Mode::Greeter | Mode::Switcher) {
         return true;
     }
     let Some(dir) = std::env::var_os("XDG_RUNTIME_DIR") else {
@@ -372,12 +384,21 @@ pub fn claim_instance(mode: Mode) -> bool {
         .and_then(|s| s.trim().parse::<u32>().ok())
     {
         if pid != me && is_shell_process(pid) {
-            if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Dock | Mode::Fundo) {
+            if mode == Mode::Dock {
+                // A dock nova (outro tamanho, mais um app aberto) só tira a
+                // antiga depois de aparecer: sem piscar.
+                std::thread::spawn(move || {
+                    std::thread::sleep(Duration::from_millis(900));
+                    if is_shell_process(pid) {
+                        let _ = Command::new("kill").arg(pid.to_string()).status();
+                    }
+                });
+            } else if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Fundo | Mode::DockMenu) {
                 let _ = Command::new("kill").arg(pid.to_string()).status();
                 let _ = fs::remove_file(&pidfile);
             }
-            // A dock e o fundo novos (outro tamanho ou posição) substituem os antigos.
-            if !matches!(mode, Mode::Dock | Mode::Fundo) {
+            // A dock, o fundo e o menu da dock novos substituem os antigos.
+            if !matches!(mode, Mode::Dock | Mode::Fundo | Mode::DockMenu) {
                 return false;
             }
         }
@@ -402,35 +423,6 @@ pub fn power_off(real: bool) {
     } else {
         let _ = slint::quit_event_loop();
     }
-}
-
-/// Nomes de processo (`/proc/PID/comm`) de cada app da dock.
-const RUNNING: [(&str, &[&str]); 4] = [
-    ("files", &["thunar"]),
-    ("terminal", &["foot"]),
-    ("browser", &["firefox-esr", "firefox"]),
-    ("code", &["geany", "mousepad"]),
-];
-
-/// Lista os nomes dos processos do sistema (`/proc/*/comm`).
-fn process_names() -> Vec<String> {
-    let Ok(entries) = fs::read_dir("/proc") else {
-        return Vec::new();
-    };
-    entries
-        .flatten()
-        .filter(|e| e.file_name().to_string_lossy().bytes().all(|b| b.is_ascii_digit()))
-        .filter_map(|e| fs::read_to_string(e.path().join("comm")).ok())
-        .map(|s| s.trim().to_string())
-        .collect()
-}
-
-/// Diz se algum processo do app está rodando.
-pub fn is_running(id: &str, names: &[String]) -> bool {
-    RUNNING
-        .iter()
-        .find(|(app, _)| *app == id)
-        .is_some_and(|(_, comms)| names.iter().any(|n| comms.contains(&n.as_str())))
 }
 
 /// Liga a UI à sessão: modo, abrir apps, desligar, sair e indicadores da dock.
@@ -466,23 +458,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     shell.on_quit(|| {
         let _ = slint::quit_event_loop();
     });
-
-    // Apps abertos (pontinho na dock): na área de trabalho e na dock própria.
-    if !(native && matches!(mode, Mode::Desktop | Mode::Dock)) {
-        return None;
-    }
-    let weak = ui.as_weak();
-    let timer = Timer::default();
-    timer.start(TimerMode::Repeated, Duration::from_secs(2), move || {
-        let Some(ui) = weak.upgrade() else { return };
-        let names = process_names();
-        let shell = ui.global::<Shell>();
-        shell.set_files_running(is_running("files", &names));
-        shell.set_terminal_running(is_running("terminal", &names));
-        shell.set_browser_running(is_running("browser", &names));
-        shell.set_code_running(is_running("code", &names));
-    });
-    Some(timer)
+    None
 }
 
 #[cfg(test)]
@@ -547,10 +523,4 @@ mod tests {
         assert_eq!(parse_user_dir(content, "XDG_MUSIC_DIR", "/home/user"), None);
     }
 
-    #[test]
-    fn detecta_app_rodando_pelo_nome_do_processo() {
-        let names = vec!["bash".to_string(), "firefox-esr".to_string()];
-        assert!(is_running("browser", &names));
-        assert!(!is_running("files", &names));
-    }
 }

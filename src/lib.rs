@@ -21,7 +21,11 @@
 //! - [`recent`]: arquivos recentes de verdade no menu de apps;
 //! - `workspaces` (Linux): áreas de trabalho na barra (ext-workspace do labwc);
 //! - [`terminal`]: temas do terminal (foot);
-//! - [`usb`]: grava logo nos pendrives e avisa na barra enquanto grava.
+//! - [`usb`]: grava logo nos pendrives e avisa na barra enquanto grava;
+//! - `toplevels` (Linux): janelas abertas (wlr-foreign-toplevel);
+//! - `taskbar` (Linux): apps abertos na dock e o menu do botão direito dela;
+//! - `switcher` (Linux): Alt+Tab com os ícones das janelas;
+//! - [`power`]: energia (modo de desempenho, apagar a tela, suspender, tampa).
 //!
 //! A lógica fica na biblioteca (e não no `main.rs`) para poder ser reusada
 //! por testes e por ferramentas como um gerador de capturas das telas.
@@ -39,6 +43,7 @@ pub mod i18n;
 pub mod labwc;
 pub mod netconfig;
 pub mod outputs;
+pub mod power;
 pub mod recent;
 pub mod region;
 pub mod session;
@@ -46,6 +51,12 @@ pub mod sharing;
 pub mod system;
 pub mod terminal;
 pub mod usb;
+#[cfg(target_os = "linux")]
+pub mod switcher;
+#[cfg(target_os = "linux")]
+pub mod taskbar;
+#[cfg(target_os = "linux")]
+pub mod toplevels;
 #[cfg(target_os = "linux")]
 pub mod workspaces;
 pub mod wallpaper;
@@ -116,6 +127,15 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
         timers.extend(outputs::install_background(&ui, name, *number));
     }
     timers.extend(dock::install(&ui, mode));
+    #[cfg(target_os = "linux")]
+    {
+        timers.extend(taskbar::install(&ui, mode));
+        // O Alt+Tab fica aberto a sessão toda (guarda a ordem das janelas).
+        if mode == Mode::Desktop && native {
+            switcher::spawn_background();
+        }
+    }
+    timers.extend(power::install(&ui, mode));
     Ok((ui, timers))
 }
 
@@ -148,14 +168,16 @@ pub fn renderer_for(
         // página Aparência, alta, travava no renderer de software).
         _ if hardware_gl => Some("femtovg"),
         // A dock em janela própria só abre com placa de vídeo (src/dock.rs).
-        _ if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Dock) => Some("femtovg"),
+        _ if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Dock | Mode::Switcher | Mode::DockMenu) => {
+            Some("femtovg")
+        }
         _ => Some("software"),
     }
 }
 
 /// Aplica a escolha de [`renderer_for`] (só no backend winit; o `kms` desenha
 /// direto na tela e escolhe sozinho).
-fn select_renderer(mode: Mode) {
+pub(crate) fn select_renderer(mode: Mode) {
     if cfg!(feature = "kms") {
         return;
     }
@@ -176,6 +198,12 @@ fn select_renderer(mode: Mode) {
 /// Abre a janela do modo pedido nos argumentos e roda até ela ser fechada.
 pub fn run() -> Result<(), slint::PlatformError> {
     let mode = Mode::from_args(std::env::args());
+    // Alt+Tab: o atalho só manda o pedido ao processo aberto (rápido, sem
+    // abrir janela); ver src/switcher.rs.
+    #[cfg(target_os = "linux")]
+    if mode == Mode::Switcher {
+        return switcher::run();
+    }
     select_renderer(mode);
     let page = session::page_from_args(std::env::args());
     // Super com o menu aberto: o novo processo fecha o antigo e sai.

@@ -55,6 +55,11 @@ swaylock
 # Tela de bloqueio com relógio, usuário e senha (kalango-bloquear); o swaylock
 # fica de reserva
 gtklock
+# Energia (src/power.rs): apagar a tela e suspender sozinho (swayidle + wlopm)
+# e modo de energia (economia/equilibrado/desempenho).
+swayidle
+wlopm
+power-profiles-daemon
 gtklock-userinfo-module
 # nome e foto do usuário na tela de bloqueio (e nas Configurações → Usuários)
 accountsservice

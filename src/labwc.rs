@@ -231,6 +231,10 @@ fn build(system_xml: &str, w: &Wanted) -> Option<String> {
         }
         let _ = (x, y);
         xml = replace_action(&xml, "kalango-shell", "MoveToOutput", &format!("output=\"{name}\""))?;
+        // O menu da dock também (fica junto da dock).
+        if let Some(x) = replace_action(&xml, "kalango-dock-menu", "MoveToOutput", &format!("output=\"{name}\"")) {
+            xml = x;
+        }
     }
     if let Some(g) = w.dock {
         xml = replace_dock_geometry(&xml, g)?;

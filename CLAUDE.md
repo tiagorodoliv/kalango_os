@@ -131,6 +131,22 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   transparente, tamanho da faixa). Transparência do fundo da dock: `Theme.dock-transparency` (`dock-transparencia`). Sem placa de vídeo ou com a
   dock escondida, ela continua desenhada na área de trabalho (atrás das janelas). Com placa de vídeo, todo o shell
   usa OpenGL (`renderer_for`: a Aparência travava no renderer de software).
+- **Apps abertos na dock e Alt+Tab (2026-11-14):** `src/toplevels.rs` (wlr-foreign-toplevel, conexão própria numa
+  thread, ordem de uso) → `src/taskbar.rs`: janela → id da dock (catálogo, `desktop:<caminho>` pelo nome do arquivo/
+  `StartupWMClass`/programa — VS Code = `com.microsoft.VSCode.desktop` —, ou `window:<app_id>`); `Shell.running-ids`,
+  `active-app`, `running-extra` (abertos não fixados, depois dos fixados). Clique: abre / foca / minimiza / próxima
+  janela; o "em foco" é a última janela de app (clicar na dock tira o foco do app). Botão direito = processo
+  `--menu-dock=<id> --pos= --total=` (tela cheia transparente, `DockMenuView`); fixar também pelo botão direito no
+  menu de apps (`Shell.save-prefs` grava na hora). Dock nova só mata a antiga 0,9 s depois (sem piscar).
+  **Alt+Tab** (`src/switcher.rs`): A-Tab/W-Tab no rc.xml rodam `kalango-shell --alternar[=anterior]`, que só manda o
+  pedido pelo socket `$XDG_RUNTIME_DIR/kalango-alternar.sock` ao processo `--alternar=iniciar` (aberto pela área de
+  trabalho, escondido). Soltar o Alt = evento cru do winit (feature `unstable-winit-030`; `ModifiersChanged` sem Alt
+  ao ganhar o foco cobre o Alt+Tab rápido); painel só aparece após 120 ms.
+- **Energia (2026-11-14):** `src/power.rs` + global `Power`: modo (`powerprofilesctl`), apagar a tela/bloquear/
+  suspender na bateria e na tomada (`~/.config/kalango/energia.conf`; a área de trabalho roda o `swayidle` com
+  `wlopm` e troca ao mudar a escolha ou o carregador; pidfile `kalango-swayidle.pid`), tampa e botão de ligar pelo
+  `pkexec /usr/local/sbin/kalango-energia` (`/etc/systemd/logind.conf.d/50-kalango.conf` + HUP no logind).
+  `kalango-bloquear` sai se já está bloqueado.
 - **Tela de bloqueio (2026-11-14): gtklock** pelo `/usr/local/bin/kalango-bloquear` (Super+L, cadeados): layout
   próprio `/etc/kalango/bloqueio/layout.ui` (ids/sinais do gtklock 4; @SENHA@/@DESBLOQUEAR@ trocados no idioma),
   `style.css`, papel de parede da pessoa e módulo userinfo (precisa do `accountsservice`). **Config do gtklock é key

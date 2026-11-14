@@ -15,6 +15,9 @@ slint = { version = "1.8", default-features = false, features = [
     "backend-winit",
     "renderer-femtovg",
     "renderer-software",
+    # Eventos crus do winit: o Alt+Tab precisa saber quando o Alt é solto
+    # (src/switcher.rs).
+    "unstable-winit-030",
 ] }
 
 # Data/hora local (fuso do sistema) para o relógio da barra e do login.
@@ -25,6 +28,8 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 [target.'cfg(target_os = "linux")'.dependencies]
 wayland-client = "0.31"
 wayland-protocols = { version = "0.32", features = ["client", "staging"] }
+# Janelas abertas (wlr-foreign-toplevel): dock e Alt+Tab (src/toplevels.rs).
+wayland-protocols-wlr = { version = "0.3", features = ["client"] }
 
 [dev-dependencies]
 # Só para examples/snapshot.rs (gera PNG das telas para comparar com o layout).

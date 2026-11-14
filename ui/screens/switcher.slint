@@ -1,0 +1,255 @@
+// Alt+Tab (`--alternar`, `src/switcher.rs`) e menu do botão direito da dock
+// (`--menu-dock=`, `src/taskbar.rs`). Os dois são janelas de tela cheia e
+// transparentes, por cima de tudo, como o menu de apps.
+
+import { Theme } from "../theme.slint";
+import { AppEntry, Shell, Apps } from "../globals.slint";
+
+/// Uma janela aberta no Alt+Tab.
+export struct SwitcherItem {
+    app: AppEntry,
+    /// Título da janela.
+    title: string,
+    minimized: bool,
+}
+
+export global Switcher {
+    /// Janelas, da usada mais recentemente para a menos.
+    in property <[SwitcherItem]> items;
+    in-out property <int> selected;
+    /// Clique numa janela: põe em foco e fecha.
+    callback choose(int);
+    /// Clique fora: fecha sem trocar.
+    callback cancel();
+}
+
+/// Ícone do app (do tema, com cor própria, ou de traço na cor do app, ou a inicial).
+component AppIcon inherits Rectangle {
+    in property <AppEntry> app;
+    in property <length> size;
+    property <bool> own-icon: root.app.tint == transparent;
+    width: root.size;
+    height: root.size;
+    border-radius: root.size * 0.22;
+    background: root.own-icon ? transparent : root.app.tint.with-alpha(0.16);
+    if root.app.letter == "": Image {
+        source: root.app.icon;
+        colorize: root.own-icon ? transparent : root.app.tint;
+        width: root.own-icon ? root.size : root.size * 0.5;
+        height: self.width;
+    }
+    if root.app.letter != "": Text {
+        text: root.app.letter;
+        color: root.app.tint;
+        font-family: Theme.sans;
+        font-size: root.size * 0.45;
+        font-weight: 600;
+    }
+}
+
+/// Painel do Alt+Tab: uma fileira de janelas no centro da tela, com o ícone
+/// do app e o título da escolhida embaixo (como no Ubuntu).
+export component SwitcherView inherits Rectangle {
+    property <int> n: Switcher.items.length;
+    /// Cada janela: 132 px, menos se não couber na tela.
+    property <length> tile: min(132px, (root.width - 120px) / max(1, root.n));
+    property <length> icon: min(76px, root.tile - 28px);
+
+    TouchArea { clicked => { Switcher.cancel(); } }
+
+    panel := Rectangle {
+        opacity: Shell.switcher-reveal ? 1 : 0;
+        width: root.n * root.tile + 32px;
+        height: root.tile + 66px;
+        border-radius: 22px;
+        background: Theme.panel-solid.with-alpha(0.94);
+        border-width: 1px;
+        border-color: Theme.border;
+        drop-shadow-blur: 40px;
+        drop-shadow-color: #000000a0;
+
+        // Absorve o clique (não fecha).
+        TouchArea { }
+
+        for item[i] in Switcher.items: Rectangle {
+            x: 16px + i * root.tile;
+            y: 16px;
+            width: root.tile;
+            height: root.tile;
+            border-radius: 16px;
+            background: i == Switcher.selected ? Theme.accent.with-alpha(0.22) : tile-touch.has-hover ? Theme.tile-hover : transparent;
+            border-width: i == Switcher.selected ? 2px : 0;
+            border-color: Theme.accent;
+
+            AppIcon {
+                y: (parent.height - self.height) / 2 - 10px;
+                app: item.app;
+                size: root.icon;
+                opacity: item.minimized ? 0.55 : 1;
+            }
+            Text {
+                y: parent.height - 28px;
+                x: 8px;
+                width: parent.width - 16px;
+                text: item.app.name;
+                color: i == Switcher.selected ? Theme.text : Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 12.5px;
+                font-weight: i == Switcher.selected ? 600 : 400;
+                horizontal-alignment: center;
+                overflow: elide;
+            }
+            tile-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { Switcher.choose(i); }
+            }
+        }
+
+        // Título da janela escolhida.
+        Text {
+            x: 24px;
+            y: parent.height - 40px;
+            width: parent.width - 48px;
+            height: 28px;
+            text: Switcher.selected >= 0 && Switcher.selected < root.n ? Switcher.items[Switcher.selected].title : "";
+            color: Theme.text;
+            font-family: Theme.sans;
+            font-size: 14px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+/// Uma janela no menu da dock.
+export struct DockMenuWindow {
+    id: int,
+    title: string,
+}
+
+export global DockMenu {
+    /// O app do menu.
+    in property <AppEntry> app;
+    /// Fixado na dock (o item mostra "Desafixar").
+    in property <bool> pinned;
+    /// Pode ser fixado (não é as Configurações nem uma janela sem app).
+    in property <bool> can-pin: true;
+    /// Pode abrir outra janela (tem comando para abrir).
+    in property <bool> can-open: true;
+    /// Janelas abertas do app.
+    in property <[DockMenuWindow]> windows;
+    /// Centro do item ao longo da dock e quantos apps ela tem (para achar
+    /// o item na tela).
+    in property <length> offset;
+    in property <int> total;
+    callback focus-window(int);
+    callback new-window();
+    callback toggle-pin();
+    callback quit-app();
+    callback close();
+}
+
+component MenuItem inherits Rectangle {
+    in property <string> text;
+    in property <bool> danger: false;
+    in property <bool> muted: false;
+    callback clicked();
+    height: 36px;
+    border-radius: 8px;
+    background: touch.has-hover ? Theme.tile-hover : transparent;
+    Text {
+        x: 12px;
+        width: parent.width - 24px;
+        text: root.text;
+        color: root.danger ? Theme.danger : root.muted ? Theme.text-muted : Theme.text;
+        font-family: Theme.sans;
+        font-size: 14px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Menu do botão direito de um app da dock, encostado no item.
+export component DockMenuView inherits Rectangle {
+    // Mesmas contas de `ui/components/dock.slint` (e `src/dock.rs`).
+    property <bool> vertical: Theme.dock-position != 0;
+    property <bool> bar: Theme.dock-style == 1;
+    property <length> pad: (Theme.dock-thickness - Theme.dock-item) / 2;
+    property <length> run: DockMenu.total * (Theme.dock-item + 8px) + 17px + Theme.dock-item;
+    property <length> side: root.height - Theme.bar-height;
+    property <length> along: root.bar ? (root.vertical ? root.side : root.width) : root.run + 2 * root.pad;
+    /// Começo da dock ao longo da borda.
+    property <length> dock-start: root.vertical
+        ? Theme.bar-height + (root.bar ? 0 : (root.side - root.along) / 2)
+        : (root.bar ? 0 : (root.width - root.along) / 2);
+    /// Na barra os itens ficam centralizados dentro dela.
+    property <length> item-center: root.dock-start + DockMenu.offset;
+
+    TouchArea {
+        pointer-event(ev) => {
+            if (ev.kind == PointerEventKind.down) {
+                DockMenu.close();
+            }
+        }
+    }
+
+    menu := Rectangle {
+        width: 250px;
+        height: col.preferred-height;
+        x: root.vertical
+            ? (Theme.dock-position == 1 ? Theme.dock-thickness + 8px : root.width - Theme.dock-thickness - self.width - 8px)
+            : max(8px, min(root.item-center - self.width / 2, root.width - self.width - 8px));
+        y: root.vertical
+            ? max(Theme.bar-height + 8px, min(root.item-center - self.height / 2, root.height - self.height - 8px))
+            : root.height - Theme.dock-thickness - self.height - 8px;
+        border-radius: 14px;
+        background: Theme.panel-solid;
+        border-width: 1px;
+        border-color: Theme.border;
+        drop-shadow-blur: 30px;
+        drop-shadow-color: #00000090;
+        TouchArea { }
+
+        col := VerticalLayout {
+            padding: 6px;
+            spacing: 2px;
+            HorizontalLayout {
+              padding-left: 6px;
+              Text {
+                height: 34px;
+                text: DockMenu.app.name;
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 14px;
+                font-weight: 700;
+                vertical-alignment: center;
+                overflow: elide;
+              }
+            }
+            for w in DockMenu.windows: MenuItem {
+                text: w.title;
+                muted: true;
+                clicked => { DockMenu.focus-window(w.id); }
+            }
+            if DockMenu.windows.length > 0: Rectangle { height: 9px; Rectangle { height: 1px; background: Theme.border; } }
+            if DockMenu.can-open: MenuItem {
+                text: DockMenu.windows.length > 0 ? @tr("New window") : @tr("Open");
+                clicked => { DockMenu.new-window(); }
+            }
+            if DockMenu.can-pin: MenuItem {
+                text: DockMenu.pinned ? @tr("Unpin from dock") : @tr("Pin to dock");
+                clicked => { DockMenu.toggle-pin(); }
+            }
+            if DockMenu.windows.length > 0: MenuItem {
+                text: DockMenu.windows.length > 1 ? @tr("Close {} windows", DockMenu.windows.length) : @tr("Close");
+                danger: true;
+                clicked => { DockMenu.quit-app(); }
+            }
+        }
+    }
+}

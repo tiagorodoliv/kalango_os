@@ -7,7 +7,7 @@
 //! que já são fixados.
 
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -15,6 +15,9 @@ thread_local! {
     /// Ids de `Apps.all` que repetem um app fixado (ex.: o "Thunar", que já é
     /// "Arquivos"): ficam fora dos resultados da busca. Só a thread da UI usa.
     static DUPLICATES: RefCell<HashSet<SharedString>> = RefCell::default();
+    /// Itens já montados de apps do sistema (`desktop:<caminho>`) e de
+    /// janelas sem app conhecido (`window:<app_id>`), com o ícone carregado.
+    static ENTRIES: RefCell<HashMap<String, AppEntry>> = RefCell::default();
 }
 
 use slint::{Color, ComponentHandle, Image, Model, ModelRc, SharedString, VecModel};
@@ -178,6 +181,49 @@ fn to_entry(app: &DesktopApp, icon: Option<&PathBuf>) -> AppEntry {
     }
 }
 
+/// Ícone de um app do sistema: do tema de ícones atual ou do hicolor/pixmaps.
+pub fn desktop_icon(app: &DesktopApp) -> Option<PathBuf> {
+    let dirs = desktop::data_dirs();
+    if app.icon.starts_with('/') {
+        return desktop::find_icon(&app.icon, &dirs);
+    }
+    desktop::find_themed_icon(&app.icon, &desktop::current_icon_theme(), &dirs)
+        .or_else(|| desktop::find_icon(&app.icon, &dirs))
+}
+
+/// Item de um app do sistema (`desktop:<caminho>`) ou de uma janela sem app
+/// conhecido (`window:<app_id>`), guardado depois da primeira vez.
+pub fn extra_entry(id: &str) -> Option<AppEntry> {
+    if let Some(e) = ENTRIES.with_borrow(|m| m.get(id).cloned()) {
+        return Some(e);
+    }
+    let entry = if let Some(app_id) = id.strip_prefix(crate::taskbar::WINDOW_PREFIX) {
+        // Sem `.desktop`: ícone com o nome do app_id, se o tema tiver, ou a inicial.
+        let fake = DesktopApp {
+            path: PathBuf::new(),
+            name: app_id.rsplit('.').next().unwrap_or(app_id).to_string(),
+            keywords: String::new(),
+            icon: app_id.to_string(),
+            argv: Vec::new(),
+            terminal: false,
+            wm_class: String::new(),
+        };
+        let mut e = to_entry(&fake, desktop_icon(&fake).as_ref());
+        e.id = id.into();
+        e
+    } else {
+        let app = desktop::from_id(id)?;
+        to_entry(&app, desktop_icon(&app).as_ref())
+    };
+    ENTRIES.with_borrow_mut(|m| m.insert(id.to_string(), entry.clone()));
+    Some(entry)
+}
+
+/// Item de qualquer id da dock: do catálogo, app do sistema ou janela.
+pub fn entry_for(ui: &AppWindow, id: &str) -> Option<AppEntry> {
+    ui.global::<Apps>().get_pinned().iter().find(|a| a.id == id).or_else(|| extra_entry(id))
+}
+
 /// Liga o callback `Shell.filter-apps`; na sessão real (`themed`) troca os
 /// ícones dos fixados pelos do tema e, no menu (`load_installed`), preenche
 /// `Apps.all` com os apps instalados.
@@ -200,7 +246,8 @@ pub fn install(ui: &AppWindow, load_installed: bool, themed: bool) {
         let entries: Vec<AppEntry> = dock_ids(&list)
             .into_iter()
             .filter(|id| *id != "settings")
-            .filter_map(|id| pinned.iter().find(|a| a.id == id))
+            // Do catálogo ou qualquer app do sistema fixado (`desktop:...`).
+            .filter_map(|id| pinned.iter().find(|a| a.id == id).or_else(|| extra_entry(id)))
             .collect();
         ModelRc::from(Rc::new(VecModel::from(entries)))
     });

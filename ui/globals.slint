@@ -161,11 +161,23 @@ export global Shell {
     /// os apps abrem de verdade e as janelas de demonstração somem.
     /// Desligado no desenvolvimento e nas capturas (protótipo navegável).
     in property <bool> native: false;
-    /// Apps com janela aberta (sessão real), para os indicadores da dock.
-    in property <bool> files-running: false;
-    in property <bool> terminal-running: false;
-    in property <bool> browser-running: false;
-    in property <bool> code-running: false;
+    /// Apps com janela aberta (sessão real, `src/taskbar.rs`): ids da dock
+    /// separados por vírgula ("files,desktop:/usr/share/...").
+    in property <string> running-ids: "";
+    /// Id do app em foco (traço de destaque na dock).
+    in property <string> active-app: "";
+    /// Apps abertos que não estão fixados: aparecem na dock depois dos fixados.
+    in property <[AppEntry]> running-extra: [];
+    /// Clique num app da dock na sessão real: põe a janela em foco, minimiza
+    /// (se já estava em foco) ou abre o app.
+    callback dock-click(string);
+    /// Botão direito num app da dock: menu com as janelas, nova janela,
+    /// fixar/desafixar e fechar. `offset` = centro do item ao longo da dock.
+    callback dock-menu(string /* id */, length /* offset */);
+    /// Alt+Tab: o painel aparece só depois de 120 ms (Alt+Tab rápido não pisca).
+    in property <bool> switcher-reveal: true;
+    /// Grava a aparência agora (fixar na dock pelo menu, que fecha logo).
+    callback save-prefs();
 
     // --- Implementado no Rust ---
 

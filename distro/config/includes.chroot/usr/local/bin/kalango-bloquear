@@ -12,6 +12,10 @@ DIR=/etc/kalango/bloqueio
 RUN=${XDG_RUNTIME_DIR:-/tmp}
 CONF=${XDG_CONFIG_HOME:-$HOME/.config}
 
+# Já bloqueada (Super+L e depois a tela apagou, ou a tampa): nada a fazer.
+pgrep -u "$(id -u)" -x gtklock >/dev/null 2>&1 && exit 0
+pgrep -u "$(id -u)" -x swaylock >/dev/null 2>&1 && exit 0
+
 command -v gtklock >/dev/null 2>&1 || exec swaylock
 
 case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in

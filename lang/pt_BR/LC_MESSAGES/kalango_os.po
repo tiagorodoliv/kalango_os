@@ -934,3 +934,122 @@ msgstr "Tornar principal"
 
 msgid "Apply position"
 msgstr "Aplicar posição"
+
+# Energia, dock com apps abertos e Alt+Tab
+
+msgid "1 hour"
+msgstr "1 hora"
+
+msgid "1 minute"
+msgstr "1 minuto"
+
+msgid "10 minutes"
+msgstr "10 minutos"
+
+msgid "15 minutes"
+msgstr "15 minutos"
+
+msgid "2 minutes"
+msgstr "2 minutos"
+
+msgid "20 minutes"
+msgstr "20 minutos"
+
+msgid "3 minutes"
+msgstr "3 minutos"
+
+msgid "30 minutes"
+msgstr "30 minutos"
+
+msgid "45 minutes"
+msgstr "45 minutos"
+
+msgid "5 minutes"
+msgstr "5 minutos"
+
+msgid "Automatic suspend"
+msgstr "Suspender sozinho"
+
+msgid "Automatic suspend when not in use"
+msgstr "Suspende sozinho quando ninguém está usando"
+
+msgid "BUTTONS AND LID"
+msgstr "BOTÕES E TAMPA"
+
+msgid "Balanced"
+msgstr "Equilibrado"
+
+msgid "Close"
+msgstr "Fechar"
+
+msgid "Close {} windows"
+msgstr "Fechar {} janelas"
+
+msgid "Closing the lid on battery"
+msgstr "Ao fechar a tampa na bateria"
+
+msgid "Closing the lid when plugged in"
+msgstr "Ao fechar a tampa na tomada"
+
+msgid "Do nothing"
+msgstr "Não fazer nada"
+
+msgid "Fastest, uses more power and heat"
+msgstr "Mais rápido, gasta mais energia e esquenta mais"
+
+msgid "Less performance, more battery life"
+msgstr "Menos desempenho, bateria dura mais"
+
+msgid "Lock the screen"
+msgstr "Bloquear a tela"
+
+msgid "Never"
+msgstr "Nunca"
+
+msgid "New window"
+msgstr "Nova janela"
+
+msgid "Open"
+msgstr "Abrir"
+
+msgid "POWER MODE"
+msgstr "MODO DE ENERGIA"
+
+msgid "Performance"
+msgstr "Desempenho"
+
+msgid "Performance and power use in balance"
+msgstr "Desempenho e consumo em equilíbrio"
+
+msgid "Pin to dock"
+msgstr "Fixar na dock"
+
+msgid "Power button"
+msgstr "Botão de ligar"
+
+msgid "Power saver"
+msgstr "Economia de energia"
+
+msgid "SAVING"
+msgstr "ECONOMIA"
+
+msgid "Saver"
+msgstr "Economia"
+
+msgid "Suspend on battery"
+msgstr "Suspender na bateria"
+
+msgid "Suspend when plugged in"
+msgstr "Suspender na tomada"
+
+msgid "Turn off the screen"
+msgstr "Apagar a tela"
+
+msgid "Unpin from dock"
+msgstr "Desafixar da dock"
+
+msgid "When the computer is not used for"
+msgstr "Quando o computador fica sem uso por"
+
+msgid "When the screen turns off and before suspending"
+msgstr "Quando a tela apaga e antes de suspender"

@@ -372,6 +372,18 @@ fn config_path() -> Option<PathBuf> {
     Some(base.join("kalango/aparencia.conf"))
 }
 
+/// Grava a aparência da tela agora (o menu da dock e o de apps fixam um
+/// app e fecham antes da conferência periódica).
+pub fn save_now(ui: &AppWindow) {
+    let Some(path) = config_path() else { return };
+    if let Some(dir) = path.parent() {
+        let _ = fs::create_dir_all(dir);
+    }
+    if let Err(err) = fs::write(&path, Prefs::from_ui(ui).to_text()) {
+        eprintln!("kalango-shell: falha ao salvar a aparência: {err}");
+    }
+}
+
 fn modified(path: &PathBuf) -> Option<SystemTime> {
     fs::metadata(path).and_then(|m| m.modified()).ok()
 }

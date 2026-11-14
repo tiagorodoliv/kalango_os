@@ -31,12 +31,14 @@ import { FilesWindow } from "apps/files.slint";
 import { TerminalWindow } from "apps/terminal.slint";
 import { LoginScreen } from "screens/login.slint";
 import { Launcher } from "screens/launcher.slint";
+import { SwitcherView, Switcher, SwitcherItem, DockMenuView, DockMenu, DockMenuWindow } from "screens/switcher.slint";
 import { SettingsScreen } from "screens/settings.slint";
 import { QuickSettings } from "screens/quick_settings.slint";
-import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution } from "device.slint";
+import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, Power } from "device.slint";
 
 // Reexportados para o Rust enxergar os globais e tipos.
 export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry, IconPreview, Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution }
+export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power }
 
 /// Telas de nível superior.
 export enum Screen { login, desktop, settings }
@@ -58,6 +60,10 @@ export enum ShellMode {
     dock,
     /// Só o papel de parede de um monitor extra (`--fundo=`, src/outputs.rs).
     fundo,
+    /// Alt+Tab: as janelas abertas (`--alternar`, src/switcher.rs).
+    switcher,
+    /// Menu do botão direito de um app da dock (`--menu-dock=`, src/taskbar.rs).
+    dock-menu,
 }
 
 export component AppWindow inherits Window {
@@ -73,6 +79,7 @@ export component AppWindow inherits Window {
     // O launcher, o painel rápido e a dock são camadas transparentes por cima
     // dos apps (a dock: os cantos arredondados mostram o que está atrás).
     background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings || root.mode == ShellMode.dock
+        || root.mode == ShellMode.switcher || root.mode == ShellMode.dock-menu
         ? transparent : Theme.background;
     // A dock é uma janela comum (não tela cheia): sem moldura nenhuma.
     no-frame: root.mode == ShellMode.dock;
@@ -119,6 +126,16 @@ export component AppWindow inherits Window {
             root.launch-demo(id);
         }
         keys.focus();
+    }
+
+    /// Clique num app da dock: na sessão real o Rust decide (foca, minimiza
+    /// ou abre); no protótipo, abre.
+    function dock-launch(id: string) {
+        if (Shell.native) {
+            Shell.dock-click(id);
+        } else {
+            root.launch(id);
+        }
     }
 
     /// Protótipo: "abre" as janelas de demonstração dentro do shell.
@@ -213,7 +230,8 @@ export component AppWindow inherits Window {
                 return accept;
             }
             if (event.text == Key.Escape) {
-                if (root.mode == ShellMode.launcher || root.mode == ShellMode.settings || root.mode == ShellMode.quick-settings) {
+                if (root.mode == ShellMode.launcher || root.mode == ShellMode.settings || root.mode == ShellMode.quick-settings
+                    || root.mode == ShellMode.dock-menu) {
                     Shell.quit();
                     return accept;
                 }
@@ -340,7 +358,8 @@ export component AppWindow inherits Window {
                     files-open: root.files-open;
                     terminal-open: root.terminal-open;
                     focused-app: root.focused-app;
-                    launch(id) => { root.launch(id); }
+                    launch(id) => { root.dock-launch(id); }
+                    menu(id, offset) => { if (Shell.native) { Shell.dock-menu(id, offset); } }
                     animate x, y { duration: Theme.anim; easing: ease-out; }
                 }
             }
@@ -472,8 +491,12 @@ export component AppWindow inherits Window {
             x: Theme.dock-position == 0 ? (root.width - self.width) / 2
                 : Theme.dock-position == 1 ? 0 : root.width - self.width;
             y: Theme.dock-position == 0 ? root.height - self.height : (root.height - self.height) / 2;
-            launch(id) => { root.launch(id); }
+            launch(id) => { root.dock-launch(id); }
+            menu(id, offset) => { Shell.dock-menu(id, offset); }
         }
+
+        if root.mode == ShellMode.switcher: SwitcherView { }
+        if root.mode == ShellMode.dock-menu: DockMenuView { }
 
         if root.mode == ShellMode.quick-settings: QuickSettings {
             close => { Shell.quit(); }

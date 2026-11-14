@@ -10,7 +10,7 @@
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { Shell, Apps } from "../globals.slint";
-import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, BtDevice } from "../device.slint";
+import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, BtDevice, Power } from "../device.slint";
 import { SectionLabel, Toggle, SliderBar, Avatar } from "../components/widgets.slint";
 import { KalangoLogo, KalangoIcon } from "../brand.slint";
 import { WifiList, ForgetLink } from "../components/wifi_list.slint";
@@ -875,41 +875,172 @@ export component SoundPage inherits Rectangle {
 // ---------------------------------------------------------------------------
 
 export component PowerPage inherits Rectangle {
-    VerticalLayout {
-        x: 0;
-        y: Page.top;
-        width: min(Page.max-width, parent.width);
-        alignment: start;
-        spacing: 16px;
+    property <[string]> blank-options: [@tr("Never"), @tr("1 minute"), @tr("2 minutes"), @tr("3 minutes"),
+        @tr("5 minutes"), @tr("10 minutes"), @tr("15 minutes"), @tr("30 minutes")];
+    property <[string]> suspend-options: [@tr("Never"), @tr("5 minutes"), @tr("10 minutes"), @tr("15 minutes"),
+        @tr("20 minutes"), @tr("30 minutes"), @tr("45 minutes"), @tr("1 hour")];
+    property <[string]> lid-options: [@tr("Suspend"), @tr("Lock the screen"), @tr("Do nothing"), @tr("Shut down")];
+    property <[string]> button-options: [@tr("Shut down"), @tr("Suspend"), @tr("Do nothing")];
+    property <length> control: min(250px, self.width * 0.42);
 
-        Panel {
-            height: 67px;
-            Row {
-                title: @tr("Battery");
-                subtitle: Device.battery == @tr("No battery") ? @tr("Computer running on AC power")
-                    : Device.charging ? @tr("Charging") : @tr("On battery");
-                divider: false;
-                value: Device.battery;
-                value-strong: true;
-            }
-        }
-
-        SectionLabel { text: @tr("SHUT DOWN"); }
-        HorizontalLayout {
+    // Com rolagem: a página é mais alta que a janela.
+    Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: power-col.preferred-height + 36px;
+        power-col := VerticalLayout {
+            x: 0;
+            y: 12px;
+            width: min(Page.max-width, parent.width);
             alignment: start;
             spacing: 12px;
-            PillButton {
-                text: @tr("Suspend");
-                clicked => { Device.power-action("suspend"); }
+
+            Panel {
+                height: 67px;
+                Row {
+                    title: @tr("Battery");
+                    subtitle: Device.battery == @tr("No battery") ? @tr("Computer running on AC power")
+                        : Device.charging ? @tr("Charging") : @tr("On battery");
+                    divider: false;
+                    value: Device.battery;
+                    value-strong: true;
+                }
             }
-            PillButton {
-                text: @tr("Restart");
-                clicked => { Device.power-action("reboot"); }
+
+            if Power.profiles-available: SectionLabel { text: @tr("POWER MODE"); }
+            if Power.profiles-available: Panel {
+                height: 67px;
+                Row {
+                    title: Power.profile == 0 ? @tr("Power saver") : Power.profile == 2 ? @tr("Performance") : @tr("Balanced");
+                    subtitle: Power.profile == 0 ? @tr("Less performance, more battery life")
+                        : Power.profile == 2 ? @tr("Fastest, uses more power and heat")
+                        : @tr("Performance and power use in balance");
+                    divider: false;
+                    Segmented {
+                        x: parent.width - self.width - 20px;
+                        options: Power.has-performance ? [@tr("Saver"), @tr("Balanced"), @tr("Performance")]
+                            : [@tr("Saver"), @tr("Balanced")];
+                        selected: Power.profile;
+                        chosen(i) => { Power.set-profile(i); }
+                    }
+                }
             }
-            PillButton {
-                text: @tr("Shut down");
-                danger: true;
-                clicked => { Shell.power-off(); }
+
+            SectionLabel { text: @tr("SAVING"); }
+            Panel {
+                height: (Power.has-battery ? 4 : 3) * 67px;
+                VerticalLayout {
+                    Row {
+                        title: @tr("Turn off the screen");
+                        subtitle: @tr("When the computer is not used for");
+                        divider: false;
+                        Dropdown {
+                            x: parent.width - self.width - 20px;
+                            width: root.control;
+                            options: root.blank-options;
+                            selected: Power.blank;
+                            chosen(i) => { Power.blank = i; Power.save(); }
+                        }
+                    }
+                    Row {
+                        title: @tr("Lock the screen");
+                        subtitle: @tr("When the screen turns off and before suspending");
+                        Toggle {
+                            x: parent.width - self.width - 20px;
+                            checked <=> Power.lock-on-blank;
+                            toggled(v) => { Power.save(); }
+                        }
+                    }
+                    if Power.has-battery: Row {
+                        title: @tr("Suspend on battery");
+                        subtitle: @tr("Automatic suspend when not in use");
+                        Dropdown {
+                            x: parent.width - self.width - 20px;
+                            width: root.control;
+                            options: root.suspend-options;
+                            selected: Power.suspend-battery;
+                            chosen(i) => { Power.suspend-battery = i; Power.save(); }
+                        }
+                    }
+                    Row {
+                        title: Power.has-battery ? @tr("Suspend when plugged in") : @tr("Automatic suspend");
+                        subtitle: @tr("Automatic suspend when not in use");
+                        Dropdown {
+                            x: parent.width - self.width - 20px;
+                            width: root.control;
+                            options: root.suspend-options;
+                            selected: Power.suspend-ac;
+                            chosen(i) => { Power.suspend-ac = i; Power.save(); }
+                        }
+                    }
+                }
+            }
+
+            SectionLabel { text: @tr("BUTTONS AND LID"); }
+            Panel {
+                height: (Power.has-lid ? 3 : 1) * 67px;
+                VerticalLayout {
+                    if Power.has-lid: Row {
+                        title: @tr("Closing the lid on battery");
+                        divider: false;
+                        Dropdown {
+                            x: parent.width - self.width - 20px;
+                            width: root.control;
+                            enabled: !Power.system-busy;
+                            options: root.lid-options;
+                            selected: Power.lid-battery;
+                            chosen(i) => { Power.lid-battery = i; Power.save-system(); }
+                        }
+                    }
+                    if Power.has-lid: Row {
+                        title: @tr("Closing the lid when plugged in");
+                        Dropdown {
+                            x: parent.width - self.width - 20px;
+                            width: root.control;
+                            enabled: !Power.system-busy;
+                            options: root.lid-options;
+                            selected: Power.lid-ac;
+                            chosen(i) => { Power.lid-ac = i; Power.save-system(); }
+                        }
+                    }
+                    Row {
+                        title: @tr("Power button");
+                        divider: Power.has-lid;
+                        Dropdown {
+                            x: parent.width - self.width - 20px;
+                            width: root.control;
+                            enabled: !Power.system-busy;
+                            options: root.button-options;
+                            selected: Power.power-button;
+                            chosen(i) => { Power.power-button = i; Power.save-system(); }
+                        }
+                    }
+                }
+            }
+            if Power.message != "": Text {
+                text: Power.message;
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13px;
+            }
+
+            SectionLabel { text: @tr("SHUT DOWN"); }
+            HorizontalLayout {
+                alignment: start;
+                spacing: 12px;
+                PillButton {
+                    text: @tr("Suspend");
+                    clicked => { Device.power-action("suspend"); }
+                }
+                PillButton {
+                    text: @tr("Restart");
+                    clicked => { Device.power-action("reboot"); }
+                }
+                PillButton {
+                    text: @tr("Shut down");
+                    danger: true;
+                    clicked => { Shell.power-off(); }
+                }
             }
         }
     }
