@@ -104,11 +104,14 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             let mut check = move || {
                 let Some(ui) = weak.upgrade() else { return };
                 let index = ui.global::<Theme>().get_wallpaper();
-                let width = ui.window().size().width;
-                // Antes de a janela ter tamanho: espera (evita carregar o 4K à toa).
-                if width == 0 {
-                    return;
-                }
+                // Antes de a janela ter tamanho (ao iniciar): já carrega o de
+                // 1920 px, para a primeira imagem ser o papel de parede
+                // escolhido e não os circuitos (que trocavam até 0,7 s depois).
+                // Numa tela maior, a próxima conferência troca pelo maior.
+                let width = match ui.window().size().width {
+                    0 => 1920,
+                    w => w,
+                };
                 let wanted = (index, best_size(width));
                 if loaded != Some(wanted) {
                     ui.global::<Shell>().set_wallpaper(load(index, width));

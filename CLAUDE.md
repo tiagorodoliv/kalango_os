@@ -103,15 +103,22 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
 - **Máquina física do Tiago (notebook HP, 1366×768, dual boot):** atualizar o shell sem formatar por SSH
   (`root@192.168.1.175`, chave `~/.ssh/id_tiago_desktop`): `distro/testar-vm.sh --so-preparar`, copiar
   `target/vm-dev/kalango-shell` para `/usr/local/bin/` (guardar o antigo como `.anterior`) e, se a área de trabalho
-  mudou, reiniciá-la dentro da sessão (processo movido para `session-N.scope`, ambiente do labwc +
-  `WAYLAND_DISPLAY=wayland-0 DISPLAY=:0 LABWC_PID=<pid do labwc>`: o labwc só define essas três para os filhos;
-  sem `DISPLAY` os apps X11 abertos pela dock falham (VS Code), sem `LABWC_PID` a margem da dock não atualiza, e
-  sem a sessão o polkit nega o NetworkManager). `grim` instalado lá para capturas.
+  mudou, reiniciá-la **com o ambiente dela mesma** (`/proc/<pid>/environ` do `kalango-shell` sem argumento, que o
+  labwc iniciou com `DISPLAY`, `LABWC_PID` e `WAYLAND_DISPLAY`) e no mesmo cgroup (`session-N.scope`, ver
+  `/proc/<pid>/cgroup`). Sem `DISPLAY` os apps X11 da dock falham (VS Code), sem `LABWC_PID` a margem da dock não
+  atualiza, fora da sessão o polkit nega o NetworkManager. Conferir antes se só há um `kalango-shell` sem argumento.
+  `grim` instalado lá para capturas.
 - **Áreas de trabalho e encaixe (2026-11-13):** 4 áreas (`<desktops>` no rc.xml), indicador real na barra pelo
   `ext-workspace-v1` do labwc 0.8.3 (`src/workspaces.rs`, conexão Wayland própria numa thread; clicar ativa). Barra,
   menu e painel com `ToggleOmnipresent`. Encaixe: borda = metade/maximizar com prévia; arrastar com modificador =
   regiões (metades e quartos); menu `kalango-layouts` (botão direito no maximizar ou Super+Z) no
   `~/.config/labwc/menu.xml` que o shell grava no idioma (`labwc::sync_layouts_menu`); o labwc lê um só menu.xml.
+- **Tela de bloqueio (2026-11-14): gtklock** pelo `/usr/local/bin/kalango-bloquear` (Super+L, cadeados): layout
+  próprio `/etc/kalango/bloqueio/layout.ui` (ids/sinais do gtklock 4; @SENHA@/@DESBLOQUEAR@ trocados no idioma),
+  `style.css`, papel de parede da pessoa e módulo userinfo (precisa do `accountsservice`). **Config do gtklock é key
+  file: comentário só com `#`** (`;` descarta tudo). **Não usar marcação Pango no `-t`** (derruba o gtklock: tela
+  preta presa, o ext-session-lock fica travado). O script roda sem `-d` e reabre se cair; 3 quedas → swaylock.
+  Testar bloqueio sempre na VM antes da máquina física.
 - **Pendrives (2026-11-13): a cópia não termina antes da gravação.** `etc/udev/rules.d/90-kalango-pendrive.rules`
   (`90-`: precisa do `ID_BUS` do 60-persistent-storage) põe `bdi/strict_limit=1` e `bdi/max_bytes=16 MB` em disco
   USB: a cópia anda na velocidade real. A área de trabalho (`src/usb.rs`, thread a cada 2 s) dá `sync -f` nos

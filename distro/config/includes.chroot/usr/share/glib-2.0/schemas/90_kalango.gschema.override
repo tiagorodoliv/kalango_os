@@ -9,6 +9,11 @@ icon-theme='Kalango-Ciano'
 font-name='Inter 10'
 monospace-font-name='JetBrains Mono 10'
 
+# Botões das janelas que desenham a própria barra (GTK 4/libadwaita: Loja,
+# Agenda): minimizar, maximizar e fechar, como nas outras janelas.
+[org.gnome.desktop.wm.preferences]
+button-layout='appmenu:minimize,maximize,close'
+
 # Mousepad (texto simples): mesmas cores do editor de código e do sistema.
 [org.xfce.mousepad.preferences.view]
 color-scheme='kalango'

@@ -83,9 +83,9 @@
     <keybind key="W-b">
       <action name="Execute" command="firefox-esr" />
     </keybind>
-    <!-- Bloqueia a tela (config em /etc/swaylock/config). -->
+    <!-- Bloqueia a tela (gtklock com o tema do Kalango; ver kalango-bloquear). -->
     <keybind key="W-l">
-      <action name="Execute" command="swaylock" />
+      <action name="Execute" command="kalango-bloquear" />
     </keybind>
     <!-- Menu de layouts da janela ativa (como o Win+Z do Windows 11). -->
     <keybind key="W-z">

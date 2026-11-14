@@ -1,0 +1,85 @@
+/* Tela de bloqueio do Kalango OS (gtklock): cores de ui/theme.slint; o
+   destaque segue o escolhido nas Configurações (@kalango_accent, definido
+   pelo tema GTK Kalango e pelo ~/.config/gtk-3.0/gtk.css). */
+@define-color kb_accent @kalango_accent;
+
+window {
+	background-color: #07090d;
+	background-size: cover;
+	background-position: center;
+}
+
+#window-box {
+	padding: 40px 48px;
+	border-radius: 22px;
+	background-color: rgba(7, 9, 13, 0.8);
+}
+
+#clock-label {
+	font-family: "JetBrains Mono", monospace;
+	font-size: 96px;
+	font-weight: 600;
+	color: #e6edf3;
+	text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+}
+
+#date-label {
+	font-family: Inter, sans-serif;
+	font-size: 19px;
+	color: #c9d1d9;
+}
+
+/* Módulo userinfo: foto e nome. */
+#user-image {
+	border-radius: 999px;
+	border: 2px solid @kb_accent;
+}
+#user-name {
+	font-family: Inter, sans-serif;
+	font-size: 18px;
+	font-weight: 600;
+	color: #e6edf3;
+}
+
+#input-field {
+	min-height: 44px;
+	padding: 0 14px;
+	border-radius: 10px;
+	border: 1px solid #1e2a33;
+	background-color: rgba(13, 18, 24, 0.9);
+	background-image: none;
+	box-shadow: none;
+	color: #e6edf3;
+	caret-color: @kb_accent;
+	font-family: Inter, sans-serif;
+	font-size: 15px;
+}
+#input-field:focus {
+	border-color: @kb_accent;
+	box-shadow: 0 0 0 2px alpha(@kb_accent, 0.25);
+}
+
+#unlock-button {
+	min-height: 44px;
+	padding: 0 20px;
+	border-radius: 10px;
+	border: none;
+	background-image: none;
+	background-color: @kb_accent;
+	box-shadow: none;
+	color: #04121a;
+	font-family: Inter, sans-serif;
+	font-weight: 700;
+}
+#unlock-button:hover {
+	background-color: shade(@kb_accent, 1.1);
+}
+
+#error-label {
+	color: #f07178;
+	font-family: Inter, sans-serif;
+}
+#warning-label {
+	color: #e8b04b;
+	font-family: Inter, sans-serif;
+}

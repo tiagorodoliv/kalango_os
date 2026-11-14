@@ -1,4 +1,5 @@
-# Bloqueio de tela do Kalango OS (swaylock, Super+L ou cadeado do menu de apps).
+# Bloqueio de tela de reserva do Kalango OS (swaylock): o normal é o gtklock
+# (kalango-bloquear); este só abre se o gtklock cair 3 vezes.
 # Cores de ui/theme.slint: fundo #07090d, painel #0d1218, borda #1e2a33,
 # texto #e6edf3, destaque ciano #3dd6f5, perigo #f07178, âmbar #e8b04b.
 color=07090d
@@ -6,6 +7,8 @@ font=Inter
 indicator-radius=90
 indicator-thickness=8
 ignore-empty-password
+# Anel visível desde o início (sem ele a tela fica toda preta até digitar).
+indicator-idle-visible
 inside-color=0d1218e6
 inside-clear-color=0d1218e6
 inside-ver-color=0d1218e6

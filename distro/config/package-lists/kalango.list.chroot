@@ -52,6 +52,12 @@ lxpolkit
 
 # Bloqueio de tela (Super+L): protocolo ext-session-lock do Wayland
 swaylock
+# Tela de bloqueio com relógio, usuário e senha (kalango-bloquear); o swaylock
+# fica de reserva
+gtklock
+gtklock-userinfo-module
+# nome e foto do usuário na tela de bloqueio (e nas Configurações → Usuários)
+accountsservice
 
 # Loja (GNOME Software via PackageKit) e Agenda. Com o plugin flatpak, a Loja
 # mostra também os apps do Flathub (configurado pelo hook 0110).

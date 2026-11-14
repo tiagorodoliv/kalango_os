@@ -111,9 +111,10 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
         // Ícones de Wi-Fi e volume da barra superior.
         "network" => vec!["foot".into(), format!("--title={}", tr("Network & Wi-Fi", "Rede e Wi-Fi")), "nmtui".into()],
         "sound" => vec!["pavucontrol".into()],
-        // Rodapé do menu de apps. O swaylock usa o protocolo de bloqueio do
-        // Wayland (ext-session-lock): nenhuma janela aparece por cima dele.
-        "lock" => vec!["swaylock".into()],
+        // Rodapé do menu de apps. O kalango-bloquear (gtklock) usa o protocolo
+        // de bloqueio do Wayland (ext-session-lock): nenhuma janela aparece por
+        // cima dele.
+        "lock" => vec!["kalango-bloquear".into()],
         // Encerra o labwc; o greetd volta para a tela de login.
         "logout" => vec!["labwc".into(), "--exit".into()],
         "updates" => vec![
@@ -466,7 +467,7 @@ mod tests {
         assert_eq!(command_for("store").unwrap(), ["gnome-software"]);
         assert_eq!(command_for("installer").unwrap(), ["kalango-instalar"]);
         assert!(command_for("inexistente").is_none());
-        assert_eq!(command_for("lock").unwrap(), ["swaylock"]);
+        assert_eq!(command_for("lock").unwrap(), ["kalango-bloquear"]);
         assert_eq!(command_for("music").unwrap(), ["parole"]);
     }
 

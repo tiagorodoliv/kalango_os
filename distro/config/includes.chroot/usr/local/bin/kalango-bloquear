@@ -1,0 +1,49 @@
+#!/bin/sh
+# Bloqueia a tela do Kalango OS (Super+L, cadeado do menu e do painel).
+#
+# Usa o gtklock (protocolo ext-session-lock: seguro, o labwc não mostra nada
+# por baixo) com o layout e o CSS de /etc/kalango/bloqueio: relógio, data,
+# usuário e senha sobre o papel de parede escolhido nas Configurações. Os
+# textos do formulário vão no idioma da sessão. Sem o gtklock, cai no
+# swaylock.
+set -u
+
+DIR=/etc/kalango/bloqueio
+RUN=${XDG_RUNTIME_DIR:-/tmp}
+CONF=${XDG_CONFIG_HOME:-$HOME/.config}
+
+command -v gtklock >/dev/null 2>&1 || exec swaylock
+
+case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in
+pt*)
+	SENHA="Senha"
+	DESBLOQUEAR="Desbloquear"
+	DATA="%A, %d de %B"
+	;;
+*)
+	SENHA="Password"
+	DESBLOQUEAR="Unlock"
+	DATA="%A, %B %d"
+	;;
+esac
+sed -e "s/@SENHA@/$SENHA/" -e "s/@DESBLOQUEAR@/$DESBLOQUEAR/" "$DIR/layout.ui" >"$RUN/kalango-bloqueio.ui"
+
+# Papel de parede das Configurações (papel-de-parede=Azul → Kalango_Azul_1920x1080.png).
+NOME=$(sed -n 's/^papel-de-parede=//p' "$CONF/kalango/aparencia.conf" 2>/dev/null | head -n 1)
+FUNDO=/usr/share/backgrounds/kalango/Kalango_${NOME}_1920x1080.png
+[ -n "$NOME" ] && [ -f "$FUNDO" ] || FUNDO=/usr/share/backgrounds/kalango/Kalango_PretoAzul_1920x1080.png
+
+set -- -c "$DIR/config.ini" -x "$RUN/kalango-bloqueio.ui" -D "$DATA"
+[ -f "$FUNDO" ] && set -- "$@" -b "$FUNDO"
+MODULO=/usr/lib/x86_64-linux-gnu/gtklock/userinfo-module.so
+[ -f "$MODULO" ] && set -- "$@" -m "$MODULO"
+
+# Sem -d (daemonize): o script espera o desbloqueio. Se o gtklock cair (sai
+# com erro), a sessão fica bloqueada e sem nada na tela (o protocolo é
+# seguro de propósito): abre de novo e, depois de 3 quedas, usa o swaylock.
+# Desbloquear sai com 0.
+for _ in 1 2 3; do
+	gtklock "$@" && exit 0
+	sleep 0.3
+done
+exec swaylock
