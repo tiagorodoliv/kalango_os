@@ -200,11 +200,12 @@ component Segmented inherits Rectangle {
         padding: 3px;
         spacing: 3px;
         for opt[i] in root.options: Rectangle {
-            width: 82px;
+            // 82 px, ou mais se o texto não couber ("Automático (DHCP)").
+            width: max(82px, seg-label.preferred-width + 24px);
             border-radius: 6px;
             background: i == root.selected ? Theme.accent : seg-touch.has-hover ? Theme.tile-hover : transparent;
             animate background { duration: Theme.anim; }
-            Text {
+            seg-label := Text {
                 text: opt;
                 color: i == root.selected ? Theme.on-accent : Theme.text;
                 font-family: Theme.sans;
@@ -251,7 +252,173 @@ component EmptyNotice inherits Rectangle {
 // Rede e Wi-Fi
 // ---------------------------------------------------------------------------
 
+/// Campo de texto com rótulo à esquerda (formulários de IP e VPN).
+component Field inherits Rectangle {
+    in property <string> label;
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <bool> password: false;
+    callback edited(string);
+
+    height: 46px;
+    property <length> label-w: min(170px, self.width * 0.36);
+    Text {
+        x: 20px;
+        width: root.label-w - 10px;
+        text: root.label;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 14px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    Rectangle {
+        x: 20px + root.label-w;
+        width: parent.width - self.x - 20px;
+        height: 36px;
+        border-radius: Theme.radius-small;
+        background: Theme.sunken;
+        border-width: 1px;
+        border-color: input.has-focus ? Theme.accent : Theme.border;
+        if input.text == "": Text {
+            x: 12px;
+            width: parent.width - 24px;
+            text: root.placeholder;
+            color: Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 13.5px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        input := TextInput {
+            x: 12px;
+            width: parent.width - 24px;
+            height: parent.height;
+            vertical-alignment: center;
+            text <=> root.text;
+            input-type: root.password ? InputType.password : InputType.text;
+            color: Theme.text;
+            font-family: Theme.sans;
+            font-size: 13.5px;
+            single-line: true;
+            edited => { root.edited(self.text); }
+        }
+    }
+}
+
+/// Campo de arquivo: o caminho escolhido e o botão "Escolher...".
+component FileField inherits Rectangle {
+    in property <string> label;
+    in property <string> path;
+    callback choose();
+
+    height: 46px;
+    property <length> label-w: min(170px, self.width * 0.36);
+    Text {
+        x: 20px;
+        width: root.label-w - 10px;
+        text: root.label;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 14px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    Text {
+        x: 20px + root.label-w;
+        width: parent.width - self.x - 20px - choose-btn.width - 10px;
+        text: root.path != "" ? root.path : @tr("No file chosen");
+        color: root.path != "" ? Theme.text : Theme.text-muted;
+        font-family: Theme.sans;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    choose-btn := PillButton {
+        x: parent.width - self.width - 20px;
+        height: 34px;
+        text: @tr("Choose...");
+        clicked => { root.choose(); }
+    }
+}
+
+/// Linha de formulário com um controle à direita (filho).
+component FormRow inherits Rectangle {
+    in property <string> label;
+    height: 46px;
+    Text {
+        x: 20px;
+        text: root.label;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 14px;
+        vertical-alignment: center;
+    }
+    @children
+}
+
+/// Título de um painel de formulário.
+component FormTitle inherits Rectangle {
+    in property <string> text;
+    height: 34px;
+    Text {
+        x: 20px;
+        width: parent.width - 40px;
+        text: root.text;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 15px;
+        font-weight: 600;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+/// Botões Cancelar e Salvar, à direita.
+component FormButtons inherits HorizontalLayout {
+    in property <bool> busy: false;
+    callback cancel();
+    callback save();
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 6px;
+    spacing: 10px;
+    alignment: end;
+    height: 44px;
+    PillButton { text: @tr("Cancel"); clicked => { root.cancel(); } }
+    PillButton { text: @tr("Save"); primary: true; enabled: !root.busy; clicked => { root.save(); } }
+}
+
 export component NetworkPage inherits Rectangle {
+    // Formulários de VPN (os valores só vão para o Rust ao salvar).
+    property <string> login-user;
+    property <string> login-pass;
+    property <string> vpn-name;
+    property <string> ov-server;
+    property <string> ov-port;
+    property <bool> ov-tcp: false;
+    property <int> ov-auth: 1;
+    property <string> ov-ca;
+    property <string> ov-cert;
+    property <string> ov-key;
+    property <string> ov-user;
+    property <string> ov-pass;
+    property <string> wg-address;
+    property <string> wg-dns;
+    property <string> wg-peer;
+    property <string> wg-endpoint;
+    property <string> wg-allowed: "0.0.0.0/0";
+    // Arquivo escolhido na janela do zenity (Device.pick-file).
+    property <int> picked: Device.picked-serial;
+    changed picked => {
+        if (Device.picked-purpose == "ca") {
+            root.ov-ca = Device.picked-path;
+        } else if (Device.picked-purpose == "cert") {
+            root.ov-cert = Device.picked-path;
+        } else if (Device.picked-purpose == "key") {
+            root.ov-key = Device.picked-path;
+        }
+    }
     // Com rolagem: com muitas redes por perto, a lista e o campo de senha da
     // rede escolhida passam da altura da janela.
     Flickable {
@@ -326,6 +493,311 @@ export component NetworkPage inherits Rectangle {
             color: Theme.text-muted;
             font-family: Theme.sans;
             font-size: 13.5px;
+        }
+
+        // --- Conexões salvas e IP fixo ---
+        if Device.network-available && Device.connections.length > 0: SectionLabel { text: @tr("CONNECTIONS"); }
+        if Device.network-available && Device.connections.length > 0: Panel {
+            height: Device.connections.length * 52px;
+            for c[i] in Device.connections: Rectangle {
+                y: i * 52px;
+                height: 52px;
+                if i > 0: Rectangle { x: 20px; y: 0; width: parent.width - 40px; height: 1px; background: Theme.border; }
+                Image {
+                    x: 20px;
+                    source: c.kind == "wifi" ? Icons.wifi : Icons.globe;
+                    colorize: c.active ? Theme.accent : Theme.text-muted;
+                    width: 18px;
+                    height: 18px;
+                }
+                Text {
+                    x: 54px;
+                    width: parent.width - self.x - ip-btn.width - 110px;
+                    text: c.name;
+                    color: Theme.text;
+                    font-family: Theme.sans;
+                    font-size: 14.5px;
+                    font-weight: c.active ? 600 : 400;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                if c.active: Text {
+                    x: ip-btn.x - self.width - 12px;
+                    text: @tr("Active");
+                    color: Theme.accent;
+                    font-family: Theme.sans;
+                    font-size: 13px;
+                    vertical-alignment: center;
+                }
+                ip-btn := PillButton {
+                    x: parent.width - self.width - 20px;
+                    height: 32px;
+                    text: @tr("IP settings");
+                    clicked => { Device.ip-edit(c.name); }
+                }
+            }
+        }
+        if Device.ip-for != "": Panel {
+            height: ip-col.preferred-height;
+            ip-col := VerticalLayout {
+                padding-top: 10px;
+                padding-bottom: 12px;
+                FormTitle { text: @tr("IP settings: {}", Device.ip-for); }
+                FormRow {
+                    label: "IPv4";
+                    Segmented {
+                        x: parent.width - self.width - 20px;
+                        options: [@tr("Automatic (DHCP)"), @tr("Manual")];
+                        selected: Device.ip-manual ? 1 : 0;
+                        chosen(i) => { Device.ip-manual = i == 1; }
+                    }
+                }
+                if !Device.ip-manual: FormTitle {
+                    text: Device.ip-current != "" ? @tr("Current address: {}", Device.ip-current)
+                        : @tr("The router assigns the address.");
+                }
+                if Device.ip-manual: Field { label: @tr("Address"); text <=> Device.ip-address; placeholder: "192.168.1.50"; }
+                if Device.ip-manual: Field { label: @tr("Subnet mask"); text <=> Device.ip-mask; placeholder: "255.255.255.0 " + @tr("or") + " 24"; }
+                if Device.ip-manual: Field { label: "Gateway"; text <=> Device.ip-gateway; placeholder: "192.168.1.1"; }
+                if Device.ip-manual: Field { label: "DNS"; text <=> Device.ip-dns; placeholder: "8.8.8.8, 1.1.1.1"; }
+                FormButtons {
+                    cancel => {
+                        Device.ip-for = "";
+                        Device.ip-message = "";
+                    }
+                    save => {
+                        Device.ip-apply(Device.ip-for, Device.ip-manual, Device.ip-address, Device.ip-mask, Device.ip-gateway, Device.ip-dns);
+                    }
+                }
+            }
+        }
+        if Device.ip-message != "": Text {
+            text: Device.ip-message;
+            color: Theme.text;
+            font-family: Theme.sans;
+            font-size: 13.5px;
+            wrap: word-wrap;
+        }
+
+        // --- VPN ---
+        if Device.vpn-available: HorizontalLayout {
+            height: 26px;
+            spacing: 8px;
+            SectionLabel { text: "VPN"; vertical-alignment: center; }
+            Rectangle { horizontal-stretch: 1; }
+            PillButton {
+                height: 26px;
+                text: @tr("Import file...");
+                clicked => {
+                    Device.vpn-message = "";
+                    Device.vpn-import();
+                }
+            }
+            PillButton {
+                height: 26px;
+                text: @tr("Add VPN");
+                clicked => {
+                    Device.vpn-message = "";
+                    Device.vpn-form = Device.vpn-form != 0 ? 0 : Device.openvpn-available ? 1 : 2;
+                }
+            }
+        }
+        if Device.vpn-available: Panel {
+            height: max(1, Device.vpns.length) * 56px;
+            if Device.vpns.length == 0: Text {
+                x: 20px;
+                width: parent.width - 40px;
+                text: @tr("No VPN yet. Import an OpenVPN (.ovpn) or WireGuard (.conf) file, or add one by hand.");
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+                wrap: word-wrap;
+                vertical-alignment: center;
+            }
+            for v[i] in Device.vpns: Rectangle {
+                y: i * 56px;
+                height: 56px;
+                if i > 0: Rectangle { x: 20px; y: 0; width: parent.width - 40px; height: 1px; background: Theme.border; }
+                Image {
+                    x: 20px;
+                    source: Icons.lock;
+                    colorize: v.active ? Theme.accent : Theme.text-muted;
+                    width: 17px;
+                    height: 17px;
+                }
+                VerticalLayout {
+                    x: 54px;
+                    width: parent.width - self.x - 190px;
+                    alignment: center;
+                    spacing: 2px;
+                    Text {
+                        text: v.name;
+                        color: Theme.text;
+                        font-family: Theme.sans;
+                        font-size: 14.5px;
+                        font-weight: v.active ? 600 : 400;
+                        overflow: elide;
+                    }
+                    Text {
+                        text: Device.vpn-busy == v.name ? @tr("Please wait...") : v.active ? v.kind + " · " + @tr("Connected") : v.kind;
+                        color: v.active ? Theme.accent : Theme.text-muted;
+                        font-family: Theme.sans;
+                        font-size: 12.5px;
+                        overflow: elide;
+                    }
+                }
+                remove := ForgetLink {
+                    x: vpn-toggle.x - self.width - 14px;
+                    height: 30px;
+                    text: @tr("Remove");
+                    font-size: 12.5px;
+                    clicked => { Device.vpn-remove(v.name); }
+                }
+                vpn-toggle := Toggle {
+                    x: parent.width - self.width - 20px;
+                    checked: v.active;
+                    toggled(on) => {
+                        Device.vpn-message = "";
+                        Device.vpn-set(v.name, on);
+                    }
+                }
+            }
+        }
+
+        // Usuário e senha de uma VPN OpenVPN (depois de importar, ou quando
+        // ligar pediu).
+        if Device.vpn-login-for != "": Panel {
+            height: login-col.preferred-height;
+            login-col := VerticalLayout {
+                padding-top: 10px;
+                padding-bottom: 12px;
+                FormTitle { text: @tr("Sign in to {}", Device.vpn-login-for); }
+                Field { label: @tr("Username"); text <=> root.login-user; }
+                Field { label: @tr("Password"); text <=> root.login-pass; password: true; }
+                FormButtons {
+                    cancel => { Device.vpn-login-for = ""; root.login-pass = ""; }
+                    save => {
+                        Device.vpn-set-login(Device.vpn-login-for, root.login-user, root.login-pass);
+                        root.login-pass = "";
+                    }
+                }
+            }
+        }
+
+        // Formulário de VPN nova (OpenVPN ou WireGuard).
+        if Device.vpn-form != 0: Panel {
+            height: form-col.preferred-height;
+            form-col := VerticalLayout {
+                padding-top: 10px;
+                padding-bottom: 12px;
+                FormTitle { text: @tr("New VPN"); }
+                FormRow {
+                    label: @tr("Type");
+                    Segmented {
+                        x: parent.width - self.width - 20px;
+                        options: ["OpenVPN", "WireGuard"];
+                        selected: Device.vpn-form - 1;
+                        chosen(i) => { Device.vpn-form = i + 1; }
+                    }
+                }
+                Field { label: @tr("Name"); text <=> root.vpn-name; placeholder: @tr("Work"); }
+
+                if Device.vpn-form == 1 && !Device.openvpn-available: FormTitle {
+                    text: @tr("OpenVPN support is not installed (network-manager-openvpn).");
+                }
+                if Device.vpn-form == 1: Field { label: @tr("Server"); text <=> root.ov-server; placeholder: "vpn.example.com"; }
+                if Device.vpn-form == 1: Field { label: @tr("Port"); text <=> root.ov-port; placeholder: "1194"; }
+                if Device.vpn-form == 1: FormRow {
+                    label: @tr("Protocol");
+                    Segmented {
+                        x: parent.width - self.width - 20px;
+                        options: ["UDP", "TCP"];
+                        selected: root.ov-tcp ? 1 : 0;
+                        chosen(i) => { root.ov-tcp = i == 1; }
+                    }
+                }
+                if Device.vpn-form == 1: FormRow {
+                    label: @tr("Authentication");
+                    Dropdown {
+                        width: clamp(parent.width * 0.5, 170px, 280px);
+                        x: parent.width - self.width - 20px;
+                        options: [@tr("Certificates"), @tr("Password"), @tr("Password and certificates")];
+                        selected: root.ov-auth;
+                        chosen(i) => { root.ov-auth = i; }
+                    }
+                }
+                if Device.vpn-form == 1: FileField {
+                    label: @tr("CA certificate");
+                    path: root.ov-ca;
+                    choose => { Device.pick-file("ca"); }
+                }
+                if Device.vpn-form == 1 && root.ov-auth != 1: FileField {
+                    label: @tr("User certificate");
+                    path: root.ov-cert;
+                    choose => { Device.pick-file("cert"); }
+                }
+                if Device.vpn-form == 1 && root.ov-auth != 1: FileField {
+                    label: @tr("Private key");
+                    path: root.ov-key;
+                    choose => { Device.pick-file("key"); }
+                }
+                if Device.vpn-form == 1 && root.ov-auth != 0: Field { label: @tr("Username"); text <=> root.ov-user; }
+                if Device.vpn-form == 1 && root.ov-auth != 0: Field { label: @tr("Password"); text <=> root.ov-pass; password: true; }
+
+                if Device.vpn-form == 2: Field { label: @tr("Address"); text <=> root.wg-address; placeholder: "10.0.0.2/24"; }
+                if Device.vpn-form == 2: Field {
+                    label: @tr("Private key");
+                    text <=> Device.wg-private-key;
+                    password: true;
+                    edited(k) => { Device.wg-public-of(k); }
+                }
+                if Device.vpn-form == 2: HorizontalLayout {
+                    padding-left: 20px;
+                    padding-right: 20px;
+                    spacing: 10px;
+                    height: 40px;
+                    PillButton {
+                        height: 32px;
+                        text: @tr("Generate keys");
+                        clicked => { Device.wg-generate-key(); }
+                    }
+                    // Só leitura, mas dá para selecionar e copiar.
+                    TextInput {
+                        horizontal-stretch: 1;
+                        read-only: true;
+                        vertical-alignment: center;
+                        text: Device.wg-public-key != "" ? @tr("Your public key: {}", Device.wg-public-key) : "";
+                        color: Theme.text-muted;
+                        font-family: Theme.mono;
+                        font-size: 12px;
+                    }
+                }
+                if Device.vpn-form == 2: Field { label: "DNS"; text <=> root.wg-dns; placeholder: "1.1.1.1"; }
+                if Device.vpn-form == 2: Field { label: @tr("Server public key"); text <=> root.wg-peer; }
+                if Device.vpn-form == 2: Field { label: @tr("Server"); text <=> root.wg-endpoint; placeholder: "vpn.example.com:51820"; }
+                if Device.vpn-form == 2: Field { label: @tr("Allowed IPs"); text <=> root.wg-allowed; placeholder: "0.0.0.0/0"; }
+
+                FormButtons {
+                    cancel => { Device.vpn-form = 0; }
+                    save => {
+                        Device.vpn-message = "";
+                        if (Device.vpn-form == 1) {
+                            Device.vpn-add-openvpn(root.vpn-name, root.ov-server, root.ov-port, root.ov-tcp, root.ov-auth,
+                                root.ov-ca, root.ov-cert, root.ov-key, root.ov-user, root.ov-pass);
+                        } else {
+                            Device.vpn-add-wireguard(root.vpn-name, root.wg-address, Device.wg-private-key, root.wg-dns,
+                                root.wg-peer, root.wg-endpoint, root.wg-allowed);
+                        }
+                    }
+                }
+            }
+        }
+        if Device.vpn-message != "": Text {
+            text: Device.vpn-message;
+            color: Theme.text;
+            font-family: Theme.sans;
+            font-size: 13.5px;
+            wrap: word-wrap;
         }
     }
     }

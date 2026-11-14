@@ -4,6 +4,7 @@
 //! crate liga a UI aos serviços do sistema:
 //! - [`clock`]: data/hora local em pt-BR;
 //! - [`device`]: rede, som, energia e ficha do sistema nas Configurações;
+//! - [`netconfig`]: IP fixo das conexões e VPN (OpenVPN, WireGuard);
 //! - [`bluetooth`]: ligar, procurar, parear e conectar aparelhos (BlueZ);
 //! - [`displays`]: monitores (resolução, escala, rotação) pelo `wlr-randr`;
 //! - [`system`]: uso de CPU e bateria;
@@ -31,6 +32,7 @@ pub mod displays;
 pub mod greeter;
 pub mod i18n;
 pub mod labwc;
+pub mod netconfig;
 pub mod recent;
 pub mod region;
 pub mod session;
@@ -85,6 +87,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     timers.extend(appearance::install(&ui, mode));
     timers.extend(device::install(&ui, mode));
     timers.extend(bluetooth::install(&ui, mode));
+    timers.extend(netconfig::install(&ui, mode));
     displays::install(&ui, mode);
     region::install(&ui, mode);
     sharing::install(&ui, mode);

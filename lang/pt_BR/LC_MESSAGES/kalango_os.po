@@ -799,3 +799,117 @@ msgstr "Procurando aparelhos..."
 
 msgid "No devices found. Put the device in pairing mode and search again."
 msgstr "Nenhum aparelho encontrado. Coloque o aparelho no modo de pareamento e procure de novo."
+
+msgid "No file chosen"
+msgstr "Nenhum arquivo escolhido"
+
+msgid "Choose..."
+msgstr "Escolher..."
+
+msgid "Save"
+msgstr "Salvar"
+
+msgid "CONNECTIONS"
+msgstr "CONEXÕES"
+
+msgid "Active"
+msgstr "Ativa"
+
+msgid "IP settings"
+msgstr "Configurar IP"
+
+msgid "IP settings: {}"
+msgstr "Configuração de IP: {}"
+
+msgid "Automatic (DHCP)"
+msgstr "Automático (DHCP)"
+
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Current address: {}"
+msgstr "Endereço atual: {}"
+
+msgid "The router assigns the address."
+msgstr "O roteador define o endereço."
+
+msgid "Address"
+msgstr "Endereço"
+
+msgid "Subnet mask"
+msgstr "Máscara de rede"
+
+msgid "or"
+msgstr "ou"
+
+msgid "Import file..."
+msgstr "Importar arquivo..."
+
+msgid "Add VPN"
+msgstr "Adicionar VPN"
+
+msgid "No VPN yet. Import an OpenVPN (.ovpn) or WireGuard (.conf) file, or add one by hand."
+msgstr "Nenhuma VPN ainda. Importe um arquivo do OpenVPN (.ovpn) ou do WireGuard (.conf), ou adicione à mão."
+
+msgid "Remove"
+msgstr "Remover"
+
+msgid "Sign in to {}"
+msgstr "Entrar em {}"
+
+msgid "Username"
+msgstr "Usuário"
+
+msgid "New VPN"
+msgstr "Nova VPN"
+
+msgid "Type"
+msgstr "Tipo"
+
+msgid "Name"
+msgstr "Nome"
+
+msgid "Work"
+msgstr "Trabalho"
+
+msgid "OpenVPN support is not installed (network-manager-openvpn)."
+msgstr "O suporte ao OpenVPN não está instalado (network-manager-openvpn)."
+
+msgid "Server"
+msgstr "Servidor"
+
+msgid "Port"
+msgstr "Porta"
+
+msgid "Protocol"
+msgstr "Protocolo"
+
+msgid "Authentication"
+msgstr "Autenticação"
+
+msgid "Certificates"
+msgstr "Certificados"
+
+msgid "Password and certificates"
+msgstr "Senha e certificados"
+
+msgid "CA certificate"
+msgstr "Certificado da CA"
+
+msgid "User certificate"
+msgstr "Certificado do usuário"
+
+msgid "Private key"
+msgstr "Chave privada"
+
+msgid "Generate keys"
+msgstr "Gerar chaves"
+
+msgid "Your public key: {}"
+msgstr "Sua chave pública: {}"
+
+msgid "Server public key"
+msgstr "Chave pública do servidor"
+
+msgid "Allowed IPs"
+msgstr "IPs permitidos"

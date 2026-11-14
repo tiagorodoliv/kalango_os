@@ -31,9 +31,10 @@ impl Platform for SnapshotPlatform {
     }
 }
 
-/// Renderiza a janela no estado atual e grava em `path`.
+/// Renderiza a janela no estado atual (no tamanho atual dela) e grava em `path`.
 fn save(window: &MinimalSoftwareWindow, path: &Path) {
-    let (w, h) = ((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32);
+    let size = window.size();
+    let (w, h) = (size.width.max((WIDTH as f32 * SCALE) as u32), size.height.max((HEIGHT as f32 * SCALE) as u32));
     let mut buffer = vec![Rgb8Pixel::default(); (w * h) as usize];
 
     // Avança timers/animações e força o redesenho completo.
@@ -130,6 +131,45 @@ fn main() {
     save(&window, &out.join("config_estreita_barra.png"));
     ui.set_settings_page(2);
     window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
+
+    // Rede: conexões, IP fixo e VPN (com o editor de IP e o formulário do
+    // OpenVPN abertos). Janela alta para caber tudo.
+    {
+        let d = ui.global::<kalango_os::Device>();
+        d.set_network_available(true);
+        d.set_network_status("Conectado ao Wi-Fi Casa".into());
+        d.set_wifi_enabled(false);
+        let conns = vec![
+            kalango_os::NetConnection { name: "Casa".into(), kind: "wifi".into(), active: true },
+            kalango_os::NetConnection { name: "Wired connection 1".into(), kind: "ethernet".into(), active: false },
+        ];
+        d.set_connections(slint::ModelRc::new(slint::VecModel::from(conns)));
+        let vpns = vec![
+            kalango_os::VpnConnection { name: "Trabalho".into(), kind: "OpenVPN".into(), active: true },
+            kalango_os::VpnConnection { name: "casa-wg".into(), kind: "WireGuard".into(), active: false },
+        ];
+        d.set_vpns(slint::ModelRc::new(slint::VecModel::from(vpns)));
+        d.set_vpn_available(true);
+        d.set_openvpn_available(true);
+        d.set_ip_for("Casa".into());
+        d.set_ip_manual(true);
+        d.set_ip_address("192.168.1.50".into());
+        d.set_ip_mask("255.255.255.0".into());
+        d.set_ip_gateway("192.168.1.1".into());
+        d.set_ip_dns("8.8.8.8, 1.1.1.1".into());
+        d.set_vpn_form(1);
+        window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (1500.0 * SCALE) as u32));
+        ui.set_settings_page(0);
+        save(&window, &out.join("config_rede_vpn.png"));
+        d.set_vpn_form(2);
+        d.set_ip_for("".into());
+        d.set_wg_public_key("xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=".into());
+        save(&window, &out.join("config_rede_wireguard.png"));
+        d.set_vpn_form(0);
+        d.set_network_available(false);
+        ui.set_settings_page(2);
+        window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
+    }
 
     // Variações de tema para conferir a troca ao vivo.
     let theme = ui.global::<Theme>();

@@ -59,6 +59,22 @@ export struct SharedFolder {
     shared: bool,
 }
 
+/// Uma conexão de rede salva (cabo ou Wi-Fi), para o IP fixo.
+export struct NetConnection {
+    name: string,
+    /// "wifi" ou "ethernet".
+    kind: string,
+    active: bool,
+}
+
+/// Uma VPN salva no NetworkManager.
+export struct VpnConnection {
+    name: string,
+    /// "OpenVPN" ou "WireGuard".
+    kind: string,
+    active: bool,
+}
+
 /// Um aparelho Bluetooth (`src/bluetooth.rs`).
 export struct BtDevice {
     /// Endereço ("AA:BB:CC:DD:EE:FF").
@@ -105,6 +121,62 @@ export global Device {
     in property <bool> network-busy: false;
     /// Resultado da última ação ("Conectado a Casa", "Senha incorreta"...).
     in-out property <string> network-message: "";
+
+    // --- IP fixo e VPN (`src/netconfig.rs`) ---
+    /// Conexões salvas de cabo e Wi-Fi.
+    in property <[NetConnection]> connections: [];
+    /// Conexão com o editor de IP aberto ("" = nenhum).
+    in-out property <string> ip-for: "";
+    in-out property <bool> ip-manual: false;
+    in-out property <string> ip-address: "";
+    /// Máscara ("255.255.255.0") ou prefixo ("24").
+    in-out property <string> ip-mask: "";
+    in-out property <string> ip-gateway: "";
+    /// Servidores DNS separados por vírgula.
+    in-out property <string> ip-dns: "";
+    /// Endereço em uso agora ("192.168.1.175/24").
+    in property <string> ip-current: "";
+    in-out property <string> ip-message: "";
+    /// Abre o editor de IP de uma conexão (o Rust lê os valores atuais).
+    callback ip-edit(string /* conexão */);
+    /// Salva: conexão, manual, endereço, máscara, gateway, DNS.
+    callback ip-apply(string, bool, string, string, string, string);
+
+    /// Há NetworkManager (sessão real) para as VPNs.
+    in property <bool> vpn-available: false;
+    /// O plugin do OpenVPN está instalado.
+    in property <bool> openvpn-available: false;
+    in property <[VpnConnection]> vpns: [];
+    /// VPN ligando/desligando ("" = nenhuma).
+    in property <string> vpn-busy: "";
+    in-out property <string> vpn-message: "";
+    /// Formulário aberto: 0 = nenhum, 1 = OpenVPN, 2 = WireGuard.
+    in-out property <int> vpn-form: 0;
+    /// VPN importada que pede usuário e senha ("" = nenhuma).
+    in-out property <string> vpn-login-for: "";
+    callback vpn-set(string /* nome */, bool /* ligar */);
+    callback vpn-remove(string);
+    /// Escolhe um arquivo .ovpn ou .conf (WireGuard) e importa.
+    callback vpn-import();
+    callback vpn-set-login(string /* nome */, string /* usuário */, string /* senha */);
+    /// Nome, servidor, porta, TCP, autenticação (0 certificados, 1 senha,
+    /// 2 senha + certificados), CA, certificado, chave, usuário, senha.
+    callback vpn-add-openvpn(string, string, string, bool, int, string, string, string, string, string);
+    /// Nome, endereço, chave privada, DNS, chave pública do servidor,
+    /// servidor:porta, IPs permitidos.
+    callback vpn-add-wireguard(string, string, string, string, string, string, string);
+    /// Chaves do WireGuard do formulário (geradas ou digitadas).
+    in-out property <string> wg-private-key: "";
+    in-out property <string> wg-public-key: "";
+    callback wg-generate-key();
+    /// Calcula a chave pública de uma chave privada digitada.
+    callback wg-public-of(string);
+    /// Escolher arquivo (zenity): o caminho chega em `picked-path`, com o
+    /// propósito pedido ("ca", "cert", "key") e `picked-serial` + 1.
+    callback pick-file(string);
+    in property <string> picked-purpose: "";
+    in property <string> picked-path: "";
+    in property <int> picked-serial: 0;
 
     /// Liga ou desliga o Wi-Fi.
     callback set-wifi(bool);

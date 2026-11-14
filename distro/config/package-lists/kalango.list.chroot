@@ -67,6 +67,8 @@ network-manager
 network-manager-openvpn
 wireguard-tools
 zenity
+# gdbus: cria a conexão WireGuard pelo D-Bus (o nmcli import já a ligaria)
+libglib2.0-bin
 # Bluetooth (Configurações → Bluetooth e o painel rápido); o som dos fones
 # vem do libspa-0.2-bluetooth (PipeWire)
 bluez
