@@ -90,6 +90,8 @@ export component WifiList inherits Rectangle {
     /// Posição da rede escolhida na lista (-1 = nenhuma, ou ela sumiu).
     property <int> sel: root.selected == "" ? -1 : Device.network-index(Device.networks, root.selected);
     property <bool> editing: root.sel >= 0;
+    /// Senha visível (botão do olho).
+    property <bool> show-password: false;
 
     height: max(1, Device.networks.length) * root.row-h + (root.editing ? root.edit-h : 0);
     animate height { duration: Theme.anim; }
@@ -148,6 +150,7 @@ export component WifiList inherits Rectangle {
                         root.selected = "";
                     } else {
                         root.selected = net.ssid;
+                        root.show-password = false;
                         password.text = "";
                         password.focus();
                     }
@@ -217,14 +220,35 @@ export component WifiList inherits Rectangle {
                 }
                 password := TextInput {
                     x: 12px;
-                    width: parent.width - 24px;
+                    width: parent.width - 12px - 34px;
                     height: parent.height;
                     vertical-alignment: center;
-                    input-type: InputType.password;
+                    input-type: root.show-password ? InputType.text : InputType.password;
                     color: Theme.text;
                     font-family: Theme.sans;
                     font-size: root.font-size - 1px;
                     accepted => { root.connect(); }
+                }
+                // Mostrar/esconder a senha.
+                Rectangle {
+                    x: parent.width - 32px;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 6px;
+                    background: eye-touch.has-hover ? Theme.tile-hover : transparent;
+                    Image {
+                        source: root.show-password ? Icons.eye-off : Icons.eye;
+                        colorize: root.show-password ? Theme.accent : Theme.text-muted;
+                        width: 16px;
+                        height: 16px;
+                    }
+                    eye-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            root.show-password = !root.show-password;
+                            password.focus();
+                        }
+                    }
                 }
             }
             SmallButton {

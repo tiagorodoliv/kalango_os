@@ -26,6 +26,8 @@ use crate::{AppWindow, Device, InfoItem, Mode, WifiNetwork};
 
 /// Intervalo entre as leituras de rede, som e bateria (Configurações e painel rápido).
 const INTERVAL: Duration = Duration::from_secs(3);
+/// Quanto o painel rápido espera a primeira leitura antes de aparecer.
+const FIRST_READ_WAIT: Duration = Duration::from_millis(600);
 /// Quantas redes Wi-Fi mostrar.
 const MAX_NETWORKS: usize = 8;
 /// Depois de mexer no volume, por quanto tempo a leitura periódica não
@@ -735,7 +737,22 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     let weak = ui.as_weak();
     // Nas Configurações, procura redes de verdade ao abrir (a lista guardada
     // pode estar velha); o painel rápido só precisa do estado atual.
-    refresh(weak.clone(), shared.clone(), mode == Mode::Settings);
+    if mode == Mode::QuickSettings {
+        // O painel lê o estado antes de a janela aparecer (~0,1 s): sem isso
+        // ele abria só com o brilho (lido na hora) e o botão "Rede" no lugar
+        // do Wi-Fi, e o resto surgia depois. Se o NetworkManager travar, não
+        // espera mais que isso e segue como antes.
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = tx.send(read_snapshot(false));
+        });
+        match rx.recv_timeout(FIRST_READ_WAIT) {
+            Ok(snap) => apply(ui, snap, false, false),
+            Err(_) => refresh(weak.clone(), shared.clone(), false),
+        }
+    } else {
+        refresh(weak.clone(), shared.clone(), mode == Mode::Settings);
+    }
     let timer = Timer::default();
     timer.start(TimerMode::Repeated, INTERVAL, move || refresh(weak.clone(), shared.clone(), false));
     Some(timer)
