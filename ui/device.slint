@@ -49,6 +49,15 @@ export struct DisplayOutput {
     rate: int,
     scale: int,
     rotation: int,
+    /// Posição e tamanho no arranjo (px lógicos), para o desenho.
+    x: int,
+    y: int,
+    width-px: int,
+    height-px: int,
+    /// Número do monitor (1, 2... da esquerda para a direita; 0 = desligado).
+    number: int,
+    /// Monitor principal (barra e dock).
+    primary: bool,
 }
 
 /// Uma pasta que pode ser compartilhada (Configurações → Compartilhamento).
@@ -269,6 +278,22 @@ export global Device {
     in property <int> display-countdown: 0;
     /// Resultado da última ação ("Configuração do monitor salva.").
     in property <string> display-message: "";
+    /// Área do desenho do arranjo (px lógicos): fica parada enquanto se
+    /// arrasta, com folga em volta para mover os monitores.
+    in property <int> display-bounds-x: 0;
+    in property <int> display-bounds-y: 0;
+    in property <int> display-bounds-w: 1;
+    in property <int> display-bounds-h: 1;
+    /// Os monitores foram arrastados e a posição ainda não foi aplicada.
+    in property <bool> display-arranged: false;
+    /// Monitor `índice` solto em (x, y) no arranjo (o Rust encaixa nas bordas).
+    callback move-display(int, int, int);
+    /// Aplica as posições arrastadas (com a confirmação de 15 s).
+    callback apply-arrangement();
+    /// Mostra o número de cada monitor na tela dele por 3 s.
+    callback identify-displays();
+    /// Torna o monitor `índice` o principal (barra e dock).
+    callback set-primary-display(int);
     /// Aplica no monitor `índice`: resolução, taxa, escala, rotação e ligado.
     callback apply-display(int, int, int, int, int, bool);
     /// Confirma a mudança aplicada (grava em monitores.conf).

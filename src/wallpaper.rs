@@ -94,7 +94,8 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             .set_wallpaper_thumbs(ModelRc::from(Rc::new(VecModel::from(thumbs))));
     }
     match mode {
-        Mode::Desktop => {
+        // A área de trabalho e o fundo dos monitores extras.
+        Mode::Desktop | Mode::Fundo => {
             // Confere a escolha e a largura da tela de tempos em tempos: muda
             // quando o usuário escolhe outro nas Configurações ou troca a
             // resolução do monitor.

@@ -193,6 +193,44 @@ fn main() {
         window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
     }
 
+    // Monitores: arranjo com dois monitores (notebook + monitor largo).
+    {
+        let d = ui.global::<kalango_os::Device>();
+        let empty_res: Vec<kalango_os::DisplayResolution> = Vec::new();
+        let empty_lbl: Vec<slint::SharedString> = Vec::new();
+        let mk = |name: &str, label: &str, x: i32, w: i32, h: i32, n: i32, primary: bool| kalango_os::DisplayOutput {
+            name: name.into(),
+            label: label.into(),
+            enabled: true,
+            resolutions: slint::ModelRc::new(slint::VecModel::from(empty_res.clone())),
+            resolution_labels: slint::ModelRc::new(slint::VecModel::from(empty_lbl.clone())),
+            resolution: 0,
+            rate: 0,
+            scale: 2,
+            rotation: 0,
+            x,
+            y: 0,
+            width_px: w,
+            height_px: h,
+            number: n,
+            primary,
+        };
+        let outs = vec![
+            mk("eDP-1", "BOE 0x07E2 (eDP-1)", 0, 1366, 768, 1, true),
+            mk("HDMI-A-1", "LG Electronics 25UM58G (HDMI-A-1)", 1366, 2560, 1080, 2, false),
+        ];
+        d.set_displays(slint::ModelRc::new(slint::VecModel::from(outs)));
+        d.set_displays_available(true);
+        d.set_display_bounds_x(-1280);
+        d.set_display_bounds_y(-540);
+        d.set_display_bounds_w(3926 + 2560);
+        d.set_display_bounds_h(1080 + 1080);
+        d.set_display_arranged(true);
+        ui.set_settings_page(4);
+        save(&window, &out.join("config_monitores.png"));
+        ui.set_settings_page(2);
+    }
+
     // Variações de tema para conferir a troca ao vivo.
     let theme = ui.global::<Theme>();
     theme.set_accent_index(1);

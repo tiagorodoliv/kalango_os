@@ -113,6 +113,14 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   menu e painel com `ToggleOmnipresent`. Encaixe: borda = metade/maximizar com prévia; arrastar com modificador =
   regiões (metades e quartos); menu `kalango-layouts` (botão direito no maximizar ou Super+Z) no
   `~/.config/labwc/menu.xml` que o shell grava no idioma (`labwc::sync_layouts_menu`); o labwc lê um só menu.xml.
+- **Vários monitores (2026-11-14):** `src/outputs.rs` (área de trabalho, a cada 2 s pelo `wlr-randr`): barra e dock no
+  monitor **principal** (`principal=` no `monitores.conf`; sem escolha, o primeiro da esquerda), papel de parede nos
+  outros com `kalango-shell --fundo=<saída> --numero=<n>` (app_id `kalango-fundo-<saída>`, uma instância por saída).
+  **Para pôr uma janela num monitor use `MoveToOutput output=`** antes do `ToggleFullscreen` (com `MoveTo` o
+  fullscreen ia para o monitor em foco). As margens ganham `output=` com mais de um monitor. Mudou o principal → a
+  área de trabalho abre outra dela e sai. Configurações → Monitores: desenho do arranjo (arrastar com encaixe nas
+  bordas, `displays::place`), Identificar (arquivo `$XDG_RUNTIME_DIR/kalango-identificar` → número por 3 s em cada
+  monitor), Tornar principal, Aplicar posição (`--pos`, confirmação de 15 s, `posicao=x,y` no monitores.conf).
 - **Dock em janela própria (2026-11-14):** com "sempre visível" e placa de vídeo de verdade
   (`dock::hardware_gl`: i915/xe/amdgpu/radeon/nouveau/nvidia), a área de trabalho abre
   `kalango-shell --dock --faixa=LxA` (app_id `kalango-dock`): sempre por cima das janelas, em todas as áreas, sem

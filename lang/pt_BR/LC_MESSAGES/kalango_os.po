@@ -922,3 +922,15 @@ msgstr "Transparência"
 
 msgid "How much of what is behind shows through the dock"
 msgstr "Quanto do que está atrás aparece através da dock"
+
+msgid "Primary"
+msgstr "Principal"
+
+msgid "Identify"
+msgstr "Identificar"
+
+msgid "Make primary"
+msgstr "Tornar principal"
+
+msgid "Apply position"
+msgstr "Aplicar posição"

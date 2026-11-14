@@ -124,8 +124,12 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             thickness: theme.get_dock_thickness(),
             count: ui.global::<crate::Apps>().get_dock().row_count(),
         };
-        let wanted = (theme.get_dock_always_visible() && screen.0 > 0 && failures < 3)
-            .then(|| geometry(screen, spec, theme.get_bar_height() as u32));
+        // No monitor principal (com vários monitores, a origem dele).
+        let (ox, oy) = crate::outputs::primary_origin();
+        let wanted = (theme.get_dock_always_visible() && screen.0 > 0 && failures < 3).then(|| {
+            let g = geometry(screen, spec, theme.get_bar_height() as u32);
+            crate::labwc::DockGeometry { x: g.x + ox, y: g.y + oy, ..g }
+        });
 
         // A janela caiu: abre de novo (até 3 vezes; depois desiste e a dock
         // volta para a área de trabalho).

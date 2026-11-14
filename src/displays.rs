@@ -65,6 +65,9 @@ pub struct Output {
     pub scale: f64,
     /// "normal", "90", "180", "270" (ou "flipped-*").
     pub transform: String,
+    /// Posição no arranjo dos monitores (px lógicos).
+    pub x: i32,
+    pub y: i32,
 }
 
 /// Uma resolução com as taxas disponíveis (da maior para a menor).
@@ -118,6 +121,12 @@ pub fn parse(text: &str) -> Vec<Output> {
             "Modes" => in_modes = true,
             "Scale" => out.scale = value.parse().unwrap_or(1.0),
             "Transform" => out.transform = value.to_string(),
+            "Position" => {
+                if let Some((x, y)) = value.split_once(',') {
+                    out.x = x.trim().parse().unwrap_or(0);
+                    out.y = y.trim().parse().unwrap_or(0);
+                }
+            }
             _ => {}
         }
     }
@@ -199,7 +208,19 @@ impl Output {
             mode,
             scale: self.scale,
             transform: self.transform.clone(),
+            position: Some((self.x, self.y)),
         }
+    }
+
+    /// Tamanho na tela, em px lógicos (modo atual, escala e rotação).
+    pub fn logical_size(&self) -> (u32, u32) {
+        // Desligado não tem modo atual: usa o preferido.
+        let Some(m) = self.modes.iter().find(|m| m.current).or_else(|| self.modes.iter().find(|m| m.preferred)) else {
+            return (0, 0);
+        };
+        let scale = if self.scale > 0.0 { self.scale } else { 1.0 };
+        let (w, h) = ((m.width as f64 / scale).round() as u32, (m.height as f64 / scale).round() as u32);
+        if self.transform.ends_with("90") || self.transform.ends_with("270") { (h, w) } else { (w, h) }
     }
 }
 
@@ -212,6 +233,8 @@ pub struct Setting {
     pub mode: Option<VideoMode>,
     pub scale: f64,
     pub transform: String,
+    /// Posição no arranjo (`None`: mantém a atual).
+    pub position: Option<(i32, i32)>,
 }
 
 impl Setting {
@@ -231,6 +254,10 @@ impl Setting {
         args.push(format_scale(self.scale));
         args.push("--transform".into());
         args.push(self.transform.clone());
+        if let Some((x, y)) = self.position {
+            args.push("--pos".into());
+            args.push(format!("{x},{y}"));
+        }
         args
     }
 
@@ -241,8 +268,9 @@ impl Setting {
             .as_ref()
             .map(|m| format!(" modo={}x{}@{}", m.width, m.height, m.refresh))
             .unwrap_or_default();
+        let position = self.position.map(|(x, y)| format!(" posicao={x},{y}")).unwrap_or_default();
         format!(
-            "{}{mode} escala={} rotacao={} ativo={}",
+            "{}{mode} escala={} rotacao={}{position} ativo={}",
             self.output,
             format_scale(self.scale),
             self.transform,
@@ -257,12 +285,18 @@ impl Setting {
             return None;
         }
         let mut parts = line.split_whitespace();
+        let output = parts.next()?;
+        // "principal=eDP-1" não é um monitor.
+        if output.contains('=') {
+            return None;
+        }
         let mut setting = Setting {
-            output: parts.next()?.to_string(),
+            output: output.to_string(),
             enabled: true,
             mode: None,
             scale: 1.0,
             transform: "normal".into(),
+            position: None,
         };
         for part in parts {
             let Some((key, value)) = part.split_once('=') else { continue };
@@ -281,10 +315,131 @@ impl Setting {
                 "escala" => setting.scale = value.parse().ok().filter(|s| *s > 0.0)?,
                 "rotacao" if TRANSFORMS.contains(&value) => setting.transform = value.into(),
                 "ativo" => setting.enabled = value != "nao",
+                "posicao" => {
+                    let (x, y) = value.split_once(',')?;
+                    setting.position = Some((x.parse().ok()?, y.parse().ok()?));
+                }
                 _ => {}
             }
         }
         Some(setting)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Arranjo dos monitores (posição, número, principal)
+// ---------------------------------------------------------------------------
+
+/// Um retângulo do arranjo, em px lógicos.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Rect {
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+}
+
+impl Rect {
+    fn overlaps(&self, o: &Rect) -> bool {
+        self.x < o.x + o.w && o.x < self.x + self.w && self.y < o.y + o.h && o.y < self.y + self.h
+    }
+}
+
+impl Output {
+    /// Retângulo no arranjo.
+    pub fn rect(&self) -> Rect {
+        let (w, h) = self.logical_size();
+        Rect { x: self.x, y: self.y, w: w as i32, h: h as i32 }
+    }
+}
+
+/// Ordem dos monitores ligados para numerar (1, 2...): da esquerda para a
+/// direita, de cima para baixo. Devolve os índices em `outputs`.
+pub fn numbering(outputs: &[Output]) -> Vec<usize> {
+    let mut idx: Vec<usize> = (0..outputs.len()).filter(|&i| outputs[i].enabled).collect();
+    idx.sort_by_key(|&i| (outputs[i].x, outputs[i].y));
+    idx
+}
+
+/// Monitor escolhido como principal no `monitores.conf` (`principal=eDP-1`).
+pub fn configured_primary(config: &str) -> Option<String> {
+    config.lines().find_map(|l| l.trim().strip_prefix("principal=").map(|n| n.trim().to_string()))
+}
+
+/// Monitor principal (barra e dock): o escolhido, se estiver ligado; senão o
+/// primeiro da numeração.
+pub fn primary<'a>(outputs: &'a [Output], config: &str) -> Option<&'a Output> {
+    let chosen = configured_primary(config);
+    outputs
+        .iter()
+        .find(|o| o.enabled && Some(&o.name) == chosen.as_ref())
+        .or_else(|| numbering(outputs).first().map(|&i| &outputs[i]))
+}
+
+/// `monitores.conf` com outro monitor principal.
+pub fn set_primary_in_config(config: &str, name: &str) -> String {
+    let mut lines: Vec<&str> = config.lines().filter(|l| !l.trim().starts_with("principal=")).collect();
+    if lines.is_empty() {
+        lines.push("# Monitores do Kalango OS (gravado pelas Configurações).");
+    }
+    let mut text = lines.join("\n");
+    text.push_str(&format!("\nprincipal={name}\n"));
+    text
+}
+
+/// Posição de um monitor arrastado no desenho do arranjo: gruda nas bordas
+/// dos outros (até `snap` px de distância) e não fica por cima de nenhum
+/// (empurra para o lado livre mais perto).
+pub fn place(others: &[Rect], moved: Rect, snap: i32) -> (i32, i32) {
+    let mut r = moved;
+    // Encostar: bordas verticais e horizontais dos outros.
+    let near = |a: i32, b: i32| (a - b).abs() <= snap;
+    let mut best_x: Option<(i32, i32)> = None;
+    let mut best_y: Option<(i32, i32)> = None;
+    for o in others {
+        for cand in [o.x + o.w, o.x - r.w, o.x, o.x + o.w - r.w] {
+            let d = (cand - r.x).abs();
+            if near(cand, r.x) && best_x.is_none_or(|(_, bd)| d < bd) {
+                best_x = Some((cand, d));
+            }
+        }
+        for cand in [o.y + o.h, o.y - r.h, o.y, o.y + o.h - r.h] {
+            let d = (cand - r.y).abs();
+            if near(cand, r.y) && best_y.is_none_or(|(_, bd)| d < bd) {
+                best_y = Some((cand, d));
+            }
+        }
+    }
+    if let Some((x, _)) = best_x {
+        r.x = x;
+    }
+    if let Some((y, _)) = best_y {
+        r.y = y;
+    }
+    // Sem sobrepor: empurra para fora do monitor sobreposto, pelo lado com
+    // o menor deslocamento (algumas voltas para resolver encadeamentos).
+    for _ in 0..4 {
+        let Some(o) = others.iter().find(|o| r.overlaps(o)) else { break };
+        let moves = [
+            (o.x + o.w - r.x, 0),
+            (o.x - r.w - r.x, 0),
+            (0, o.y + o.h - r.y),
+            (0, o.y - r.h - r.y),
+        ];
+        let (dx, dy) = moves.into_iter().min_by_key(|(dx, dy)| dx.abs() + dy.abs()).unwrap_or((0, 0));
+        r.x += dx;
+        r.y += dy;
+    }
+    (r.x, r.y)
+}
+
+/// Desloca o arranjo para começar em (0, 0) (o labwc e os apps esperam).
+pub fn normalize(positions: &mut [(i32, i32)]) {
+    let min_x = positions.iter().map(|p| p.0).min().unwrap_or(0);
+    let min_y = positions.iter().map(|p| p.1).min().unwrap_or(0);
+    for p in positions.iter_mut() {
+        p.0 -= min_x;
+        p.1 -= min_y;
     }
 }
 
@@ -309,7 +464,7 @@ pub fn scale_fits(width: u32, height: u32, rotation: usize, scale: f64) -> bool 
 }
 
 /// Caminho do arquivo dos monitores (`~/.config/kalango/monitores.conf`).
-fn config_path() -> Option<PathBuf> {
+pub fn config_path() -> Option<PathBuf> {
     let base = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
@@ -368,10 +523,13 @@ fn apply_saved() {
 }
 
 /// Converte as saídas para o modelo da UI.
-fn to_ui(outputs: &[Output]) -> Vec<DisplayOutput> {
+fn to_ui(outputs: &[Output], config: &str) -> Vec<DisplayOutput> {
+    let order = numbering(outputs);
+    let primary_name = primary(outputs, config).map(|o| o.name.clone());
     outputs
         .iter()
-        .map(|out| {
+        .enumerate()
+        .map(|(index, out)| {
             let resolutions: Vec<DisplayResolution> = out
                 .resolutions()
                 .iter()
@@ -408,6 +566,12 @@ fn to_ui(outputs: &[Output]) -> Vec<DisplayOutput> {
                 rate: rate as i32,
                 scale: out.scale_index() as i32,
                 rotation: out.rotation_index() as i32,
+                x: out.x,
+                y: out.y,
+                width_px: out.rect().w,
+                height_px: out.rect().h,
+                number: order.iter().position(|&i| i == index).map_or(0, |p| p as i32 + 1),
+                primary: primary_name.as_deref() == Some(out.name.as_str()),
             }
         })
         .collect()
@@ -418,11 +582,46 @@ fn to_ui(outputs: &[Output]) -> Vec<DisplayOutput> {
 #[derive(Default)]
 struct State {
     outputs: Vec<Output>,
-    /// Como estava antes da última mudança (para voltar).
-    previous: Option<Setting>,
+    /// Como estava antes da última mudança (para voltar), um por monitor.
+    previous: Vec<Setting>,
     /// O que foi aplicado e espera "Manter".
-    pending: Option<Setting>,
+    pending: Vec<Setting>,
     countdown: Option<Timer>,
+    /// Posições arrastadas ainda não aplicadas.
+    arranged: bool,
+}
+
+/// Área do desenho: os monitores ligados com folga de meio monitor em volta.
+fn bounds(outputs: &[Output]) -> (i32, i32, i32, i32) {
+    let rects: Vec<Rect> = outputs.iter().filter(|o| o.enabled).map(Output::rect).collect();
+    if rects.is_empty() {
+        return (0, 0, 1, 1);
+    }
+    let x0 = rects.iter().map(|r| r.x).min().unwrap_or(0);
+    let y0 = rects.iter().map(|r| r.y).min().unwrap_or(0);
+    let x1 = rects.iter().map(|r| r.x + r.w).max().unwrap_or(1);
+    let y1 = rects.iter().map(|r| r.y + r.h).max().unwrap_or(1);
+    let pad_x = rects.iter().map(|r| r.w).max().unwrap_or(0) / 2;
+    let pad_y = rects.iter().map(|r| r.h).max().unwrap_or(0) / 2;
+    (x0 - pad_x, y0 - pad_y, x1 - x0 + 2 * pad_x, y1 - y0 + 2 * pad_y)
+}
+
+fn read_config() -> String {
+    config_path().and_then(|p| fs::read_to_string(p).ok()).unwrap_or_default()
+}
+
+/// Mostra os monitores; `keep_bounds` mantém a área do desenho (arrastando).
+fn show_list(ui: &AppWindow, state: &mut State, keep_bounds: bool) {
+    let device = ui.global::<Device>();
+    device.set_displays(ModelRc::from(Rc::new(VecModel::from(to_ui(&state.outputs, &read_config())))));
+    if !keep_bounds {
+        let (x, y, w, h) = bounds(&state.outputs);
+        device.set_display_bounds_x(x);
+        device.set_display_bounds_y(y);
+        device.set_display_bounds_w(w.max(1));
+        device.set_display_bounds_h(h.max(1));
+    }
+    device.set_display_arranged(state.arranged);
 }
 
 /// Mostra as saídas na UI.
@@ -430,12 +629,66 @@ fn show(ui: &AppWindow, state: &mut State, outputs: Option<Vec<Output>>) {
     let device = ui.global::<Device>();
     match outputs {
         Some(list) if !list.is_empty() => {
-            device.set_displays(ModelRc::from(Rc::new(VecModel::from(to_ui(&list)))));
-            device.set_displays_available(true);
             state.outputs = list;
+            state.arranged = false;
+            device.set_displays_available(true);
+            show_list(ui, state, false);
         }
         _ => device.set_displays_available(false),
     }
+}
+
+/// Aplica configurações (uma por monitor) e começa a contagem de 15 s para
+/// confirmar; sem "Manter", tudo volta sozinho.
+fn apply_with_confirm(ui: &AppWindow, st: &Rc<RefCell<State>>, settings: Vec<Setting>) -> bool {
+    let device = ui.global::<Device>();
+    let mut s = st.borrow_mut();
+    let previous: Vec<Setting> = settings
+        .iter()
+        .filter_map(|n| s.outputs.iter().find(|o| o.name == n.output).map(Output::current_setting))
+        .collect();
+    for setting in &settings {
+        if wlr_randr(&setting.args()).is_none() {
+            for p in &previous {
+                let _ = wlr_randr(&p.args());
+            }
+            device.set_display_message(
+                tr("The display did not accept this configuration.", "O monitor não aceitou essa configuração.").into(),
+            );
+            return false;
+        }
+    }
+    s.previous = previous;
+    s.pending = settings;
+    s.arranged = false;
+    device.set_display_message(SharedString::new());
+    device.set_display_countdown(CONFIRM_SECONDS);
+    device.set_display_confirm(true);
+
+    let timer = Timer::default();
+    let weak = ui.as_weak();
+    let st2 = st.clone();
+    timer.start(TimerMode::Repeated, Duration::from_secs(1), move || {
+        let Some(ui) = weak.upgrade() else { return };
+        let device = ui.global::<Device>();
+        let left = device.get_display_countdown() - 1;
+        device.set_display_countdown(left.max(0));
+        if left <= 0 {
+            let weak = ui.as_weak();
+            let st3 = st2.clone();
+            slint::Timer::single_shot(Duration::ZERO, move || {
+                if let Some(ui) = weak.upgrade() {
+                    finish(&ui, &st3, false);
+                }
+            });
+        }
+    });
+    s.countdown = Some(timer);
+    if let Some(outputs) = read_outputs() {
+        s.outputs = outputs;
+    }
+    show_list(ui, &mut s, false);
+    true
 }
 
 /// Termina a confirmação: guarda a mudança (`keep`) ou volta ao que estava.
@@ -444,21 +697,24 @@ fn finish(ui: &AppWindow, state: &Rc<RefCell<State>>, keep: bool) {
     st.countdown = None;
     let device = ui.global::<Device>();
     device.set_display_confirm(false);
-    let pending = st.pending.take();
-    let previous = st.previous.take();
+    let pending = std::mem::take(&mut st.pending);
+    let previous = std::mem::take(&mut st.previous);
     if keep {
-        if let (Some(setting), Some(path)) = (pending, config_path()) {
-            let text = fs::read_to_string(&path).unwrap_or_default();
+        if let Some(path) = config_path() {
+            let mut text = fs::read_to_string(&path).unwrap_or_default();
+            for setting in &pending {
+                text = merge_config(&text, setting);
+            }
             if let Some(dir) = path.parent() {
                 let _ = fs::create_dir_all(dir);
             }
-            match fs::write(&path, merge_config(&text, &setting)) {
+            match fs::write(&path, text) {
                 Ok(()) => device.set_display_message(tr("Display configuration saved.", "Configuração do monitor salva.").into()),
                 Err(err) => device.set_display_message(format!("{}: {err}", tr("Could not save", "Não foi possível salvar")).into()),
             }
         }
     } else {
-        if let Some(setting) = previous {
+        for setting in &previous {
             let _ = wlr_randr(&setting.args());
         }
         device.set_display_message(
@@ -469,8 +725,6 @@ fn finish(ui: &AppWindow, state: &Rc<RefCell<State>>, keep: bool) {
     show(ui, &mut st, outputs);
 }
 
-/// Liga a página Monitores (processo das Configurações) e reaplica o
-/// `monitores.conf` no início da sessão (área de trabalho).
 pub fn install(ui: &AppWindow, mode: Mode) {
     let native = crate::session::is_native();
     if native && mode == Mode::Desktop {
@@ -490,8 +744,12 @@ pub fn install(ui: &AppWindow, mode: Mode) {
     device.on_apply_display(move |index, res, rate, scale, rotation, enabled| {
         let Some(ui) = weak.upgrade() else { return };
         let device = ui.global::<Device>();
-        let mut s = st.borrow_mut();
-        let Some(out) = s.outputs.get(index as usize).cloned() else { return };
+        let (out, others_on) = {
+            let s = st.borrow();
+            let Some(out) = s.outputs.get(index as usize).cloned() else { return };
+            let others_on = s.outputs.iter().any(|o| o.name != out.name && o.enabled);
+            (out, others_on)
+        };
         let mode = out
             .resolutions()
             .get(res as usize)
@@ -502,54 +760,102 @@ pub fn install(ui: &AppWindow, mode: Mode) {
             mode,
             scale: SCALES.get(scale as usize).copied().unwrap_or(1.0),
             transform: TRANSFORMS.get(rotation as usize).unwrap_or(&"normal").to_string(),
+            position: Some((out.x, out.y)),
         };
-        // Nunca desliga a única saída ligada (a tela ficaria preta).
-        let others_on = s.outputs.iter().any(|o| o.name != out.name && o.enabled);
         if !enabled && !others_on {
-            device.set_display_message("Pelo menos um monitor precisa ficar ligado.".into());
-            return;
-        }
-        if wlr_randr(&setting.args()).is_none() {
             device.set_display_message(
-                tr("The display did not accept this configuration.", "O monitor não aceitou essa configuração.").into(),
+                tr("At least one display has to stay on.", "Pelo menos um monitor precisa ficar ligado.").into(),
             );
             return;
         }
-        s.previous = Some(out.current_setting());
-        s.pending = Some(setting);
-        device.set_display_message(SharedString::new());
-        device.set_display_countdown(CONFIRM_SECONDS);
-        device.set_display_confirm(true);
-
-        // Contagem regressiva: chegando a zero, volta ao que estava.
-        let timer = Timer::default();
-        let weak = ui.as_weak();
-        let st2 = st.clone();
-        timer.start(TimerMode::Repeated, Duration::from_secs(1), move || {
-            let Some(ui) = weak.upgrade() else { return };
-            let device = ui.global::<Device>();
-            let left = device.get_display_countdown() - 1;
-            device.set_display_countdown(left.max(0));
-            if left <= 0 {
-                // Fora do callback do timer: `finish` descarta este timer.
-                let weak = ui.as_weak();
-                let st3 = st2.clone();
-                slint::Timer::single_shot(Duration::ZERO, move || {
-                    if let Some(ui) = weak.upgrade() {
-                        finish(&ui, &st3, false);
-                    }
-                });
-            }
-        });
-        s.countdown = Some(timer);
-        let outputs = read_outputs();
-        // Atualiza a lista sem perder a mudança pendente.
-        let pending = s.pending.clone();
-        let previous = s.previous.clone();
-        show(&ui, &mut s, outputs);
-        s.pending = pending;
-        s.previous = previous;
+        apply_with_confirm(&ui, &st, vec![setting]);
     });
+
+    // --- Arranjo: arrastar, aplicar, identificar, principal ---
+    let weak = ui.as_weak();
+    let st = state.clone();
+    device.on_move_display(move |index, x, y| {
+        let Some(ui) = weak.upgrade() else { return };
+        let mut s = st.borrow_mut();
+        let Some(out) = s.outputs.get(index as usize) else { return };
+        let mut moved = out.rect();
+        moved.x = x;
+        moved.y = y;
+        let others: Vec<Rect> = s
+            .outputs
+            .iter()
+            .enumerate()
+            .filter(|(i, o)| *i != index as usize && o.enabled)
+            .map(|(_, o)| o.rect())
+            .collect();
+        // Gruda a até ~6% do monitor de distância.
+        let snap = (moved.w.min(moved.h) / 16).max(20);
+        let (nx, ny) = place(&others, moved, snap);
+        if let Some(out) = s.outputs.get_mut(index as usize) {
+            out.x = nx;
+            out.y = ny;
+        }
+        s.arranged = true;
+        show_list(&ui, &mut s, true);
+    });
+
+    let weak = ui.as_weak();
+    let st = state.clone();
+    device.on_apply_arrangement(move || {
+        let Some(ui) = weak.upgrade() else { return };
+        let settings = {
+            let s = st.borrow();
+            let on: Vec<&Output> = s.outputs.iter().filter(|o| o.enabled).collect();
+            let mut positions: Vec<(i32, i32)> = on.iter().map(|o| (o.x, o.y)).collect();
+            normalize(&mut positions);
+            on.iter()
+                .zip(positions)
+                .map(|(o, p)| Setting { position: Some(p), ..o.current_setting() })
+                .collect::<Vec<_>>()
+        };
+        apply_with_confirm(&ui, &st, settings);
+    });
+
+    device.on_identify_displays(crate::outputs::request_identify);
+
+    let weak = ui.as_weak();
+    let st = state.clone();
+    device.on_set_primary_display(move |index| {
+        let Some(ui) = weak.upgrade() else { return };
+        let mut s = st.borrow_mut();
+        let Some(name) = s.outputs.get(index as usize).map(|o| o.name.clone()) else { return };
+        let device = ui.global::<Device>();
+        let Some(path) = config_path() else { return };
+        let text = fs::read_to_string(&path).unwrap_or_default();
+        if let Some(dir) = path.parent() {
+            let _ = fs::create_dir_all(dir);
+        }
+        if fs::write(&path, set_primary_in_config(&text, &name)).is_ok() {
+            device.set_display_message(
+                tr("The top bar and the dock move to this display.", "A barra e a dock vão para este monitor.").into(),
+            );
+        }
+        show_list(&ui, &mut s, true);
+    });
+
+    // Monitor ligado ou desligado com a página aberta: atualiza a lista.
+    let weak = ui.as_weak();
+    let st = state.clone();
+    let refresh = Timer::default();
+    refresh.start(TimerMode::Repeated, Duration::from_secs(3), move || {
+        let Some(ui) = weak.upgrade() else { return };
+        let busy = { let s = st.borrow(); s.countdown.is_some() || s.arranged };
+        if busy {
+            return;
+        }
+        let Some(now) = read_outputs() else { return };
+        let mut s = st.borrow_mut();
+        let key = |list: &[Output]| list.iter().map(|o| (o.name.clone(), o.enabled, o.x, o.y, o.rect().w)).collect::<Vec<_>>();
+        if key(&now) != key(&s.outputs) {
+            show(&ui, &mut s, Some(now));
+        }
+    });
+    std::mem::forget(refresh);
 
     let weak = ui.as_weak();
     let st = state.clone();
@@ -597,6 +903,42 @@ HDMI-A-1 "Dell Inc. DELL P2419H (HDMI-A-1)"
 "#;
 
     #[test]
+    fn arranjo_numero_principal_e_encaixe() {
+        let mut outs = parse(QEMU);
+        outs[1].enabled = true;
+        outs[1].x = 1440;
+        // Numeração da esquerda para a direita.
+        assert_eq!(numbering(&outs), vec![0, 1]);
+        assert_eq!(primary(&outs, "").unwrap().name, "Virtual-1");
+        assert_eq!(primary(&outs, "principal=HDMI-A-1\n").unwrap().name, "HDMI-A-1");
+        let conf = set_primary_in_config("# x\nVirtual-1 escala=1 rotacao=normal ativo=sim\nprincipal=A\n", "HDMI-A-1");
+        assert_eq!(configured_primary(&conf).as_deref(), Some("HDMI-A-1"));
+        assert_eq!(conf.matches("principal=").count(), 1);
+        assert!(Setting::from_line("principal=HDMI-A-1").is_none());
+        // Tamanho lógico com rotação e escala (1920×1080, 90°, 1,5 → 720×1280).
+        assert_eq!(outs[1].logical_size(), (720, 1280));
+
+        // Encaixe: solto perto da borda direita gruda nela.
+        let a = Rect { x: 0, y: 0, w: 1366, h: 768 };
+        assert_eq!(place(&[a], Rect { x: 1380, y: 20, w: 1920, h: 1080 }, 40), (1366, 0));
+        // Por cima do outro: empurrado para o lado mais perto.
+        assert_eq!(place(&[a], Rect { x: 1000, y: 0, w: 1920, h: 1080 }, 40), (1366, 0));
+        // Embaixo.
+        assert_eq!(place(&[a], Rect { x: 0, y: 700, w: 1366, h: 768 }, 40), (0, 768));
+        let mut p = vec![(-1920, 100), (0, 0)];
+        normalize(&mut p);
+        assert_eq!(p, vec![(0, 100), (1920, 0)]);
+    }
+
+    #[test]
+    fn posicao_no_arquivo_e_no_comando() {
+        let s = Setting::from_line("HDMI-A-1 escala=1 rotacao=normal posicao=1366,0 ativo=sim").unwrap();
+        assert_eq!(s.position, Some((1366, 0)));
+        assert!(s.to_line().contains(" posicao=1366,0 "));
+        assert!(s.args().join(" ").ends_with("--pos 1366,0"));
+    }
+
+    #[test]
     fn le_as_saidas_do_wlr_randr() {
         let outs = parse(QEMU);
         assert_eq!(outs.len(), 2);
@@ -632,12 +974,12 @@ HDMI-A-1 "Dell Inc. DELL P2419H (HDMI-A-1)"
         let mut s = outs[0].current_setting();
         assert_eq!(
             s.args(),
-            ["--output", "Virtual-1", "--on", "--mode", "1440x900@74.995003Hz", "--scale", "1", "--transform", "normal"]
+            ["--output", "Virtual-1", "--on", "--mode", "1440x900@74.995003Hz", "--scale", "1", "--transform", "normal", "--pos", "0,0"]
         );
         s.scale = 1.25;
         s.transform = "270".into();
         let line = s.to_line();
-        assert_eq!(line, "Virtual-1 modo=1440x900@74.995003 escala=1.25 rotacao=270 ativo=sim");
+        assert_eq!(line, "Virtual-1 modo=1440x900@74.995003 escala=1.25 rotacao=270 posicao=0,0 ativo=sim");
         assert_eq!(Setting::from_line(&line).unwrap().args(), s.args());
         s.enabled = false;
         assert_eq!(s.args(), ["--output", "Virtual-1", "--off"]);

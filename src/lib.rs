@@ -3,6 +3,7 @@
 //! A UI declarativa fica em `ui/*.slint` (compilada pelo `build.rs`); este
 //! crate liga a UI aos serviços do sistema:
 //! - [`clock`]: data/hora local em pt-BR;
+//! - [`outputs`]: vários monitores (barra no principal, papel de parede em todos);
 //! - [`dock`]: a dock em janela própria, sempre por cima das janelas;
 //! - [`device`]: rede, som, energia e ficha do sistema nas Configurações;
 //! - [`netconfig`]: IP fixo das conexões e VPN (OpenVPN, WireGuard);
@@ -37,6 +38,7 @@ pub mod greeter;
 pub mod i18n;
 pub mod labwc;
 pub mod netconfig;
+pub mod outputs;
 pub mod recent;
 pub mod region;
 pub mod session;
@@ -74,7 +76,12 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     // Precisa vir depois de criar a janela (que inicializa a plataforma do
     // Slint) e antes de mostrá-la (quando a janela nativa é criada).
     let ui = AppWindow::new()?;
-    slint::set_xdg_app_id(mode.app_id())?;
+    // Janela de fundo: um app_id por monitor (as regras do labwc são por saída).
+    let fundo = session::fundo_from_args(std::env::args()).filter(|_| mode == Mode::Fundo);
+    match &fundo {
+        Some((name, _)) => slint::set_xdg_app_id(session::fundo_app_id(name))?,
+        None => slint::set_xdg_app_id(mode.app_id())?,
+    }
     // Idioma da interface (inglês ou português, pelo LANG do ambiente).
     i18n::apply();
     let shell = ui.global::<Shell>();
@@ -87,7 +94,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     apps::install(
         &ui,
         mode == Mode::Launcher && native,
-        native && !matches!(mode, Mode::Greeter | Mode::QuickSettings),
+        native && !matches!(mode, Mode::Greeter | Mode::QuickSettings | Mode::Fundo),
     );
     let mut timers = vec![clock::start(&ui), system::start(&ui)];
     timers.extend(session::install(&ui, mode));
@@ -103,6 +110,11 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     #[cfg(target_os = "linux")]
     workspaces::install(&ui, mode);
     timers.extend(wallpaper::install(&ui, mode));
+    // Monitores antes da dock: ela se posiciona no monitor principal.
+    timers.extend(outputs::install(&ui, mode));
+    if let Some((name, number)) = &fundo {
+        timers.extend(outputs::install_background(&ui, name, *number));
+    }
     timers.extend(dock::install(&ui, mode));
     Ok((ui, timers))
 }

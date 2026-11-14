@@ -1515,24 +1515,119 @@ export component DisplaysPage inherits Rectangle {
             : @tr("Resolution, scale and rotation can be changed in the Kalango OS session.");
     }
 
-    if Device.displays-available: VerticalLayout {
+    // Com rolagem: o desenho dos monitores mais as opções passam da janela.
+    if Device.displays-available: Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: disp-col.preferred-height + 36px;
+    disp-col := VerticalLayout {
         x: 0;
-        y: Page.top;
+        y: 12px;
         width: min(Page.max-width, parent.width);
         alignment: start;
         spacing: 16px;
 
-        // Vários monitores: um botão para cada.
-        if Device.displays.length > 1: HorizontalLayout {
+        // --- Arranjo: arraste para posicionar; clique para escolher ---
+        Panel {
+            height: 220px;
+            arrange := Rectangle {
+                x: 16px;
+                y: 14px;
+                width: parent.width - 32px;
+                height: parent.height - 28px;
+                clip: true;
+                // px do desenho por px lógico do arranjo.
+                property <float> k: min(self.width / 1px / Device.display-bounds-w, self.height / 1px / Device.display-bounds-h);
+                property <length> ox: (self.width - Device.display-bounds-w * self.k * 1px) / 2;
+                property <length> oy: (self.height - Device.display-bounds-h * self.k * 1px) / 2;
+
+                for d[i] in Device.displays: Rectangle {
+                    // Deslocamento enquanto arrasta (só visual; ao soltar,
+                    // o Rust encaixa e grava a posição nova).
+                    property <length> dx: 0;
+                    property <length> dy: 0;
+                    visible: d.enabled;
+                    x: arrange.ox + (d.x - Device.display-bounds-x) * arrange.k * 1px + self.dx + 2px;
+                    y: arrange.oy + (d.y - Device.display-bounds-y) * arrange.k * 1px + self.dy + 2px;
+                    width: max(20px, d.width-px * arrange.k * 1px - 4px);
+                    height: max(14px, d.height-px * arrange.k * 1px - 4px);
+                    border-radius: 6px;
+                    background: i == root.sel ? Theme.accent.with-alpha(0.22) : Theme.tile;
+                    border-width: i == root.sel ? 2px : 1px;
+                    border-color: i == root.sel ? Theme.accent : Theme.border;
+
+                    VerticalLayout {
+                        alignment: center;
+                        spacing: 2px;
+                        Text {
+                            text: d.number;
+                            color: i == root.sel ? Theme.accent : Theme.text;
+                            font-family: Theme.sans;
+                            font-size: 22px;
+                            font-weight: 700;
+                            horizontal-alignment: center;
+                        }
+                        Text {
+                            text: d.name;
+                            color: Theme.text-muted;
+                            font-family: Theme.mono;
+                            font-size: 11px;
+                            horizontal-alignment: center;
+                            overflow: elide;
+                        }
+                        if d.primary: Text {
+                            text: @tr("Primary");
+                            color: Theme.accent;
+                            font-family: Theme.sans;
+                            font-size: 11px;
+                            horizontal-alignment: center;
+                        }
+                    }
+                    drag := TouchArea {
+                        mouse-cursor: Device.displays.length > 1 ? MouseCursor.move : MouseCursor.default;
+                        moved => {
+                            if (self.pressed && Device.displays.length > 1) {
+                                parent.dx += self.mouse-x - self.pressed-x;
+                                parent.dy += self.mouse-y - self.pressed-y;
+                            }
+                        }
+                        pointer-event(e) => {
+                            if (e.kind == PointerEventKind.up) {
+                                if (abs(parent.dx) > 3px || abs(parent.dy) > 3px) {
+                                    Device.move-display(i,
+                                        d.x + round(parent.dx / 1px / arrange.k),
+                                        d.y + round(parent.dy / 1px / arrange.k));
+                                } else if (root.sel != i) {
+                                    root.sel = i;
+                                    root.reset();
+                                }
+                                parent.dx = 0;
+                                parent.dy = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
             alignment: start;
             spacing: 8px;
-            for d[i] in Device.displays: PillButton {
-                text: d.name;
-                primary: i == root.sel;
-                clicked => {
-                    root.sel = i;
-                    root.reset();
-                }
+            height: 38px;
+            PillButton {
+                text: @tr("Identify");
+                clicked => { Device.identify-displays(); }
+            }
+            if Device.displays.length > 1 && !root.out.primary: PillButton {
+                text: @tr("Make primary");
+                clicked => { Device.set-primary-display(root.sel); }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            if Device.display-arranged: PillButton {
+                text: @tr("Apply position");
+                primary: true;
+                enabled: !Device.display-confirm;
+                clicked => { Device.apply-arrangement(); }
             }
         }
 
@@ -1656,6 +1751,7 @@ export component DisplaysPage inherits Rectangle {
             font-family: Theme.sans;
             font-size: 13.5px;
         }
+    }
     }
 }
 

@@ -121,6 +121,10 @@ export global Shell {
     in property <string> battery: "--";
     /// Gravando num pendrive (`src/usb.rs`): a barra pede para não remover.
     in property <bool> usb-writing: false;
+    /// "Identificar" monitores: número e nome do monitor desta janela.
+    in property <bool> identify-visible: false;
+    in property <int> identify-number: 1;
+    in property <string> identify-name: "";
     /// A dock está numa janela própria, sempre por cima (`src/dock.rs`): a
     /// área de trabalho não a desenha.
     in property <bool> dock-external: false;

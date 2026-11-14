@@ -33,6 +33,8 @@ pub enum Mode {
     QuickSettings,
     /// Dock em janela própria, sempre por cima das janelas (`src/dock.rs`).
     Dock,
+    /// Papel de parede de um monitor extra (`--fundo=<saída>`, `src/outputs.rs`).
+    Fundo,
 }
 
 impl Mode {
@@ -46,6 +48,7 @@ impl Mode {
                 "--greeter" => mode = Mode::Greeter,
                 "--quick-settings" => mode = Mode::QuickSettings,
                 "--dock" => mode = Mode::Dock,
+                a if a.starts_with("--fundo=") => mode = Mode::Fundo,
                 _ => {}
             }
         }
@@ -62,6 +65,8 @@ impl Mode {
             Mode::Greeter => "kalango-greeter",
             Mode::QuickSettings => "kalango-quick-settings",
             Mode::Dock => "kalango-dock",
+            // O de verdade leva a saída: ver `fundo_app_id`.
+            Mode::Fundo => "kalango-fundo",
         }
     }
 
@@ -74,6 +79,7 @@ impl Mode {
             Mode::Greeter => Some("--greeter"),
             Mode::QuickSettings => Some("--quick-settings"),
             Mode::Dock => Some("--dock"),
+            Mode::Fundo => None,
         }
     }
 
@@ -85,6 +91,7 @@ impl Mode {
             Mode::Greeter => ShellMode::Greeter,
             Mode::QuickSettings => ShellMode::QuickSettings,
             Mode::Dock => ShellMode::Dock,
+            Mode::Fundo => ShellMode::Fundo,
         }
     }
 }
@@ -255,6 +262,26 @@ pub fn page_from_args<I: IntoIterator<Item = String>>(args: I) -> Option<i32> {
         .find_map(|a| a.strip_prefix("--pagina=").and_then(|p| p.parse().ok()))
 }
 
+/// Saída e número do monitor de uma janela de fundo
+/// (`--fundo=HDMI-A-1 --numero=2`).
+pub fn fundo_from_args<I: IntoIterator<Item = String>>(args: I) -> Option<(String, i32)> {
+    let mut name = None;
+    let mut number = 0;
+    for a in args {
+        if let Some(n) = a.strip_prefix("--fundo=") {
+            name = Some(n.to_string());
+        } else if let Some(n) = a.strip_prefix("--numero=") {
+            number = n.parse().unwrap_or(0);
+        }
+    }
+    name.map(|n| (n, number))
+}
+
+/// `app_id` da janela de fundo de um monitor (as regras do labwc são por saída).
+pub fn fundo_app_id(output: &str) -> String {
+    format!("kalango-fundo-{output}")
+}
+
 /// Tamanho da janela da dock (`--faixa=1366x54`), em px lógicos.
 pub fn strip_from_args<I: IntoIterator<Item = String>>(args: I) -> Option<(u32, u32)> {
     args.into_iter().find_map(|a| {
@@ -333,19 +360,24 @@ pub fn claim_instance(mode: Mode) -> bool {
     let Some(dir) = std::env::var_os("XDG_RUNTIME_DIR") else {
         return true;
     };
-    let pidfile = Path::new(&dir).join(format!("{}.pid", mode.app_id()));
+    // Fundo: uma instância por monitor.
+    let id = match (mode, fundo_from_args(std::env::args())) {
+        (Mode::Fundo, Some((name, _))) => fundo_app_id(&name),
+        _ => mode.app_id().to_string(),
+    };
+    let pidfile = Path::new(&dir).join(format!("{id}.pid"));
     let me = std::process::id();
     if let Some(pid) = fs::read_to_string(&pidfile)
         .ok()
         .and_then(|s| s.trim().parse::<u32>().ok())
     {
         if pid != me && is_shell_process(pid) {
-            if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Dock) {
+            if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Dock | Mode::Fundo) {
                 let _ = Command::new("kill").arg(pid.to_string()).status();
                 let _ = fs::remove_file(&pidfile);
             }
-            // A dock nova (outro tamanho ou posição) substitui a antiga.
-            if mode != Mode::Dock {
+            // A dock e o fundo novos (outro tamanho ou posição) substituem os antigos.
+            if !matches!(mode, Mode::Dock | Mode::Fundo) {
                 return false;
             }
         }
@@ -456,6 +488,14 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fundo_pelos_argumentos() {
+        let args = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(Mode::from_args(args(&["x", "--fundo=HDMI-A-1", "--numero=2"])), Mode::Fundo);
+        assert_eq!(fundo_from_args(args(&["x", "--fundo=HDMI-A-1", "--numero=2"])), Some(("HDMI-A-1".into(), 2)));
+        assert_eq!(fundo_app_id("HDMI-A-1"), "kalango-fundo-HDMI-A-1");
+    }
 
     #[test]
     fn faixa_da_dock_pelos_argumentos() {

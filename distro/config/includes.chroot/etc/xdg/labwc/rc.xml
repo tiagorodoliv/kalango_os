@@ -115,8 +115,10 @@
                 serverDecoration="no"
                 skipTaskbar="yes"
                 skipWindowSwitcher="yes">
-      <!-- Tela cheia (e não maximizado): maximizar respeitaria a <margin> e
+      <!-- No monitor principal (o shell põe o nome dele, src/outputs.rs) e em
+           tela cheia (e não maximizado): maximizar respeitaria a <margin> e
            cortaria a própria barra e a dock. -->
+      <action name="MoveToOutput" output="" />
       <action name="ToggleFullscreen"/>
       <action name="ToggleAlwaysOnBottom"/>
       <action name="ToggleOmnipresent"/>

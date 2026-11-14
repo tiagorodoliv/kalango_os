@@ -111,22 +111,58 @@ fn user_rc() -> Option<PathBuf> {
     Some(base.join("labwc/rc.xml"))
 }
 
+/// Troca os atributos de uma ação na regra de janela `identifier`
+/// (`<action name="MoveTo" x="0" y="0" />` → `attrs`). `None` se não houver.
+pub fn replace_action(xml: &str, identifier: &str, action: &str, attrs: &str) -> Option<String> {
+    let rule = xml.find(&format!("<windowRule identifier=\"{identifier}\""))?;
+    let end = rule + xml[rule..].find("</windowRule>")?;
+    let tag = format!("<action name=\"{action}\"");
+    let at = rule + xml[rule..end].find(&tag)?;
+    let close = at + xml[at..].find("/>")? + 2;
+    Some(format!("{}{tag} {attrs} />{}", &xml[..at], &xml[close..]))
+}
+
 /// Troca a posição e o tamanho (`MoveTo` e `ResizeTo`) da regra da janela
 /// da dock (`kalango-dock`). `None` se o `rc.xml` não tem a regra.
 pub fn replace_dock_geometry(xml: &str, g: DockGeometry) -> Option<String> {
-    let rule = xml.find("<windowRule identifier=\"kalango-dock\"")?;
-    let end = rule + xml[rule..].find("</windowRule>")?;
-    let mut out = xml.to_string();
-    for (name, attrs) in [
-        ("ResizeTo", format!("width=\"{}\" height=\"{}\"", g.width, g.height)),
-        ("MoveTo", format!("x=\"{}\" y=\"{}\"", g.x, g.y)),
-    ] {
-        let tag = format!("<action name=\"{name}\"");
-        let at = rule + out[rule..end.min(out.len())].find(&tag)?;
-        let close = at + out[at..].find("/>")? + 2;
-        out = format!("{}{tag} {attrs} />{}", &out[..at], &out[close..]);
+    let xml = replace_action(xml, "kalango-dock", "ResizeTo", &format!("width=\"{}\" height=\"{}\"", g.width, g.height))?;
+    replace_action(&xml, "kalango-dock", "MoveTo", &format!("x=\"{}\" y=\"{}\"", g.x, g.y))
+}
+
+/// Põe as margens só no monitor principal (`<margin output="eDP-1" ...>`):
+/// os outros monitores não têm barra nem dock.
+pub fn set_margin_output(xml: &str, output: &str) -> Option<String> {
+    let (start, end) = margin_tag(xml)?;
+    let tag = &xml[start..end];
+    let new_tag = match tag.find(" output=\"") {
+        Some(p) => {
+            let from = p + " output=\"".len();
+            let to = from + tag[from..].find('"')?;
+            format!("{}{output}{}", &tag[..from], &tag[to..])
+        }
+        None => format!("<margin output=\"{output}\"{}", &tag["<margin".len()..]),
+    };
+    Some(format!("{}{new_tag}{}", &xml[..start], &xml[end..]))
+}
+
+/// Regras das janelas de fundo dos monitores extras (`kalango-fundo-<saída>`):
+/// papel de parede em tela cheia naquele monitor, atrás de tudo.
+pub fn background_rules(outputs: &[(String, i32, i32)]) -> String {
+    let mut text = String::new();
+    for (name, x, y) in outputs {
+        text += &format!(
+            "    <windowRule identifier=\"kalango-fundo-{name}\" serverDecoration=\"no\" skipTaskbar=\"yes\" skipWindowSwitcher=\"yes\">\n"
+        );
+        // MoveToOutput (e não MoveTo): o ToggleFullscreen seguinte usa o
+        // monitor em foco, e só assim a janela vai para o monitor certo.
+        let _ = (x, y);
+        text += &format!("      <action name=\"MoveToOutput\" output=\"{name}\" />\n");
+        text += "      <action name=\"ToggleFullscreen\"/>\n";
+        text += "      <action name=\"ToggleAlwaysOnBottom\"/>\n";
+        text += "      <action name=\"ToggleOmnipresent\"/>\n";
+        text += "    </windowRule>\n";
     }
-    Some(out)
+    text
 }
 
 /// Posição e tamanho da janela da dock, em px lógicos.
@@ -138,26 +174,72 @@ pub struct DockGeometry {
     pub height: u32,
 }
 
-/// O que o shell quer no `rc.xml`: margens da dock e posição da janela dela.
-static WANTED: std::sync::Mutex<(Option<Margins>, Option<DockGeometry>)> = std::sync::Mutex::new((None, None));
+/// O que o shell quer no `rc.xml` do usuário.
+#[derive(Default, Clone)]
+struct Wanted {
+    margins: Option<Margins>,
+    dock: Option<DockGeometry>,
+    /// Monitor principal (nome e origem): margens e área de trabalho nele.
+    primary: Option<(String, i32, i32)>,
+    /// Monitores extras (nome e origem) com janela de fundo.
+    backgrounds: Vec<(String, i32, i32)>,
+}
+
+static WANTED: std::sync::Mutex<Option<Wanted>> = std::sync::Mutex::new(None);
+
+fn update(f: impl FnOnce(&mut Wanted)) -> bool {
+    if let Ok(mut w) = WANTED.lock() {
+        f(w.get_or_insert_with(Wanted::default));
+    }
+    sync()
+}
 
 /// Ajusta as margens da dock no labwc e pede para ele reler a configuração.
 /// Não faz nada fora do labwc (`$LABWC_PID` ausente) ou se o usuário tem um
 /// `rc.xml` próprio.
 pub fn set_dock_margins(margins: Margins) {
-    if let Ok(mut w) = WANTED.lock() {
-        w.0 = Some(margins);
-    }
-    sync();
+    update(|w| w.margins = Some(margins));
 }
 
 /// Posição e tamanho da janela da dock (`src/dock.rs`); `None` = a do
 /// sistema. Devolve se o `rc.xml` ficou como pedido (a dock pode ser aberta).
 pub fn set_dock_geometry(position: Option<DockGeometry>) -> bool {
-    if let Ok(mut w) = WANTED.lock() {
-        w.1 = position;
+    update(|w| w.dock = position)
+}
+
+/// Monitores (`src/outputs.rs`): o principal e os extras com fundo. Devolve
+/// se o `rc.xml` ficou como pedido.
+pub fn set_outputs(primary: Option<(String, i32, i32)>, backgrounds: Vec<(String, i32, i32)>) -> bool {
+    update(|w| {
+        w.primary = primary;
+        w.backgrounds = backgrounds;
+    })
+}
+
+/// Monta o `rc.xml` do usuário a partir do do sistema (`None` = algo faltou).
+fn build(system_xml: &str, w: &Wanted) -> Option<String> {
+    let mut xml = system_xml.to_string();
+    if let Some(m) = w.margins {
+        if margins_of(&xml) != Some(m) {
+            xml = replace_margins(&xml, m)?;
+        }
     }
-    sync()
+    if let Some((name, x, y)) = &w.primary {
+        // Só com mais de um monitor: com um, a margem vale para ele de qualquer jeito.
+        if !w.backgrounds.is_empty() {
+            xml = set_margin_output(&xml, name)?;
+        }
+        let _ = (x, y);
+        xml = replace_action(&xml, "kalango-shell", "MoveToOutput", &format!("output=\"{name}\""))?;
+    }
+    if let Some(g) = w.dock {
+        xml = replace_dock_geometry(&xml, g)?;
+    }
+    if !w.backgrounds.is_empty() {
+        let at = xml.rfind("</windowRules>")?;
+        xml.insert_str(at, &background_rules(&w.backgrounds));
+    }
+    Some(xml)
 }
 
 /// Gera (ou apaga) a cópia do `rc.xml` do usuário com o que o shell quer e
@@ -177,23 +259,11 @@ fn sync() -> bool {
         eprintln!("kalango-shell: {} foi feito à mão; a margem da dock não muda", user.display());
         return false;
     }
-    let (margins, position) = WANTED.lock().map(|w| *w).unwrap_or((None, None));
-
-    let mut xml = system_xml.clone();
-    if let Some(m) = margins {
-        if margins_of(&xml) != Some(m) {
-            match replace_margins(&xml, m) {
-                Some(x) => xml = x,
-                None => return false,
-            }
-        }
-    }
-    if let Some(g) = position {
-        match replace_dock_geometry(&xml, g) {
-            Some(new) => xml = new,
-            None => return false,
-        }
-    }
+    let wanted = WANTED.lock().ok().and_then(|w| w.clone()).unwrap_or_default();
+    let Some(xml) = build(&system_xml, &wanted) else {
+        eprintln!("kalango-shell: o rc.xml do sistema não tem o que o shell precisa trocar");
+        return false;
+    };
     // Igual ao sistema: sem cópia (atualizações do rc.xml do sistema valem).
     let wanted = (xml != system_xml).then(|| with_mark(&xml));
     if wanted == current {
@@ -281,6 +351,25 @@ mod tests {
         // A outra regra fica igual.
         assert!(out.contains("kalango-shell\"><action name=\"MoveTo\" x=\"1\" y=\"1\" />"));
         assert!(replace_dock_geometry("<windowRule identifier=\"x\"></windowRule>", g).is_none());
+    }
+
+    #[test]
+    fn monitores_no_rc_xml() {
+        let xml = "<margin top=\"35\" bottom=\"70\" />\n<windowRules>\n<windowRule identifier=\"kalango-shell\">\n<action name=\"MoveToOutput\" output=\"\" />\n<action name=\"ToggleFullscreen\"/>\n</windowRule>\n<windowRule identifier=\"kalango-dock\"><action name=\"ResizeTo\" width=\"1\" height=\"1\" /><action name=\"MoveTo\" x=\"0\" y=\"0\" /></windowRule>\n</windowRules>";
+        let w = Wanted {
+            primary: Some(("HDMI-A-1".into(), 1366, 0)),
+            backgrounds: vec![("eDP-1".into(), 0, 0)],
+            ..Default::default()
+        };
+        let out = build(xml, &w).unwrap();
+        assert!(out.contains("<margin output=\"HDMI-A-1\" top=\"35\""));
+        assert!(out.contains("kalango-shell\">\n<action name=\"MoveToOutput\" output=\"HDMI-A-1\" />"));
+        assert!(out.contains("<action name=\"MoveToOutput\" output=\"eDP-1\" />"));
+        assert!(out.contains("<windowRule identifier=\"kalango-fundo-eDP-1\""));
+        assert!(out.trim_end().ends_with("</windowRule>\n</windowRules>"));
+        // Um monitor só: sem output na margem.
+        let one = build(xml, &Wanted { primary: Some(("eDP-1".into(), 0, 0)), ..Default::default() }).unwrap();
+        assert!(!one.contains("<margin output="));
     }
 
     #[test]

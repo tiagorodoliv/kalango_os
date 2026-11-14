@@ -56,6 +56,8 @@ export enum ShellMode {
     quick-settings,
     /// Só a dock, em janela própria sempre por cima (`--dock`, src/dock.rs).
     dock,
+    /// Só o papel de parede de um monitor extra (`--fundo=`, src/outputs.rs).
+    fundo,
 }
 
 export component AppWindow inherits Window {
@@ -427,6 +429,40 @@ export component AppWindow inherits Window {
                 }
             }
             close => { Shell.quit(); }
+        }
+
+        // Papel de parede de um monitor extra.
+        if root.mode == ShellMode.fundo: Backdrop { variant: BackdropVariant.desktop; }
+
+        // "Identificar" (Configurações → Monitores): número do monitor.
+        if Shell.identify-visible && (root.mode == ShellMode.desktop || root.mode == ShellMode.fundo): Rectangle {
+            width: 260px;
+            height: 220px;
+            border-radius: 28px;
+            background: Theme.panel.with-alpha(0.92);
+            border-width: 2px;
+            border-color: Theme.accent;
+            drop-shadow-blur: 40px;
+            drop-shadow-color: #000000a0;
+            VerticalLayout {
+                alignment: center;
+                spacing: 4px;
+                Text {
+                    text: Shell.identify-number;
+                    color: Theme.accent;
+                    font-family: Theme.sans;
+                    font-size: 120px;
+                    font-weight: 700;
+                    horizontal-alignment: center;
+                }
+                Text {
+                    text: Shell.identify-name;
+                    color: Theme.text-muted;
+                    font-family: Theme.mono;
+                    font-size: 15px;
+                    horizontal-alignment: center;
+                }
+            }
         }
 
         // Dock em janela própria: a faixa inteira é a janela; a dock fica
