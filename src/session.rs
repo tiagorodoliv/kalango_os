@@ -193,10 +193,7 @@ pub fn open(id: &str) -> bool {
                 "settings" => Mode::Settings,
                 _ => Mode::QuickSettings,
             };
-            let Ok(exe) = std::env::current_exe() else {
-                return false;
-            };
-            let mut c = Command::new(exe);
+            let mut c = Command::new(own_exe());
             c.args(mode.arg());
             if let Some(page) = page {
                 c.arg(format!("--pagina={page}"));
@@ -262,6 +259,19 @@ pub fn request_page(page: i32) {
     if let Some(file) = page_request_file() {
         let _ = fs::write(file, page.to_string());
     }
+}
+
+/// O executável do próprio shell, para abrir o menu, o painel e as
+/// Configurações como processos novos.
+///
+/// Se o binário foi trocado com o shell rodando (atualização), o caminho
+/// antigo vira "... (deleted)" e não existe mais: usa o `kalango-shell` do
+/// PATH, que é a versão nova.
+fn own_exe() -> PathBuf {
+    std::env::current_exe()
+        .ok()
+        .filter(|path| path.exists())
+        .unwrap_or_else(|| PathBuf::from("kalango-shell"))
 }
 
 /// Traz para a frente a janela de outra instância já aberta (Configurações
