@@ -221,16 +221,17 @@ impl Prefs {
     }
 
     /// Margens que o labwc reserva para a dock na borda dela: a espessura da
-    /// dock (botão + respiro de 9 px de cada lado; 6 px na barra) e, na dock
-    /// flutuante, a distância de 18 px até a borda. Com a dock escondida,
-    /// nenhuma (os apps maximizados ocupam a tela toda).
+    /// dock (botão + respiro de 9 px de cada lado; 6 px na barra), que fica
+    /// encostada na borda. Com a dock escondida, nenhuma (os apps maximizados
+    /// ocupam a tela toda).
     pub fn dock_margins(&self) -> crate::labwc::Margins {
         let mut m = crate::labwc::Margins::default();
         if !self.dock_always_visible {
             return m;
         }
         let item = clamp_dock_size(self.dock_size) as u32;
-        let size = if self.dock_style == 1 { item + 12 } else { item + 18 + 18 };
+        // A dock encosta na borda (sem folga): a margem é só a espessura dela.
+        let size = if self.dock_style == 1 { item + 12 } else { item + 18 };
         match self.dock_position {
             1 => m.left = size,
             2 => m.right = size,
@@ -515,12 +516,12 @@ mod tests {
     fn margens_da_dock() {
         use crate::labwc::Margins;
         let mut p = padrao();
-        assert_eq!(p.dock_margins(), Margins { bottom: 88, left: 0, right: 0 });
+        assert_eq!(p.dock_margins(), Margins { bottom: 70, left: 0, right: 0 });
         p.dock_size = 44;
-        assert_eq!(p.dock_margins().bottom, 80);
+        assert_eq!(p.dock_margins().bottom, 62);
         p.dock_size = 60;
         p.dock_position = 1;
-        assert_eq!(p.dock_margins(), Margins { bottom: 0, left: 96, right: 0 });
+        assert_eq!(p.dock_margins(), Margins { bottom: 0, left: 78, right: 0 });
         p.dock_style = 1;
         p.dock_position = 2;
         assert_eq!(p.dock_margins(), Margins { bottom: 0, left: 0, right: 72 });

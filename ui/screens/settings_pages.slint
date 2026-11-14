@@ -1148,8 +1148,11 @@ export component SharingPage inherits Rectangle {
                     background: Theme.sunken;
                     border-width: 1px;
                     border-color: address.has-focus ? Theme.accent : Theme.border;
+                    // O exemplo corta com "…" quando a janela é estreita.
                     if address.text == "": Text {
                         x: 12px;
+                        width: parent.width - 24px;
+                        overflow: elide;
                         text: @tr("Server address, e.g. 192.168.0.10 or \\\\pc\\folder");
                         color: Theme.text-muted;
                         font-family: Theme.sans;
@@ -1717,7 +1720,7 @@ export component TaskbarPage inherits Rectangle {
                     }
                     Row {
                         title: @tr("Style");
-                        subtitle: Theme.dock-style == 1 ? @tr("Bar along the edge, end to end") : @tr("Floating and centered");
+                        subtitle: Theme.dock-style == 1 ? @tr("Bar along the edge, end to end") : @tr("Centered, touching the edge");
                         Segmented {
                             x: parent.width - self.width - 20px;
                             options: ["Dock", @tr("Bar")];
@@ -1812,26 +1815,31 @@ export component TaskbarPage inherits Rectangle {
 // ---------------------------------------------------------------------------
 
 export component AboutPage inherits Rectangle {
-    VerticalLayout {
+    // Linhas mais baixas (cabe tudo em 1366×768) e rolagem para telas menores.
+    Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: about-col.preferred-height + 36px;
+    about-col := VerticalLayout {
         x: 0;
-        y: Page.top;
+        y: 12px;
         width: min(Page.max-width, parent.width);
         alignment: start;
-        spacing: 24px;
+        spacing: 18px;
 
         HorizontalLayout {
             spacing: 18px;
             alignment: start;
-            height: 72px;
-            KalangoIcon { width: 72px; height: 72px; }
-            KalangoLogo { height: 72px; }
+            height: 56px;
+            KalangoIcon { width: 56px; height: 56px; }
+            KalangoLogo { height: 56px; }
         }
 
         Panel {
-            height: Device.about.length * 52px;
+            height: Device.about.length * 42px;
             for item[i] in Device.about: Rectangle {
-                y: i * 52px;
-                height: 52px;
+                y: i * 42px;
+                height: 42px;
                 if i > 0: Rectangle { y: 0; height: 1px; background: Theme.border; }
                 Text {
                     x: 20px;
@@ -1854,4 +1862,5 @@ export component AboutPage inherits Rectangle {
             }
         }
     }
+}
 }

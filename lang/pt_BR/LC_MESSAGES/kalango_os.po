@@ -382,8 +382,8 @@ msgid "Bar along the edge, end to end"
 msgstr "Barra encostada na borda, de ponta a ponta"
 
 #: ui/screens/settings_pages.slint:1193
-msgid "Floating and centered"
-msgstr "Flutuante e centralizada"
+msgid "Centered, touching the edge"
+msgstr "Centralizada, encostada na borda"
 
 #: ui/screens/settings_pages.slint:1196
 msgid "Bar"

@@ -9,7 +9,10 @@
   - "kalango-quick-settings": o painel rápido do canto da barra (volume,
     brilho, Wi-Fi, desligar). Tela cheia, transparente, por cima;
   - "kalango-settings": as Configurações, janela comum.
-  As três primeiras ficam em todas as áreas de trabalho (ToggleOmnipresent).
+  - "kalango-dock": a dock em janela própria, sempre por cima das janelas
+    (como a do Ubuntu). A posição (MoveTo) é gerada pelo shell em
+    ~/.config/labwc/rc.xml conforme a tela e a dock (src/dock.rs).
+  Barra/fundo, menu, painel e dock ficam em todas as áreas de trabalho.
 -->
 <labwc_config>
   <theme>
@@ -19,10 +22,10 @@
   </theme>
 
   <!--
-    Reserva a barra superior (35 px) e a dock (52 px + 2×9 de borda + 18 de
-    distância do rodapé = 88 px): apps maximizados não ficam por cima delas.
+    Reserva a barra superior (35 px) e a dock (52 px + 2×9 de borda = 70 px,
+    colada no rodapé): apps maximizados encostam nelas sem ficar por cima.
   -->
-  <margin top="35" bottom="88" />
+  <margin top="35" bottom="70" />
 
   <!--
     Áreas de trabalho: a barra do shell mostra e troca pelo protocolo
@@ -133,6 +136,18 @@
       <action name="ToggleFullscreen"/>
       <action name="ToggleAlwaysOnTop"/>
       <action name="ToggleOmnipresent"/>
+    </windowRule>
+    <windowRule identifier="kalango-dock"
+                serverDecoration="no"
+                skipTaskbar="yes"
+                skipWindowSwitcher="yes"
+                fixedPosition="yes">
+      <action name="ToggleAlwaysOnTop"/>
+      <action name="ToggleOmnipresent"/>
+      <!-- Trocados pelo shell (src/dock.rs): tamanho exato da dock e
+           encostada na borda. ResizeTo antes do MoveTo. -->
+      <action name="ResizeTo" width="1" height="1" />
+      <action name="MoveTo" x="0" y="0" />
     </windowRule>
   </windowRules>
 </labwc_config>

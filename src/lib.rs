@@ -3,6 +3,7 @@
 //! A UI declarativa fica em `ui/*.slint` (compilada pelo `build.rs`); este
 //! crate liga a UI aos serviços do sistema:
 //! - [`clock`]: data/hora local em pt-BR;
+//! - [`dock`]: a dock em janela própria, sempre por cima das janelas;
 //! - [`device`]: rede, som, energia e ficha do sistema nas Configurações;
 //! - [`netconfig`]: IP fixo das conexões e VPN (OpenVPN, WireGuard);
 //! - [`bluetooth`]: ligar, procurar, parear e conectar aparelhos (BlueZ);
@@ -30,6 +31,7 @@ pub mod bluetooth;
 pub mod clock;
 pub mod desktop;
 pub mod device;
+pub mod dock;
 pub mod displays;
 pub mod greeter;
 pub mod i18n;
@@ -101,6 +103,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     #[cfg(target_os = "linux")]
     workspaces::install(&ui, mode);
     timers.extend(wallpaper::install(&ui, mode));
+    timers.extend(dock::install(&ui, mode));
     Ok((ui, timers))
 }
 
@@ -113,12 +116,15 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
 /// O menu de apps e o painel rápido são a exceção: são janelas transparentes
 /// por cima dos apps, e o renderer de software no Wayland não tem canal alfa
 /// (o fundo ficaria preto); como ficam abertos pouco tempo, usam o OpenGL.
+/// Com placa de vídeo de verdade ([`dock::hardware_gl`]: Intel, AMD,
+/// NVIDIA), tudo usa o OpenGL, que nela é barato e rola sem engasgar.
 /// `KALANGO_RENDERER=gl` ou `=software` força um dos dois em tudo. Com
 /// `$SLINT_BACKEND` definido, vale a escolha dele (`None`).
 pub fn renderer_for(
     mode: Mode,
     slint_backend: Option<&str>,
     kalango_renderer: Option<&str>,
+    hardware_gl: bool,
 ) -> Option<&'static str> {
     if slint_backend.is_some_and(|b| !b.is_empty()) {
         return None;
@@ -126,7 +132,11 @@ pub fn renderer_for(
     match kalango_renderer {
         Some("gl") | Some("femtovg") => Some("femtovg"),
         Some("software") => Some("software"),
-        _ if matches!(mode, Mode::Launcher | Mode::QuickSettings) => Some("femtovg"),
+        // Com placa de vídeo de verdade o OpenGL é barato e rola liso (a
+        // página Aparência, alta, travava no renderer de software).
+        _ if hardware_gl => Some("femtovg"),
+        // A dock em janela própria só abre com placa de vídeo (src/dock.rs).
+        _ if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Dock) => Some("femtovg"),
         _ => Some("software"),
     }
 }
@@ -139,7 +149,7 @@ fn select_renderer(mode: Mode) {
     }
     let backend = std::env::var("SLINT_BACKEND").ok();
     let wanted = std::env::var("KALANGO_RENDERER").ok();
-    let Some(renderer) = renderer_for(mode, backend.as_deref(), wanted.as_deref()) else {
+    let Some(renderer) = renderer_for(mode, backend.as_deref(), wanted.as_deref(), dock::hardware_gl()) else {
         return;
     };
     if let Err(err) = slint::BackendSelector::new()
@@ -168,6 +178,23 @@ pub fn run() -> Result<(), slint::PlatformError> {
         return Ok(());
     }
     let (ui, mut timers) = build_mode(mode)?;
+    if let (Mode::Dock, Some((w, h))) = (mode, session::strip_from_args(std::env::args())) {
+        let shell = ui.global::<Shell>();
+        shell.set_dock_strip_width(w as f32);
+        shell.set_dock_strip_height(h as f32);
+        // Diagnóstico (KALANGO_DEBUG_DOCK=1): tamanho que a janela recebeu.
+        if std::env::var_os("KALANGO_DEBUG_DOCK").is_some() {
+            let weak = ui.as_weak();
+            let t = slint::Timer::default();
+            t.start(slint::TimerMode::Repeated, std::time::Duration::from_secs(1), move || {
+                if let Some(ui) = weak.upgrade() {
+                    let s = ui.window().size();
+                    eprintln!("dock: janela {}x{} escala {}", s.width, s.height, ui.window().scale_factor());
+                }
+            });
+            timers.push(t);
+        }
+    }
     if mode == Mode::Settings {
         if let Some(page) = page {
             ui.set_settings_page(page);
@@ -183,16 +210,22 @@ mod tests {
 
     #[test]
     fn renderer_de_software_por_padrao() {
-        assert_eq!(renderer_for(Mode::Desktop, None, None), Some("software"));
-        assert_eq!(renderer_for(Mode::Settings, Some(""), Some("outro")), Some("software"));
-        assert_eq!(renderer_for(Mode::Desktop, None, Some("gl")), Some("femtovg"));
-        assert_eq!(renderer_for(Mode::Desktop, Some("winit-femtovg"), None), None);
+        assert_eq!(renderer_for(Mode::Desktop, None, None, false), Some("software"));
+        assert_eq!(renderer_for(Mode::Settings, Some(""), Some("outro"), false), Some("software"));
+        assert_eq!(renderer_for(Mode::Desktop, None, Some("gl"), false), Some("femtovg"));
+        assert_eq!(renderer_for(Mode::Desktop, Some("winit-femtovg"), None, false), None);
+    }
+
+    #[test]
+    fn com_placa_de_video_tudo_usa_opengl() {
+        assert_eq!(renderer_for(Mode::Settings, None, None, true), Some("femtovg"));
+        assert_eq!(renderer_for(Mode::Desktop, None, Some("software"), true), Some("software"));
     }
 
     #[test]
     fn menu_transparente_usa_opengl() {
-        assert_eq!(renderer_for(Mode::Launcher, None, None), Some("femtovg"));
-        assert_eq!(renderer_for(Mode::QuickSettings, None, None), Some("femtovg"));
-        assert_eq!(renderer_for(Mode::Launcher, None, Some("software")), Some("software"));
+        assert_eq!(renderer_for(Mode::Launcher, None, None, false), Some("femtovg"));
+        assert_eq!(renderer_for(Mode::QuickSettings, None, None, false), Some("femtovg"));
+        assert_eq!(renderer_for(Mode::Launcher, None, Some("software"), false), Some("software"));
     }
 }

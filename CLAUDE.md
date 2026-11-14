@@ -23,7 +23,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   → `kalango-shell`. Sem layer-shell (winit não suporta), o shell roda em 3 processos do mesmo binário
   (`src/session.rs`), cada um com seu app_id e regra em `etc/xdg/labwc/rc.xml`:
   - `kalango-shell` (sem argumento): barra, dock e fundo; tela cheia, sem moldura, sempre atrás dos apps.
-    O `<margin top="35" bottom="88">` do labwc impede app maximizado de cobrir barra e dock.
+    O `<margin top="35" bottom="70">` do labwc impede app maximizado de cobrir barra e dock (colada na borda).
   - `kalango-shell --launcher`: menu de apps em tela cheia, transparente, sempre por cima. Super (onRelease) ou
     Super+Espaço abre; rodar de novo fecha (pidfile em `$XDG_RUNTIME_DIR`).
   - `kalango-shell --settings`: Configurações em janela comum. A aparência é salva em
@@ -113,6 +113,15 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   menu e painel com `ToggleOmnipresent`. Encaixe: borda = metade/maximizar com prévia; arrastar com modificador =
   regiões (metades e quartos); menu `kalango-layouts` (botão direito no maximizar ou Super+Z) no
   `~/.config/labwc/menu.xml` que o shell grava no idioma (`labwc::sync_layouts_menu`); o labwc lê um só menu.xml.
+- **Dock em janela própria (2026-11-14):** com "sempre visível" e placa de vídeo de verdade
+  (`dock::hardware_gl`: i915/xe/amdgpu/radeon/nouveau/nvidia), a área de trabalho abre
+  `kalango-shell --dock --faixa=LxA` (app_id `kalango-dock`): sempre por cima das janelas, em todas as áreas, sem
+  moldura, encostada na borda. **O labwc não respeita o tamanho pedido pela janela** (dava 1366×683): a regra
+  `kalango-dock` do rc.xml tem `ResizeTo` + `MoveTo`, que o shell troca no `~/.config/labwc/rc.xml`
+  (`labwc::set_dock_geometry`, junto com as margens) antes de abrir; mudou tamanho/apps/borda → abre outra. A janela
+  não sai transparente (cantos pretos), por isso a dock nela é quadrada (`Dock.square`). Sem placa de vídeo ou com a
+  dock escondida, ela continua desenhada na área de trabalho (atrás das janelas). Com placa de vídeo, todo o shell
+  usa OpenGL (`renderer_for`: a Aparência travava no renderer de software).
 - **Tela de bloqueio (2026-11-14): gtklock** pelo `/usr/local/bin/kalango-bloquear` (Super+L, cadeados): layout
   próprio `/etc/kalango/bloqueio/layout.ui` (ids/sinais do gtklock 4; @SENHA@/@DESBLOQUEAR@ trocados no idioma),
   `style.css`, papel de parede da pessoa e módulo userinfo (precisa do `accountsservice`). **Config do gtklock é key

@@ -54,6 +54,8 @@ export enum ShellMode {
     /// Só o painel rápido do canto da barra, sobre fundo transparente
     /// (`--quick-settings`).
     quick-settings,
+    /// Só a dock, em janela própria sempre por cima (`--dock`, src/dock.rs).
+    dock,
 }
 
 export component AppWindow inherits Window {
@@ -307,9 +309,11 @@ export component AppWindow inherits Window {
             // Dock: embaixo, à esquerda ou à direita, flutuante ou como barra.
             // Com "Sempre visível" desligado, só aparece quando o mouse chega
             // na faixa daquela borda.
-            if !root.launcher-open: dock-zone := TouchArea {
+            // Com a dock em janela própria (sempre por cima), esta não aparece.
+            if !root.launcher-open && !Shell.dock-external: dock-zone := TouchArea {
                 property <int> pos: Theme.dock-position;
-                property <length> gap: Theme.dock-style == 1 ? 0 : 18px;
+                // Encostada na borda da tela (sem folga).
+                property <length> gap: 0;
                 property <length> zone: Theme.dock-thickness + self.gap + 22px;
                 property <bool> show: Theme.dock-always-visible || self.has-hover;
                 x: self.pos == 2 ? parent.width - self.zone : 0;
@@ -418,6 +422,17 @@ export component AppWindow inherits Window {
                 }
             }
             close => { Shell.quit(); }
+        }
+
+        // Dock em janela própria: a faixa inteira é a janela; a dock fica
+        // encostada na borda da tela e centralizada.
+        if root.mode == ShellMode.dock: Dock {
+            square: true;
+            bar-length: Theme.dock-position == 0 ? root.width : root.height;
+            x: Theme.dock-position == 0 ? (root.width - self.width) / 2
+                : Theme.dock-position == 1 ? 0 : root.width - self.width;
+            y: Theme.dock-position == 0 ? root.height - self.height : (root.height - self.height) / 2;
+            launch(id) => { root.launch(id); }
         }
 
         if root.mode == ShellMode.quick-settings: QuickSettings {

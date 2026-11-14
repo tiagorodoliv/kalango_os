@@ -121,6 +121,12 @@ export global Shell {
     in property <string> battery: "--";
     /// Gravando num pendrive (`src/usb.rs`): a barra pede para não remover.
     in property <bool> usb-writing: false;
+    /// A dock está numa janela própria, sempre por cima (`src/dock.rs`): a
+    /// área de trabalho não a desenha.
+    in property <bool> dock-external: false;
+    /// Tamanho da janela da dock (`--faixa=LxA`).
+    in property <length> dock-strip-width: 1440px;
+    in property <length> dock-strip-height: 70px;
     /// Áreas de trabalho (`src/workspaces.rs`): quantas há (0 = sem
     /// indicador) e a ativa (a partir de 0).
     in property <int> workspace-count: 3;

@@ -111,36 +111,93 @@ fn user_rc() -> Option<PathBuf> {
     Some(base.join("labwc/rc.xml"))
 }
 
+/// Troca a posição e o tamanho (`MoveTo` e `ResizeTo`) da regra da janela
+/// da dock (`kalango-dock`). `None` se o `rc.xml` não tem a regra.
+pub fn replace_dock_geometry(xml: &str, g: DockGeometry) -> Option<String> {
+    let rule = xml.find("<windowRule identifier=\"kalango-dock\"")?;
+    let end = rule + xml[rule..].find("</windowRule>")?;
+    let mut out = xml.to_string();
+    for (name, attrs) in [
+        ("ResizeTo", format!("width=\"{}\" height=\"{}\"", g.width, g.height)),
+        ("MoveTo", format!("x=\"{}\" y=\"{}\"", g.x, g.y)),
+    ] {
+        let tag = format!("<action name=\"{name}\"");
+        let at = rule + out[rule..end.min(out.len())].find(&tag)?;
+        let close = at + out[at..].find("/>")? + 2;
+        out = format!("{}{tag} {attrs} />{}", &out[..at], &out[close..]);
+    }
+    Some(out)
+}
+
+/// Posição e tamanho da janela da dock, em px lógicos.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DockGeometry {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// O que o shell quer no `rc.xml`: margens da dock e posição da janela dela.
+static WANTED: std::sync::Mutex<(Option<Margins>, Option<DockGeometry>)> = std::sync::Mutex::new((None, None));
+
 /// Ajusta as margens da dock no labwc e pede para ele reler a configuração.
 /// Não faz nada fora do labwc (`$LABWC_PID` ausente) ou se o usuário tem um
 /// `rc.xml` próprio.
 pub fn set_dock_margins(margins: Margins) {
+    if let Ok(mut w) = WANTED.lock() {
+        w.0 = Some(margins);
+    }
+    sync();
+}
+
+/// Posição e tamanho da janela da dock (`src/dock.rs`); `None` = a do
+/// sistema. Devolve se o `rc.xml` ficou como pedido (a dock pode ser aberta).
+pub fn set_dock_geometry(position: Option<DockGeometry>) -> bool {
+    if let Ok(mut w) = WANTED.lock() {
+        w.1 = position;
+    }
+    sync()
+}
+
+/// Gera (ou apaga) a cópia do `rc.xml` do usuário com o que o shell quer e
+/// pede ao labwc para reler. Devolve se a cópia ficou como pedida.
+fn sync() -> bool {
     if std::env::var_os("LABWC_PID").is_none() {
-        return;
+        return false;
     }
     let (Some(system), Some(user)) = (system_rc(), user_rc()) else {
-        return;
+        return false;
     };
     let Ok(system_xml) = fs::read_to_string(&system) else {
-        return;
+        return false;
     };
     let current = fs::read_to_string(&user).ok();
     if current.as_deref().is_some_and(|text| !text.contains(MARK)) {
         eprintln!("kalango-shell: {} foi feito à mão; a margem da dock não muda", user.display());
-        return;
+        return false;
     }
+    let (margins, position) = WANTED.lock().map(|w| *w).unwrap_or((None, None));
 
-    let wanted = if margins_of(&system_xml) == Some(margins) {
-        // Igual ao sistema: sem cópia (atualizações do rc.xml do sistema valem).
-        None
-    } else {
-        match replace_margins(&system_xml, margins) {
-            Some(xml) => Some(with_mark(&xml)),
-            None => return,
+    let mut xml = system_xml.clone();
+    if let Some(m) = margins {
+        if margins_of(&xml) != Some(m) {
+            match replace_margins(&xml, m) {
+                Some(x) => xml = x,
+                None => return false,
+            }
         }
-    };
+    }
+    if let Some(g) = position {
+        match replace_dock_geometry(&xml, g) {
+            Some(new) => xml = new,
+            None => return false,
+        }
+    }
+    // Igual ao sistema: sem cópia (atualizações do rc.xml do sistema valem).
+    let wanted = (xml != system_xml).then(|| with_mark(&xml));
     if wanted == current {
-        return;
+        return true;
     }
     let result = match &wanted {
         Some(xml) => user
@@ -151,12 +208,13 @@ pub fn set_dock_margins(margins: Margins) {
     };
     if let Err(err) = result {
         eprintln!("kalango-shell: falha ao gravar {}: {err}", user.display());
-        return;
+        return false;
     }
     let _ = Command::new("labwc")
         .arg("--reconfigure")
         .stdin(Stdio::null())
         .status();
+    true
 }
 
 /// Marca do `menu.xml` gerado pelo shell.
@@ -212,6 +270,18 @@ pub fn sync_layouts_menu() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn posicao_da_janela_da_dock() {
+        let xml = "<a/>\n<windowRule identifier=\"kalango-shell\"><action name=\"MoveTo\" x=\"1\" y=\"1\" /></windowRule>\n<windowRule identifier=\"kalango-dock\" fixedPosition=\"yes\">\n  <action name=\"ToggleAlwaysOnTop\"/>\n  <action name=\"ResizeTo\" width=\"1\" height=\"1\" />\n  <action name=\"MoveTo\" x=\"0\" y=\"0\" />\n</windowRule>";
+        let g = DockGeometry { x: 450, y: 714, width: 466, height: 54 };
+        let out = replace_dock_geometry(xml, g).unwrap();
+        assert!(out.contains("<action name=\"ResizeTo\" width=\"466\" height=\"54\" />"));
+        assert!(out.contains("<action name=\"MoveTo\" x=\"450\" y=\"714\" />\n</windowRule>"));
+        // A outra regra fica igual.
+        assert!(out.contains("kalango-shell\"><action name=\"MoveTo\" x=\"1\" y=\"1\" />"));
+        assert!(replace_dock_geometry("<windowRule identifier=\"x\"></windowRule>", g).is_none());
+    }
 
     #[test]
     fn menu_de_layouts_valido() {

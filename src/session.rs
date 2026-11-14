@@ -31,6 +31,8 @@ pub enum Mode {
     Settings,
     Greeter,
     QuickSettings,
+    /// Dock em janela própria, sempre por cima das janelas (`src/dock.rs`).
+    Dock,
 }
 
 impl Mode {
@@ -43,6 +45,7 @@ impl Mode {
                 "--settings" => mode = Mode::Settings,
                 "--greeter" => mode = Mode::Greeter,
                 "--quick-settings" => mode = Mode::QuickSettings,
+                "--dock" => mode = Mode::Dock,
                 _ => {}
             }
         }
@@ -58,6 +61,7 @@ impl Mode {
             Mode::Settings => "kalango-settings",
             Mode::Greeter => "kalango-greeter",
             Mode::QuickSettings => "kalango-quick-settings",
+            Mode::Dock => "kalango-dock",
         }
     }
 
@@ -69,6 +73,7 @@ impl Mode {
             Mode::Settings => Some("--settings"),
             Mode::Greeter => Some("--greeter"),
             Mode::QuickSettings => Some("--quick-settings"),
+            Mode::Dock => Some("--dock"),
         }
     }
 
@@ -79,6 +84,7 @@ impl Mode {
             Mode::Settings => ShellMode::Settings,
             Mode::Greeter => ShellMode::Greeter,
             Mode::QuickSettings => ShellMode::QuickSettings,
+            Mode::Dock => ShellMode::Dock,
         }
     }
 }
@@ -249,6 +255,14 @@ pub fn page_from_args<I: IntoIterator<Item = String>>(args: I) -> Option<i32> {
         .find_map(|a| a.strip_prefix("--pagina=").and_then(|p| p.parse().ok()))
 }
 
+/// Tamanho da janela da dock (`--faixa=1366x54`), em px lógicos.
+pub fn strip_from_args<I: IntoIterator<Item = String>>(args: I) -> Option<(u32, u32)> {
+    args.into_iter().find_map(|a| {
+        let (w, h) = a.strip_prefix("--faixa=")?.split_once('x')?;
+        Some((w.parse().ok()?, h.parse().ok()?))
+    })
+}
+
 /// Arquivo com a página pedida às Configurações que já estão abertas.
 fn page_request_file() -> Option<PathBuf> {
     std::env::var_os("XDG_RUNTIME_DIR").map(|d| Path::new(&d).join("kalango-settings.pagina"))
@@ -326,11 +340,14 @@ pub fn claim_instance(mode: Mode) -> bool {
         .and_then(|s| s.trim().parse::<u32>().ok())
     {
         if pid != me && is_shell_process(pid) {
-            if matches!(mode, Mode::Launcher | Mode::QuickSettings) {
+            if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Dock) {
                 let _ = Command::new("kill").arg(pid.to_string()).status();
                 let _ = fs::remove_file(&pidfile);
             }
-            return false;
+            // A dock nova (outro tamanho ou posição) substitui a antiga.
+            if mode != Mode::Dock {
+                return false;
+            }
         }
     }
     let _ = fs::write(&pidfile, me.to_string());
@@ -418,7 +435,8 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         let _ = slint::quit_event_loop();
     });
 
-    if !(native && mode == Mode::Desktop) {
+    // Apps abertos (pontinho na dock): na área de trabalho e na dock própria.
+    if !(native && matches!(mode, Mode::Desktop | Mode::Dock)) {
         return None;
     }
     let weak = ui.as_weak();
@@ -438,6 +456,14 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn faixa_da_dock_pelos_argumentos() {
+        let args = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(strip_from_args(args(&["x", "--dock", "--faixa=1366x54"])), Some((1366, 54)));
+        assert_eq!(strip_from_args(args(&["x", "--dock"])), None);
+        assert_eq!(Mode::from_args(args(&["x", "--dock"])), Mode::Dock);
+    }
 
     #[test]
     fn pagina_pelos_argumentos() {

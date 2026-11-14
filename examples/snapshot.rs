@@ -181,6 +181,18 @@ fn main() {
         window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
     }
 
+    // Dock em janela própria (faixa de 1366×70, encostada embaixo).
+    {
+        let shell = ui.global::<kalango_os::Shell>();
+        shell.set_dock_strip_width(1366.0);
+        shell.set_dock_strip_height(70.0);
+        ui.set_mode(kalango_os::ShellMode::Dock);
+        window.set_size(PhysicalSize::new((1366.0 * SCALE) as u32, (70.0 * SCALE) as u32));
+        save(&window, &out.join("dock_janela.png"));
+        ui.set_mode(kalango_os::ShellMode::Desktop);
+        window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
+    }
+
     // Variações de tema para conferir a troca ao vivo.
     let theme = ui.global::<Theme>();
     theme.set_accent_index(1);
