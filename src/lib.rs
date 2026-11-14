@@ -17,6 +17,7 @@
 //! - [`greeter`]: tela de login de verdade, como greeter do greetd;
 //! - [`wallpaper`]: papel de parede da área de trabalho;
 //! - [`recent`]: arquivos recentes de verdade no menu de apps;
+//! - `workspaces` (Linux): áreas de trabalho na barra (ext-workspace do labwc);
 //! - [`usb`]: grava logo nos pendrives e avisa na barra enquanto grava.
 //!
 //! A lógica fica na biblioteca (e não no `main.rs`) para poder ser reusada
@@ -39,6 +40,8 @@ pub mod session;
 pub mod sharing;
 pub mod system;
 pub mod usb;
+#[cfg(target_os = "linux")]
+pub mod workspaces;
 pub mod wallpaper;
 
 pub use session::Mode;
@@ -92,6 +95,8 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     region::install(&ui, mode);
     sharing::install(&ui, mode);
     usb::install(&ui, mode);
+    #[cfg(target_os = "linux")]
+    workspaces::install(&ui, mode);
     timers.extend(wallpaper::install(&ui, mode));
     Ok((ui, timers))
 }

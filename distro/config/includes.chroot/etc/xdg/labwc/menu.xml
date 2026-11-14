@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!--
+  Menu de layouts das janelas do Kalango OS (botão direito no maximizar ou
+  Super+Z). A sessão grava uma cópia traduzida em ~/.config/labwc/menu.xml
+  (src/labwc.rs); este é o padrão, em inglês. As regiões estão no rc.xml.
+-->
+<openbox_menu>
+  <menu id="kalango-layouts" label="Layouts">
+    <item label="Left half"><action name="SnapToRegion" region="esquerda" /></item>
+    <item label="Right half"><action name="SnapToRegion" region="direita" /></item>
+    <separator />
+    <item label="Top left"><action name="SnapToRegion" region="sup-esquerda" /></item>
+    <item label="Top right"><action name="SnapToRegion" region="sup-direita" /></item>
+    <item label="Bottom left"><action name="SnapToRegion" region="inf-esquerda" /></item>
+    <item label="Bottom right"><action name="SnapToRegion" region="inf-direita" /></item>
+    <separator />
+    <item label="Maximize"><action name="Maximize" /></item>
+    <item label="Restore"><action name="UnSnap" /><action name="UnMaximize" /></item>
+  </menu>
+</openbox_menu>

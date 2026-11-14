@@ -20,6 +20,12 @@ slint = { version = "1.8", default-features = false, features = [
 # Data/hora local (fuso do sistema) para o relógio da barra e do login.
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
+# Áreas de trabalho da barra (protocolo ext-workspace do labwc, src/workspaces.rs).
+# As mesmas versões que o winit já usa: não entra código novo além do protocolo.
+[target.'cfg(target_os = "linux")'.dependencies]
+wayland-client = "0.31"
+wayland-protocols = { version = "0.32", features = ["client", "staging"] }
+
 [dev-dependencies]
 # Só para examples/snapshot.rs (gera PNG das telas para comparar com o layout).
 png = "0.18"

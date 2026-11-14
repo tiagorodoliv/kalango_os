@@ -2216,6 +2216,8 @@ dependencies = [
  "png",
  "slint",
  "slint-build",
+ "wayland-client",
+ "wayland-protocols",
 ]
 
 [[package]]

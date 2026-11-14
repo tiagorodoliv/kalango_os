@@ -138,6 +138,9 @@ fn sync_system(ui: &AppWindow, now: &Prefs, before: Option<&Prefs>) {
     if before.is_none_or(|b| b.dock_margins() != now.dock_margins()) {
         crate::labwc::set_dock_margins(now.dock_margins());
     }
+    if before.is_none() {
+        crate::labwc::sync_layouts_menu();
+    }
     if before.is_none_or(|b| b.accent_index != now.accent_index) {
         sync_gtk_accent(now.accent_index);
     }

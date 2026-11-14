@@ -106,6 +106,12 @@ export global Shell {
     in property <string> battery: "--";
     /// Gravando num pendrive (`src/usb.rs`): a barra pede para não remover.
     in property <bool> usb-writing: false;
+    /// Áreas de trabalho (`src/workspaces.rs`): quantas há (0 = sem
+    /// indicador) e a ativa (a partir de 0).
+    in property <int> workspace-count: 3;
+    in property <int> workspace-active: 0;
+    /// Vai para a área de trabalho `índice`.
+    callback switch-workspace(int);
     /// Nome exibido do usuário.
     in property <string> user-name: @tr("User");
     /// Letra do avatar (inicial do nome).

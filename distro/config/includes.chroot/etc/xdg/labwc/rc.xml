@@ -9,6 +9,7 @@
   - "kalango-quick-settings": o painel rápido do canto da barra (volume,
     brilho, Wi-Fi, desligar). Tela cheia, transparente, por cima;
   - "kalango-settings": as Configurações, janela comum.
+  As três primeiras ficam em todas as áreas de trabalho (ToggleOmnipresent).
 -->
 <labwc_config>
   <theme>
@@ -22,6 +23,45 @@
     distância do rodapé = 88 px): apps maximizados não ficam por cima delas.
   -->
   <margin top="35" bottom="88" />
+
+  <!--
+    Áreas de trabalho: a barra do shell mostra e troca pelo protocolo
+    ext-workspace (src/workspaces.rs). Os nomes seguem o idioma (LANG).
+  -->
+  <desktops number="4">
+    <popupTime>700</popupTime>
+  </desktops>
+
+  <!--
+    Encaixe de janelas: arrastar até a borda = metade da tela (no topo,
+    maximiza), com prévia. Arrastar segurando Ctrl, Alt, Shift ou Super mostra
+    as regiões abaixo (metades e quartos). As mesmas regiões estão no menu de
+    layouts (botão direito no maximizar, ou Super+Z): ~/.config/labwc/menu.xml,
+    gravado pelo shell no idioma da sessão (src/labwc.rs).
+  -->
+  <snapping>
+    <range>8</range>
+    <overlay><enabled>yes</enabled></overlay>
+    <topMaximize>yes</topMaximize>
+  </snapping>
+  <regions>
+    <region name="esquerda" x="0%" y="0%" width="50%" height="100%" />
+    <region name="direita" x="50%" y="0%" width="50%" height="100%" />
+    <region name="sup-esquerda" x="0%" y="0%" width="50%" height="50%" />
+    <region name="sup-direita" x="50%" y="0%" width="50%" height="50%" />
+    <region name="inf-esquerda" x="0%" y="50%" width="50%" height="50%" />
+    <region name="inf-direita" x="50%" y="50%" width="50%" height="50%" />
+  </regions>
+
+  <mouse>
+    <default />
+    <!-- Botão direito no maximizar: menu de layouts (como o Windows 11). -->
+    <context name="Maximize">
+      <mousebind button="Right" action="Click">
+        <action name="ShowMenu" menu="kalango-layouts" atCursor="yes" />
+      </mousebind>
+    </context>
+  </mouse>
 
   <keyboard>
     <!-- Mantém os atalhos padrão do labwc (Alt+Tab, Alt+F4, Super+setas...). -->
@@ -47,6 +87,24 @@
     <keybind key="W-l">
       <action name="Execute" command="swaylock" />
     </keybind>
+    <!-- Menu de layouts da janela ativa (como o Win+Z do Windows 11). -->
+    <keybind key="W-z">
+      <action name="ShowMenu" menu="kalango-layouts" atCursor="no" />
+    </keybind>
+    <!-- Áreas de trabalho: Super+número troca, Super+Shift+número leva a
+         janela; Ctrl+Alt+setas como no Ubuntu (com Shift, leva a janela junto). -->
+    <keybind key="W-1"><action name="GoToDesktop" to="1" /></keybind>
+    <keybind key="W-2"><action name="GoToDesktop" to="2" /></keybind>
+    <keybind key="W-3"><action name="GoToDesktop" to="3" /></keybind>
+    <keybind key="W-4"><action name="GoToDesktop" to="4" /></keybind>
+    <keybind key="W-S-1"><action name="SendToDesktop" to="1" follow="no" /></keybind>
+    <keybind key="W-S-2"><action name="SendToDesktop" to="2" follow="no" /></keybind>
+    <keybind key="W-S-3"><action name="SendToDesktop" to="3" follow="no" /></keybind>
+    <keybind key="W-S-4"><action name="SendToDesktop" to="4" follow="no" /></keybind>
+    <keybind key="C-A-Left"><action name="GoToDesktop" to="left" wrap="no" /></keybind>
+    <keybind key="C-A-Right"><action name="GoToDesktop" to="right" wrap="no" /></keybind>
+    <keybind key="C-A-S-Left"><action name="SendToDesktop" to="left" wrap="no" /></keybind>
+    <keybind key="C-A-S-Right"><action name="SendToDesktop" to="right" wrap="no" /></keybind>
   </keyboard>
 
   <windowRules>
@@ -58,6 +116,7 @@
            cortaria a própria barra e a dock. -->
       <action name="ToggleFullscreen"/>
       <action name="ToggleAlwaysOnBottom"/>
+      <action name="ToggleOmnipresent"/>
     </windowRule>
     <windowRule identifier="kalango-launcher"
                 serverDecoration="no"
@@ -65,6 +124,7 @@
                 skipWindowSwitcher="yes">
       <action name="ToggleFullscreen"/>
       <action name="ToggleAlwaysOnTop"/>
+      <action name="ToggleOmnipresent"/>
     </windowRule>
     <windowRule identifier="kalango-quick-settings"
                 serverDecoration="no"
@@ -72,6 +132,7 @@
                 skipWindowSwitcher="yes">
       <action name="ToggleFullscreen"/>
       <action name="ToggleAlwaysOnTop"/>
+      <action name="ToggleOmnipresent"/>
     </windowRule>
   </windowRules>
 </labwc_config>

@@ -82,15 +82,29 @@ export component TopBar inherits Rectangle {
         }
     }
 
-    // Workspaces: atual = barra em destaque, demais = pontos.
-    if !root.compact: HorizontalLayout {
-        x: pill.x + pill.width + 14px;
-        y: (parent.height - 4px) / 2;
-        height: 4px;
-        spacing: 5px;
-        Rectangle { width: 22px; height: 4px; border-radius: 2px; background: Theme.accent; }
-        Rectangle { width: 5px; height: 4px; border-radius: 2px; background: Theme.text-muted.with-alpha(0.6); }
-        Rectangle { width: 5px; height: 4px; border-radius: 2px; background: Theme.text-muted.with-alpha(0.6); }
+    // Áreas de trabalho: a ativa = barra em destaque, as outras = pontos.
+    // Clicar troca (cada item tem uma área de clique maior que o desenho).
+    if !root.compact && Shell.workspace-count > 1: HorizontalLayout {
+        x: pill.x + pill.width + 9px;
+        height: parent.height;
+        spacing: 0;
+        for i in Shell.workspace-count: Rectangle {
+            property <bool> active: i == Shell.workspace-active;
+            width: (self.active ? 22px : 5px) + 10px;
+            animate width { duration: Theme.anim; }
+            Rectangle {
+                width: parent.active ? 22px : 5px;
+                height: 4px;
+                border-radius: 2px;
+                background: parent.active ? Theme.accent
+                    : ws-touch.has-hover ? Theme.text : Theme.text-muted.with-alpha(0.6);
+                animate width { duration: Theme.anim; }
+            }
+            ws-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { Shell.switch-workspace(i); }
+            }
+        }
     }
 
     // --- Centro: data e hora ---

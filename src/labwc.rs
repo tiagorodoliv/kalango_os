@@ -159,9 +159,68 @@ pub fn set_dock_margins(margins: Margins) {
         .status();
 }
 
+/// Marca do `menu.xml` gerado pelo shell.
+pub const MENU_MARK: &str = "<!-- Gerado pelo kalango-shell (menu de layouts das janelas). -->";
+
+/// `menu.xml` com o menu de layouts (`kalango-layouts`): botão direito no
+/// maximizar ou Super+Z. As regiões estão no `rc.xml` do sistema.
+pub fn layouts_menu() -> String {
+    use crate::i18n::tr;
+    let item = |label: &str, action: &str| format!("    <item label=\"{label}\">{action}</item>\n");
+    let region = |r: &str| format!("<action name=\"SnapToRegion\" region=\"{r}\" />");
+    let mut xml = format!(
+        "<?xml version=\"1.0\"?>\n{MENU_MARK}\n<openbox_menu>\n  <menu id=\"kalango-layouts\" label=\"{}\">\n",
+        tr("Layouts", "Layouts")
+    );
+    xml += &item(tr("Left half", "Metade esquerda"), &region("esquerda"));
+    xml += &item(tr("Right half", "Metade direita"), &region("direita"));
+    xml += "    <separator />\n";
+    xml += &item(tr("Top left", "Canto superior esquerdo"), &region("sup-esquerda"));
+    xml += &item(tr("Top right", "Canto superior direito"), &region("sup-direita"));
+    xml += &item(tr("Bottom left", "Canto inferior esquerdo"), &region("inf-esquerda"));
+    xml += &item(tr("Bottom right", "Canto inferior direito"), &region("inf-direita"));
+    xml += "    <separator />\n";
+    xml += &item(tr("Maximize", "Maximizar"), "<action name=\"Maximize\" />");
+    xml += &item(tr("Restore", "Restaurar"), "<action name=\"UnSnap\" /><action name=\"UnMaximize\" />");
+    xml += "  </menu>\n</openbox_menu>\n";
+    xml
+}
+
+/// Grava `~/.config/labwc/menu.xml` no idioma da sessão (se mudou) e pede ao
+/// labwc para reler. Um `menu.xml` feito à mão (sem a marca) fica intocado.
+pub fn sync_layouts_menu() {
+    if std::env::var_os("LABWC_PID").is_none() {
+        return;
+    }
+    let Some(dir) = user_rc().and_then(|p| p.parent().map(PathBuf::from)) else {
+        return;
+    };
+    let path = dir.join("menu.xml");
+    let current = fs::read_to_string(&path).ok();
+    if current.as_deref().is_some_and(|t| !t.contains(MENU_MARK)) {
+        return;
+    }
+    let wanted = layouts_menu();
+    if current.as_deref() == Some(wanted.as_str()) {
+        return;
+    }
+    if fs::create_dir_all(&dir).and_then(|_| fs::write(&path, wanted)).is_ok() {
+        let _ = Command::new("labwc").arg("--reconfigure").stdin(Stdio::null()).status();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn menu_de_layouts_valido() {
+        let xml = layouts_menu();
+        assert!(xml.contains(MENU_MARK));
+        assert!(xml.contains("<menu id=\"kalango-layouts\""));
+        assert_eq!(xml.matches("SnapToRegion").count(), 6);
+        assert!(xml.trim_end().ends_with("</openbox_menu>"));
+    }
 
     const RC: &str = "<?xml version=\"1.0\"?>\n<labwc_config>\n  <margin top=\"35\" bottom=\"88\" />\n</labwc_config>\n";
 
