@@ -100,6 +100,20 @@ fn main() {
     save(&window, &out.join("painel_rapido.png"));
     ui.set_quick_open(false);
 
+    // Painel rápido com a lista de redes e o campo de senha aberto.
+    let nets: Vec<kalango_os::WifiNetwork> = [("Casa", 92, true, true), ("Vizinho 5G", 70, true, false),
+        ("Cafe Aberto", 55, false, false), ("Escritorio", 31, true, false)]
+        .into_iter()
+        .map(|(ssid, signal, secure, active)| kalango_os::WifiNetwork { ssid: ssid.into(), signal, secure, active })
+        .collect();
+    device.set_networks(slint::ModelRc::new(slint::VecModel::from(nets)));
+    ui.set_quick_wifi_open(true);
+    ui.set_quick_wifi_selected("Vizinho 5G".into());
+    ui.set_quick_open(true);
+    save(&window, &out.join("painel_rapido_wifi.png"));
+    ui.set_quick_open(false);
+    ui.set_quick_wifi_open(false);
+
     ui.set_screen(Screen::Settings);
     save(&window, &out.join("config_aparencia.png"));
 

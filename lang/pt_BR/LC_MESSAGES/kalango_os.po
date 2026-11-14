@@ -759,3 +759,12 @@ msgstr "Sem conexão"
 
 msgid "Writing to the USB drive, do not remove it"
 msgstr "Gravando no pendrive, não remova"
+
+msgid "Wi-Fi networks"
+msgstr "Redes Wi-Fi"
+
+msgid "Wi-Fi is off."
+msgstr "O Wi-Fi está desligado."
+
+msgid "Wi-Fi settings..."
+msgstr "Configurações de Wi-Fi..."

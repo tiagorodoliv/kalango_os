@@ -13,6 +13,7 @@ import { Shell, Apps } from "../globals.slint";
 import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution } from "../device.slint";
 import { SectionLabel, Toggle, SliderBar, Avatar } from "../components/widgets.slint";
 import { KalangoLogo, KalangoIcon } from "../brand.slint";
+import { WifiList } from "../components/wifi_list.slint";
 
 /// Onde o conteúdo das páginas começa (abaixo do título).
 global Page {
@@ -249,27 +250,16 @@ component EmptyNotice inherits Rectangle {
 // Rede e Wi-Fi
 // ---------------------------------------------------------------------------
 
-/// Barrinhas de sinal (4 níveis).
-component SignalBars inherits Rectangle {
-    in property <int> signal;
-    width: 22px;
-    height: 16px;
-    for i in 4: Rectangle {
-        x: i * 6px;
-        y: parent.height - self.height;
-        width: 4px;
-        height: 4px + i * 4px;
-        border-radius: 1px;
-        background: root.signal >= 20 + i * 20 ? Theme.accent : Theme.border;
-    }
-}
-
 export component NetworkPage inherits Rectangle {
-    /// Rede escolhida na lista (aguardando a senha).
-    property <string> selected: "";
-    VerticalLayout {
+    // Com rolagem: com muitas redes por perto, a lista e o campo de senha da
+    // rede escolhida passam da altura da janela.
+    Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: network-col.preferred-height + 36px;
+    network-col := VerticalLayout {
         x: 0;
-        y: Page.top;
+        y: 12px;
         width: min(Page.max-width, parent.width);
         alignment: start;
         spacing: 16px;
@@ -326,121 +316,8 @@ export component NetworkPage inherits Rectangle {
         }
 
         if Device.network-available && Device.wifi-present && Device.wifi-enabled: Panel {
-            height: max(1, Device.networks.length) * 52px;
-            if Device.networks.length == 0: Text {
-                text: @tr("No networks found");
-                color: Theme.text-muted;
-                font-family: Theme.sans;
-                font-size: 13.5px;
-            }
-            for net[i] in Device.networks: Rectangle {
-                y: i * 52px;
-                height: 52px;
-                background: net-touch.has-hover ? Theme.tile : transparent;
-                border-radius: Theme.radius;
-
-                if i > 0: Rectangle { y: 0; height: 1px; background: Theme.border; }
-                SignalBars { x: 20px; signal: net.signal; }
-                Text {
-                    x: 56px;
-                    text: net.ssid;
-                    color: Theme.text;
-                    font-family: Theme.sans;
-                    font-size: 14.5px;
-                    font-weight: net.active ? 600 : 400;
-                    vertical-alignment: center;
-                }
-                HorizontalLayout {
-                    x: parent.width - self.width - 20px;
-                    spacing: 10px;
-                    alignment: end;
-                    if net.active: Text {
-                        text: @tr("Connected");
-                        color: Theme.accent;
-                        font-family: Theme.sans;
-                        font-size: 13px;
-                        vertical-alignment: center;
-                    }
-                    if net.secure: Image {
-                        source: Icons.lock;
-                        colorize: Theme.text-muted;
-                        width: 15px;
-                        height: 15px;
-                        y: (parent.height - self.height) / 2;
-                    }
-                }
-                net-touch := TouchArea {
-                    mouse-cursor: pointer;
-                    clicked => {
-                        if (!net.active) {
-                            root.selected = net.ssid;
-                            password.text = "";
-                            password.focus();
-                            Device.network-message = "";
-                            if (!net.secure) {
-                                Device.connect-wifi(net.ssid, "");
-                                root.selected = "";
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // --- Senha da rede escolhida ---
-        // Sempre existe e nunca fica `visible: false` (fechado, encolhe e
-        // fica transparente): elemento invisível não aceita foco, e o clique
-        // na rede precisa focar o campo de senha.
-        Panel {
-            height: root.selected != "" ? 67px : 0;
-            opacity: root.selected != "" ? 1 : 0;
-            Text {
-                x: 20px;
-                width: 200px;
-                text: @tr("Password for {}", root.selected);
-                color: Theme.text;
-                font-family: Theme.sans;
-                font-size: 14px;
-                font-weight: 600;
-                vertical-alignment: center;
-                overflow: elide;
-            }
-            Rectangle {
-                x: 230px;
-                width: parent.width - 230px - 20px - connect-btn.width - 10px - cancel-btn.width - 10px;
-                height: 38px;
-                border-radius: Theme.radius-small;
-                background: Theme.sunken;
-                border-width: 1px;
-                border-color: password.has-focus ? Theme.accent : Theme.border;
-                password := TextInput {
-                    x: 12px;
-                    width: parent.width - 24px;
-                    height: parent.height;
-                    vertical-alignment: center;
-                    input-type: InputType.password;
-                    color: Theme.text;
-                    font-family: Theme.sans;
-                    font-size: 14px;
-                    accepted => { connect-btn.clicked(); }
-                }
-            }
-            connect-btn := PillButton {
-                x: parent.width - self.width - 20px - cancel-btn.width - 10px;
-                text: @tr("Connect");
-                primary: true;
-                enabled: password.text != "" && !Device.network-busy;
-                clicked => {
-                    Device.connect-wifi(root.selected, password.text);
-                    password.text = "";
-                    root.selected = "";
-                }
-            }
-            cancel-btn := PillButton {
-                x: parent.width - self.width - 20px;
-                text: @tr("Cancel");
-                clicked => { root.selected = ""; }
-            }
+            height: wifi-list.height;
+            wifi-list := WifiList { }
         }
 
         if Device.network-message != "": Text {
@@ -449,6 +326,7 @@ export component NetworkPage inherits Rectangle {
             font-family: Theme.sans;
             font-size: 13.5px;
         }
+    }
     }
 }
 

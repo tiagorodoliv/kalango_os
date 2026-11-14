@@ -73,6 +73,10 @@ export component AppWindow inherits Window {
     in-out property <Screen> screen: Screen.login;
     in-out property <bool> launcher-open: false;
     /// Painel rápido aberto (protótipo; na sessão real é outro processo).
+    /// Protótipo e capturas: lista de redes do painel rápido aberta e a rede
+    /// escolhida nela (esperando a senha).
+    in-out property <bool> quick-wifi-open: false;
+    in-out property <string> quick-wifi-selected: "";
     in-out property <bool> quick-open: false;
     /// Página aberta nas Configurações (2 = Aparência, 3 = Barra de tarefas,
     /// 4 = Monitores...). O Rust escolhe a inicial (`--pagina=`) e troca a
@@ -383,6 +387,8 @@ export component AppWindow inherits Window {
         // Painel rápido do protótipo (camada por cima da área de trabalho)
         if root.quick-open: QuickSettings {
             z: 5;
+            wifi-open <=> root.quick-wifi-open;
+            wifi-selected <=> root.quick-wifi-selected;
             close => {
                 root.quick-open = false;
                 keys.focus();

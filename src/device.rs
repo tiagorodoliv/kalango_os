@@ -20,7 +20,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use slint::{ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel, Weak};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, Timer, TimerMode, VecModel, Weak};
 
 use crate::{AppWindow, Device, InfoItem, Mode, WifiNetwork};
 
@@ -593,6 +593,9 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         return None;
     }
     let d = ui.global::<Device>();
+    d.on_network_index(|nets, ssid| {
+        nets.iter().position(|n| n.ssid == ssid).map_or(-1, |i| i as i32)
+    });
     // O painel rápido não mostra a ficha do sistema nem os usuários.
     if mode != Mode::QuickSettings {
         let about: Vec<InfoItem> = about_items()

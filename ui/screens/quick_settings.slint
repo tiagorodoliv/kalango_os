@@ -11,7 +11,8 @@ import { Theme, ThemeMode } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { Shell } from "../globals.slint";
 import { Device } from "../device.slint";
-import { SliderBar } from "../components/widgets.slint";
+import { SliderBar, LinkText } from "../components/widgets.slint";
+import { WifiList } from "../components/wifi_list.slint";
 
 /// Botão redondo com ícone (linha de cima do painel).
 component RoundButton inherits Rectangle {
@@ -84,6 +85,8 @@ component Tile inherits Rectangle {
     in property <string> subtitle;
     in property <bool> on: false;
     in property <bool> has-details: false;
+    /// O detalhe está aberto (a setinha aponta para baixo).
+    in property <bool> details-open: false;
     callback toggled();
     callback details();
 
@@ -137,7 +140,7 @@ component Tile inherits Rectangle {
             background: root.fg.with-alpha(0.25);
         }
         Image {
-            source: Icons.chevron-right;
+            source: root.details-open ? Icons.chevron-down : Icons.chevron-right;
             colorize: details-touch.has-hover ? (root.on ? Theme.on-accent : Theme.accent) : root.fg;
             width: 16px;
             height: 16px;
@@ -193,6 +196,10 @@ export component QuickSettings inherits Rectangle {
 
     /// Submenu de energia aberto.
     property <bool> power-open: false;
+    /// Lista de redes Wi-Fi aberta (setinha do botão do Wi-Fi).
+    in-out property <bool> wifi-open: false;
+    /// Rede escolhida na lista, esperando a senha.
+    in-out property <string> wifi-selected: "";
 
     // Clique fora do card fecha.
     TouchArea {
@@ -337,11 +344,18 @@ export component QuickSettings inherits Rectangle {
                         : Device.wifi-name != "" ? Device.wifi-name : @tr("Not connected");
                     on: Device.wifi-enabled;
                     has-details: true;
+                    details-open: root.wifi-open;
                     toggled => {
                         Device.wifi-enabled = !Device.wifi-enabled;
                         Device.set-wifi(Device.wifi-enabled);
                     }
-                    details => { root.open-settings(0); }
+                    details => {
+                        root.wifi-open = !root.wifi-open;
+                        root.wifi-selected = "";
+                        if (root.wifi-open && Device.wifi-enabled) {
+                            Device.rescan();
+                        }
+                    }
                 }
                 // Sem Wi-Fi (cabo, VM): só mostra a conexão e leva às Configurações.
                 if !Device.wifi-present: Tile {
@@ -359,6 +373,58 @@ export component QuickSettings inherits Rectangle {
                     on: !Theme.is-light;
                     toggled => {
                         Theme.mode = Theme.is-light ? ThemeMode.glass : ThemeMode.light;
+                    }
+                }
+            }
+
+            // --- Redes Wi-Fi (como o menu do Wi-Fi do macOS) ---
+            if root.wifi-open && Device.wifi-present: VerticalLayout {
+                spacing: 8px;
+                HorizontalLayout {
+                    height: 20px;
+                    Text {
+                        text: @tr("Wi-Fi networks");
+                        color: Theme.text-muted;
+                        font-size: 12px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                    if Device.network-busy: Text {
+                        text: @tr("Please wait...");
+                        color: Theme.text-muted;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                    }
+                }
+                if !Device.wifi-enabled: Text {
+                    text: @tr("Wi-Fi is off.");
+                    color: Theme.text-muted;
+                    font-size: 13px;
+                }
+                if Device.wifi-enabled: Rectangle {
+                    height: wifi-list.height + 8px;
+                    border-radius: 12px;
+                    background: Theme.tile;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    wifi-list := WifiList {
+                        y: 4px;
+                        compact: true;
+                        selected <=> root.wifi-selected;
+                    }
+                }
+                if Device.network-message != "": Text {
+                    text: Device.network-message;
+                    color: Theme.text-muted;
+                    font-size: 12.5px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    LinkText {
+                        text: @tr("Wi-Fi settings...");
+                        clicked => { root.open-settings(0); }
                     }
                 }
             }

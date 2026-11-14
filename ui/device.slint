@@ -99,6 +99,9 @@ export global Device {
     callback rescan();
     /// Conecta a uma rede (senha vazia para rede aberta ou já salva).
     callback connect-wifi(string /* ssid */, string /* senha */);
+    /// Posição da rede `ssid` na lista (-1 se não está). A lista vai como
+    /// argumento para a ligação ser refeita quando ela muda.
+    pure callback network-index([WifiNetwork], string /* ssid */) -> int;
 
     // --- Som (PipeWire/WirePlumber) ---
 

@@ -1,0 +1,215 @@
+// Lista de redes Wi-Fi com o campo de senha embaixo da rede escolhida (como
+// no macOS). Usada nas Configurações (Rede e Wi-Fi) e no painel rápido da
+// barra (`compact`).
+//
+// O campo de senha é um só e fica fora do `for`: a lista é relida do
+// NetworkManager a cada 3 s, o que recria as linhas; um campo dentro delas
+// perderia o foco e o texto no meio da digitação. Ele nunca some (encolhe
+// para altura 0), porque elemento invisível não aceita foco.
+
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+import { Device } from "../device.slint";
+
+/// Barrinhas de sinal (4 níveis).
+export component SignalBars inherits Rectangle {
+    in property <int> signal;
+    width: 22px;
+    height: 16px;
+    for i in 4: Rectangle {
+        x: i * 6px;
+        y: parent.height - self.height;
+        width: 4px;
+        height: 4px + i * 4px;
+        border-radius: 1px;
+        background: root.signal >= 20 + i * 20 ? Theme.accent : Theme.border;
+    }
+}
+
+/// Botão pequeno da linha da senha (Conectar, Cancelar).
+component SmallButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> primary: false;
+    in property <bool> enabled: true;
+    in property <length> font-size: 13.5px;
+    callback clicked();
+
+    width: label.preferred-width + 26px;
+    border-radius: Theme.radius-small;
+    opacity: root.enabled ? 1 : 0.5;
+    background: root.primary
+        ? (touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent)
+        : (touch.has-hover ? Theme.tile-hover : Theme.tile);
+    border-width: root.primary ? 0 : 1px;
+    border-color: Theme.border;
+
+    label := Text {
+        text: root.text;
+        color: root.primary ? Theme.on-accent : Theme.text;
+        font-family: Theme.sans;
+        font-size: root.font-size;
+        font-weight: 600;
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component WifiList inherits Rectangle {
+    /// Versão menor, para o painel rápido.
+    in property <bool> compact: false;
+    /// Rede escolhida, esperando a senha ("" = nenhuma).
+    in-out property <string> selected: "";
+
+    property <length> row-h: root.compact ? 40px : 52px;
+    property <length> edit-h: root.compact ? 46px : 58px;
+    property <length> pad: root.compact ? 12px : 20px;
+    property <length> font-size: root.compact ? 13.5px : 14.5px;
+    /// Posição da rede escolhida na lista (-1 = nenhuma, ou ela sumiu).
+    property <int> sel: root.selected == "" ? -1 : Device.network-index(Device.networks, root.selected);
+    property <bool> editing: root.sel >= 0;
+
+    height: max(1, Device.networks.length) * root.row-h + (root.editing ? root.edit-h : 0);
+    animate height { duration: Theme.anim; }
+
+    function connect() {
+        if (password.text != "" && !Device.network-busy) {
+            Device.connect-wifi(root.selected, password.text);
+            password.text = "";
+            root.selected = "";
+        }
+    }
+
+    if Device.networks.length == 0: Text {
+        text: @tr("No networks found");
+        color: Theme.text-muted;
+        font-family: Theme.sans;
+        font-size: root.font-size - 1px;
+    }
+
+    for net[i] in Device.networks: Rectangle {
+        y: i * root.row-h + (root.editing && i > root.sel ? root.edit-h : 0);
+        height: root.row-h;
+        border-radius: Theme.radius-small;
+        background: net-touch.has-hover || i == root.sel ? Theme.tile-hover : transparent;
+        animate y { duration: Theme.anim; }
+
+        if i > 0 && i != root.sel + 1: Rectangle {
+            x: root.pad;
+            y: 0;
+            width: parent.width - 2 * root.pad;
+            height: 1px;
+            background: Theme.border;
+        }
+        SignalBars { x: root.pad; signal: net.signal; }
+        Text {
+            x: root.pad + 34px;
+            width: parent.width - self.x - right.preferred-width - root.pad - 8px;
+            text: net.ssid;
+            color: Theme.text;
+            font-family: Theme.sans;
+            font-size: root.font-size;
+            font-weight: net.active ? 600 : 400;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        right := HorizontalLayout {
+            x: parent.width - self.preferred-width - root.pad;
+            width: self.preferred-width;
+            spacing: 10px;
+            if net.active: Text {
+                text: @tr("Connected");
+                color: Theme.accent;
+                font-family: Theme.sans;
+                font-size: root.font-size - 1.5px;
+                vertical-alignment: center;
+            }
+            if net.secure: Image {
+                source: Icons.lock;
+                colorize: Theme.text-muted;
+                width: 14px;
+                height: 14px;
+                y: (parent.height - self.height) / 2;
+            }
+        }
+        net-touch := TouchArea {
+            mouse-cursor: net.active ? default : pointer;
+            clicked => {
+                if (!net.active) {
+                    Device.network-message = "";
+                    if (!net.secure) {
+                        // Rede aberta (ou já salva sem senha): conecta direto.
+                        root.selected = "";
+                        Device.connect-wifi(net.ssid, "");
+                    } else if (root.selected == net.ssid) {
+                        root.selected = "";
+                    } else {
+                        root.selected = net.ssid;
+                        password.text = "";
+                        password.focus();
+                    }
+                }
+            }
+        }
+    }
+
+    // --- Senha da rede escolhida (logo abaixo dela) ---
+    Rectangle {
+        y: (root.sel + 1) * root.row-h;
+        height: root.editing ? root.edit-h : 0;
+        opacity: root.editing ? 1 : 0;
+        clip: true;
+        // Mesmo fundo da linha da rede escolhida: os dois formam um bloco.
+        background: Theme.tile-hover;
+        border-radius: Theme.radius-small;
+
+        HorizontalLayout {
+            padding-left: root.pad;
+            padding-right: root.pad;
+            padding-top: root.compact ? 4px : 8px;
+            padding-bottom: root.compact ? 8px : 12px;
+            spacing: 8px;
+
+            Rectangle {
+                horizontal-stretch: 1;
+                border-radius: Theme.radius-small;
+                background: Theme.sunken;
+                border-width: 1px;
+                border-color: password.has-focus ? Theme.accent : Theme.border;
+                if password.text == "": Text {
+                    x: 12px;
+                    text: @tr("Password");
+                    color: Theme.text-muted;
+                    font-family: Theme.sans;
+                    font-size: root.font-size - 1px;
+                    vertical-alignment: center;
+                }
+                password := TextInput {
+                    x: 12px;
+                    width: parent.width - 24px;
+                    height: parent.height;
+                    vertical-alignment: center;
+                    input-type: InputType.password;
+                    color: Theme.text;
+                    font-family: Theme.sans;
+                    font-size: root.font-size - 1px;
+                    accepted => { root.connect(); }
+                }
+            }
+            SmallButton {
+                text: @tr("Connect");
+                primary: true;
+                font-size: root.font-size - 1px;
+                enabled: password.text != "" && !Device.network-busy;
+                clicked => { root.connect(); }
+            }
+            SmallButton {
+                text: @tr("Cancel");
+                font-size: root.font-size - 1px;
+                clicked => { root.selected = ""; }
+            }
+        }
+    }
+}
