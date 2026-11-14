@@ -916,3 +916,9 @@ msgstr "IPs permitidos"
 
 msgid "TERMINAL"
 msgstr "TERMINAL"
+
+msgid "Transparency"
+msgstr "Transparência"
+
+msgid "How much of what is behind shows through the dock"
+msgstr "Quanto do que está atrás aparece através da dock"

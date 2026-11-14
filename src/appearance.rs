@@ -36,14 +36,16 @@ pub struct Prefs {
     pub bar_show_seconds: bool,
     pub bar_show_cpu: bool,
     pub bar_show_battery: bool,
-    /// 0 = pequena, 1 = média, 2 = grande.
+    /// Lado do botão da dock, em px (16–72).
     pub dock_size: i32,
     /// Ids dos apps da dock, separados por vírgula.
     pub dock_apps: String,
     /// 0 = embaixo, 1 = esquerda, 2 = direita.
     pub dock_position: i32,
-    /// 0 = dock flutuante, 1 = barra encostada na borda.
+    /// 0 = dock centralizada, 1 = barra de ponta a ponta.
     pub dock_style: i32,
+    /// Transparência do fundo da dock, 0.0 (opaca) a 0.8.
+    pub dock_transparency: f32,
     /// 0 = circuitos; 1 em diante, os modelos de [`crate::wallpaper::MODELS`].
     pub wallpaper: i32,
     /// Família de ícones: 0 = Flat Remix, 1 = Colloid, 2 = Fluent.
@@ -183,6 +185,7 @@ impl Prefs {
             accent_index: t.get_accent_index(),
             mode: t.get_mode(),
             transparency: t.get_transparency(),
+            dock_transparency: t.get_dock_transparency(),
             blur: t.get_blur(),
             dock_always_visible: t.get_dock_always_visible(),
             reduce_motion: t.get_reduce_motion(),
@@ -205,6 +208,7 @@ impl Prefs {
         t.set_accent_index(self.accent_index);
         t.set_mode(self.mode);
         t.set_transparency(self.transparency);
+        t.set_dock_transparency(self.dock_transparency);
         t.set_blur(self.blur);
         t.set_dock_always_visible(self.dock_always_visible);
         t.set_reduce_motion(self.reduce_motion);
@@ -253,7 +257,7 @@ impl Prefs {
              dock-sempre-visivel={}\nreduzir-animacoes={}\n\
              # Barra de tarefas\n\
              barra-data={}\nbarra-segundos={}\nbarra-cpu={}\nbarra-bateria={}\n\
-             dock-tamanho={}\ndock-apps={}\ndock-posicao={}\ndock-estilo={}\n\
+             dock-tamanho={}\ndock-apps={}\ndock-posicao={}\ndock-estilo={}\ndock-transparencia={}\n\
              papel-de-parede={}\nicones={}\n",
             self.accent_index,
             mode,
@@ -269,6 +273,7 @@ impl Prefs {
             self.dock_apps,
             DOCK_POSITIONS[self.dock_position.clamp(0, 2) as usize],
             DOCK_STYLES[self.dock_style.clamp(0, 1) as usize],
+            self.dock_transparency,
             crate::wallpaper::name(self.wallpaper),
             ICON_FAMILIES[self.icon_theme.clamp(0, 2) as usize],
         )
@@ -295,6 +300,11 @@ impl Prefs {
                         "claro" => ThemeMode::Light,
                         "vidro" => ThemeMode::Glass,
                         _ => p.mode,
+                    }
+                }
+                "dock-transparencia" => {
+                    if let Ok(v) = value.parse::<f32>() {
+                        p.dock_transparency = v.clamp(0.0, 0.8);
                     }
                 }
                 "transparencia" => {
@@ -430,6 +440,7 @@ mod tests {
             accent_index: 0,
             mode: ThemeMode::Glass,
             transparency: 0.6,
+            dock_transparency: 0.0,
             blur: true,
             dock_always_visible: true,
             reduce_motion: false,
@@ -452,6 +463,7 @@ mod tests {
             accent_index: 3,
             mode: ThemeMode::Light,
             transparency: 0.25,
+            dock_transparency: 0.4,
             blur: false,
             dock_always_visible: false,
             reduce_motion: true,

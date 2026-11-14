@@ -86,7 +86,8 @@ export component Dock inherits Rectangle {
     border-top-right-radius: Theme.dock-position == 2 ? 0 : root.r;
     border-bottom-left-radius: Theme.dock-position == 2 ? root.r : 0;
     border-bottom-right-radius: Theme.dock-position == 1 ? root.r : 0;
-    background: root.bar ? Theme.bar : Theme.panel;
+    // Transparência escolhida em Configurações → Barra de tarefas.
+    background: (root.bar ? Theme.bar : Theme.panel).with-alpha(1 - Theme.dock-transparency);
     border-width: root.bar ? 0 : 1px;
     border-color: Theme.border;
     drop-shadow-blur: root.bar ? 0 : 24px;

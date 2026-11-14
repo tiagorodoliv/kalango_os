@@ -1706,7 +1706,7 @@ export component TaskbarPage inherits Rectangle {
 
             SectionLabel { text: "DOCK"; }
             Panel {
-                height: 4 * 67px;
+                height: 5 * 67px;
                 VerticalLayout {
                     Row {
                         title: @tr("Position");
@@ -1732,6 +1732,27 @@ export component TaskbarPage inherits Rectangle {
                         title: @tr("Always visible");
                         subtitle: @tr("Off: appears when the mouse reaches the screen edge");
                         Toggle { x: parent.width - self.width - 20px; checked <=> Theme.dock-always-visible; }
+                    }
+                    Row {
+                        title: @tr("Transparency");
+                        subtitle: @tr("How much of what is behind shows through the dock");
+                        SliderBar {
+                            x: parent.width - self.width - 82px;
+                            width: clamp(parent.width * 0.3, 100px, 240px);
+                            // 0–80 %.
+                            value: Theme.dock-transparency / 0.8;
+                            changed(v) => { Theme.dock-transparency = round(v * 16) * 0.05; }
+                        }
+                        Text {
+                            x: parent.width - self.width - 20px;
+                            width: 52px;
+                            text: round(Theme.dock-transparency * 100) + "%";
+                            color: Theme.text;
+                            font-family: Theme.mono;
+                            font-size: 13px;
+                            horizontal-alignment: right;
+                            vertical-alignment: center;
+                        }
                     }
                     Row {
                         title: @tr("Size");

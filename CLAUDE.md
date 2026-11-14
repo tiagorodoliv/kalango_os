@@ -119,7 +119,8 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   moldura, encostada na borda. **O labwc não respeita o tamanho pedido pela janela** (dava 1366×683): a regra
   `kalango-dock` do rc.xml tem `ResizeTo` + `MoveTo`, que o shell troca no `~/.config/labwc/rc.xml`
   (`labwc::set_dock_geometry`, junto com as margens) antes de abrir; mudou tamanho/apps/borda → abre outra. A janela
-  não sai transparente (cantos pretos), por isso a dock nela é quadrada (`Dock.square`). Sem placa de vídeo ou com a
+  é transparente (cantos arredondados mostram o que está atrás) e `no-frame` (AppWindow no modo dock: fundo
+  transparente, tamanho da faixa). Transparência do fundo da dock: `Theme.dock-transparency` (`dock-transparencia`). Sem placa de vídeo ou com a
   dock escondida, ela continua desenhada na área de trabalho (atrás das janelas). Com placa de vídeo, todo o shell
   usa OpenGL (`renderer_for`: a Aparência travava no renderer de software).
 - **Tela de bloqueio (2026-11-14): gtklock** pelo `/usr/local/bin/kalango-bloquear` (Super+L, cadeados): layout

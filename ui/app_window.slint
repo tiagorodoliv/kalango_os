@@ -63,12 +63,17 @@ export component AppWindow inherits Window {
     icon: @image-url("brand/kalango-icon.png");
     // Referência do layout em px lógicos; no dispositivo (feature kms)
     // a janela ocupa a tela inteira automaticamente.
-    preferred-width: 1440px;
-    preferred-height: 900px;
-    min-width: 1100px;
-    min-height: 720px;
-    // O launcher e o painel rápido são camadas transparentes por cima dos apps.
-    background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings ? transparent : Theme.background;
+    // A dock em janela própria tem o tamanho dela (`--faixa=LxA`).
+    preferred-width: root.mode == ShellMode.dock ? Shell.dock-strip-width : 1440px;
+    preferred-height: root.mode == ShellMode.dock ? Shell.dock-strip-height : 900px;
+    min-width: root.mode == ShellMode.dock ? 0 : 1100px;
+    min-height: root.mode == ShellMode.dock ? 0 : 720px;
+    // O launcher, o painel rápido e a dock são camadas transparentes por cima
+    // dos apps (a dock: os cantos arredondados mostram o que está atrás).
+    background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings || root.mode == ShellMode.dock
+        ? transparent : Theme.background;
+    // A dock é uma janela comum (não tela cheia): sem moldura nenhuma.
+    no-frame: root.mode == ShellMode.dock;
     default-font-family: Theme.sans;
 
     in property <ShellMode> mode: ShellMode.desktop;
@@ -427,7 +432,6 @@ export component AppWindow inherits Window {
         // Dock em janela própria: a faixa inteira é a janela; a dock fica
         // encostada na borda da tela e centralizada.
         if root.mode == ShellMode.dock: Dock {
-            square: true;
             bar-length: Theme.dock-position == 0 ? root.width : root.height;
             x: Theme.dock-position == 0 ? (root.width - self.width) / 2
                 : Theme.dock-position == 1 ? 0 : root.width - self.width;
