@@ -10,10 +10,10 @@
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { Shell, Apps } from "../globals.slint";
-import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution } from "../device.slint";
+import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, BtDevice } from "../device.slint";
 import { SectionLabel, Toggle, SliderBar, Avatar } from "../components/widgets.slint";
 import { KalangoLogo, KalangoIcon } from "../brand.slint";
-import { WifiList } from "../components/wifi_list.slint";
+import { WifiList, ForgetLink } from "../components/wifi_list.slint";
 
 /// Onde o conteúdo das páginas começa (abaixo do título).
 global Page {
@@ -811,15 +811,179 @@ export component UpdatesPage inherits Rectangle {
 // Bluetooth e Monitores
 // ---------------------------------------------------------------------------
 
+/// Linha de um aparelho Bluetooth: clicar conecta/desconecta (pareia antes,
+/// se for novo); os pareados têm "Esquecer".
+component BtRow inherits Rectangle {
+    in property <BtDevice> dev;
+    in property <bool> divider: true;
+    height: 56px;
+    border-radius: Theme.radius;
+    background: touch.has-hover ? Theme.tile : transparent;
+
+    property <bool> busy: Device.bt-busy-mac == root.dev.mac;
+
+    if root.divider: Rectangle { x: 20px; y: 0; width: parent.width - 40px; height: 1px; background: Theme.border; }
+    Image {
+        x: 20px;
+        source: root.dev.kind == "audio" ? Icons.music
+            : root.dev.kind == "computer" ? Icons.monitor
+            : Icons.bluetooth;
+        colorize: root.dev.connected ? Theme.accent : Theme.text-muted;
+        width: 18px;
+        height: 18px;
+    }
+    Text {
+        x: 54px;
+        width: parent.width - self.x - right.preferred-width - 32px;
+        text: root.dev.name;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 14.5px;
+        font-weight: root.dev.connected ? 600 : 400;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            if (Device.bt-busy-mac == "") {
+                Device.bt-message = "";
+                if (root.dev.connected) {
+                    Device.bt-disconnect(root.dev.mac);
+                } else {
+                    Device.bt-connect(root.dev.mac, root.dev.name, root.dev.paired);
+                }
+            }
+        }
+    }
+    right := HorizontalLayout {
+        x: parent.width - self.preferred-width - 20px;
+        width: self.preferred-width;
+        spacing: 10px;
+        if root.dev.paired && !root.busy: ForgetLink {
+            font-size: 12.5px;
+            clicked => { Device.bt-forget(root.dev.mac); }
+        }
+        Text {
+            text: root.busy ? @tr("Connecting...")
+                : root.dev.connected ? @tr("Connected")
+                : root.dev.paired ? @tr("Not connected") : "";
+            color: root.dev.connected ? Theme.accent : Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 13px;
+            vertical-alignment: center;
+        }
+    }
+}
+
 export component BluetoothPage inherits Rectangle {
-    EmptyNotice {
-        x: 0;
-        y: Page.top;
-        icon: Icons.bluetooth;
-        title: Device.bluetooth-present ? @tr("Bluetooth is not available yet") : @tr("No Bluetooth adapter");
-        text: Device.bluetooth-present
-            ? @tr("Device pairing is coming in a future version of Kalango OS.")
-            : @tr("This computer has no Bluetooth, or it is turned off.");
+    // Procura aparelhos ao abrir a página (como no Ubuntu).
+    init => {
+        if (Device.bt-available && Device.bt-powered) {
+            Device.bt-scan();
+        }
+    }
+    property <int> paired-count: root.count-paired(Device.bt-devices);
+    pure function count-paired(list: [BtDevice]) -> int {
+        // Os pareados vêm primeiro na lista (ordem do Rust).
+        return Device.bt-paired-count(list);
+    }
+
+    Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: bt-col.preferred-height + 36px;
+        bt-col := VerticalLayout {
+            x: 0;
+            y: 12px;
+            width: min(Page.max-width, parent.width);
+            alignment: start;
+            spacing: 16px;
+
+            if !Device.bluetooth-present: EmptyNotice {
+                icon: Icons.bluetooth;
+                title: @tr("No Bluetooth adapter");
+                text: @tr("This computer has no Bluetooth, or it is turned off.");
+            }
+            if Device.bluetooth-present && !Device.bt-available: EmptyNotice {
+                icon: Icons.bluetooth;
+                title: @tr("Bluetooth service unavailable");
+                text: @tr("The Bluetooth service (BlueZ) did not respond. Check that it is installed and running.");
+            }
+
+            if Device.bt-available: Panel {
+                height: 67px;
+                Row {
+                    title: "Bluetooth";
+                    subtitle: Device.bt-powered ? @tr("On") : @tr("Off");
+                    divider: false;
+                    Toggle {
+                        x: parent.width - self.width - 20px;
+                        checked <=> Device.bt-powered;
+                        toggled(on) => {
+                            Device.set-bt(on);
+                            if (on) {
+                                Device.bt-scan();
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- Meus aparelhos (pareados) ---
+            if Device.bt-available && Device.bt-powered && root.paired-count > 0: SectionLabel {
+                text: @tr("MY DEVICES");
+            }
+            if Device.bt-available && Device.bt-powered && root.paired-count > 0: Panel {
+                height: root.paired-count * 56px;
+                for dev[i] in Device.bt-devices: BtRow {
+                    y: i * 56px;
+                    visible: i < root.paired-count;
+                    dev: dev;
+                    divider: i > 0;
+                }
+            }
+
+            // --- Outros aparelhos (encontrados) ---
+            if Device.bt-available && Device.bt-powered: HorizontalLayout {
+                height: 24px;
+                SectionLabel { text: @tr("OTHER DEVICES"); vertical-alignment: center; }
+                Rectangle { horizontal-stretch: 1; }
+                PillButton {
+                    height: 24px;
+                    text: Device.bt-scanning ? @tr("Searching...") : @tr("Search");
+                    enabled: !Device.bt-scanning;
+                    clicked => { Device.bt-scan(); }
+                }
+            }
+            if Device.bt-available && Device.bt-powered: Panel {
+                height: max(1, Device.bt-devices.length - root.paired-count) * 56px;
+                if Device.bt-devices.length == root.paired-count: Text {
+                    text: Device.bt-scanning ? @tr("Searching for devices...")
+                        : @tr("No devices found. Put the device in pairing mode and search again.");
+                    color: Theme.text-muted;
+                    font-family: Theme.sans;
+                    font-size: 13.5px;
+                    wrap: word-wrap;
+                    horizontal-alignment: center;
+                    width: parent.width - 40px;
+                }
+                for dev[i] in Device.bt-devices: BtRow {
+                    y: (i - root.paired-count) * 56px;
+                    visible: i >= root.paired-count;
+                    dev: dev;
+                    divider: i > root.paired-count;
+                }
+            }
+
+            if Device.bt-message != "": Text {
+                text: Device.bt-message;
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 14px;
+                wrap: word-wrap;
+            }
+        }
     }
 }
 

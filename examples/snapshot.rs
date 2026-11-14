@@ -95,6 +95,9 @@ fn main() {
     device.set_wifi_present(true);
     device.set_wifi_enabled(true);
     device.set_wifi_name("Casa".into());
+    device.set_bt_available(true);
+    device.set_bt_powered(true);
+    device.set_bt_connected("Fone JBL".into());
     ui.global::<kalango_os::Shell>().set_battery("78%".into());
     ui.set_quick_open(true);
     save(&window, &out.join("painel_rapido.png"));

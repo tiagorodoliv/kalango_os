@@ -4,6 +4,7 @@
 //! crate liga a UI aos serviços do sistema:
 //! - [`clock`]: data/hora local em pt-BR;
 //! - [`device`]: rede, som, energia e ficha do sistema nas Configurações;
+//! - [`bluetooth`]: ligar, procurar, parear e conectar aparelhos (BlueZ);
 //! - [`displays`]: monitores (resolução, escala, rotação) pelo `wlr-randr`;
 //! - [`system`]: uso de CPU e bateria;
 //! - [`apps`]: busca do launcher e a lista "Todos os apps";
@@ -22,6 +23,7 @@
 
 pub mod appearance;
 pub mod apps;
+pub mod bluetooth;
 pub mod clock;
 pub mod desktop;
 pub mod device;
@@ -82,6 +84,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     timers.extend(session::install(&ui, mode));
     timers.extend(appearance::install(&ui, mode));
     timers.extend(device::install(&ui, mode));
+    timers.extend(bluetooth::install(&ui, mode));
     displays::install(&ui, mode);
     region::install(&ui, mode);
     sharing::install(&ui, mode);

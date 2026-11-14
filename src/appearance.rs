@@ -150,10 +150,9 @@ fn sync_system(ui: &AppWindow, now: &Prefs, before: Option<&Prefs>) {
     }
 }
 
-/// Tamanho da dock (lado do botão, px): limites e o padrão.
+/// Tamanho da dock (lado do botão, px): limites (o padrão, 52, fica no Theme).
 const DOCK_SIZE_MIN: i32 = 36;
 const DOCK_SIZE_MAX: i32 = 72;
-const DOCK_SIZE_DEFAULT: i32 = 52;
 
 /// Tamanho da dock lido do arquivo: px (`52`) ou os nomes antigos
 /// (`pequena`, `media`, `grande`), sempre de 4 em 4 entre 36 e 72.

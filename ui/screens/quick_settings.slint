@@ -366,6 +366,33 @@ export component QuickSettings inherits Rectangle {
                     on: Device.network-available;
                     toggled => { root.open-settings(0); }
                 }
+                if Device.bt-available: Tile {
+                    horizontal-stretch: 1;
+                    icon: Icons.bluetooth;
+                    title: "Bluetooth";
+                    subtitle: !Device.bt-powered ? @tr("Off")
+                        : Device.bt-connected != "" ? Device.bt-connected : @tr("On");
+                    on: Device.bt-powered;
+                    has-details: true;
+                    toggled => {
+                        Device.bt-powered = !Device.bt-powered;
+                        Device.set-bt(Device.bt-powered);
+                    }
+                    details => { root.open-settings(1); }
+                }
+                if !Device.bt-available: Tile {
+                    horizontal-stretch: 1;
+                    icon: Icons.moon;
+                    title: @tr("Dark style");
+                    on: !Theme.is-light;
+                    toggled => {
+                        Theme.mode = Theme.is-light ? ThemeMode.glass : ThemeMode.light;
+                    }
+                }
+            }
+            // Com Bluetooth, o estilo escuro desce para a segunda linha.
+            if Device.bt-available: HorizontalLayout {
+                spacing: 10px;
                 Tile {
                     horizontal-stretch: 1;
                     icon: Icons.moon;
@@ -375,6 +402,7 @@ export component QuickSettings inherits Rectangle {
                         Theme.mode = Theme.is-light ? ThemeMode.glass : ThemeMode.light;
                     }
                 }
+                Rectangle { horizontal-stretch: 1; }
             }
 
             // --- Redes Wi-Fi (como o menu do Wi-Fi do macOS) ---

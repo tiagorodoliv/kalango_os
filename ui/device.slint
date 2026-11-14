@@ -59,6 +59,17 @@ export struct SharedFolder {
     shared: bool,
 }
 
+/// Um aparelho Bluetooth (`src/bluetooth.rs`).
+export struct BtDevice {
+    /// Endereço ("AA:BB:CC:DD:EE:FF").
+    mac: string,
+    name: string,
+    /// "audio", "input", "phone", "computer" ou "other".
+    kind: string,
+    paired: bool,
+    connected: bool,
+}
+
 /// Um computador da rede local com pastas compartilhadas (achado pelo Avahi).
 export struct NetComputer {
     name: string,
@@ -141,6 +152,29 @@ export global Device {
     in property <bool> admin: true;
     /// Existe um adaptador Bluetooth.
     in property <bool> bluetooth-present: false;
+
+    // --- Bluetooth (BlueZ, `src/bluetooth.rs`) ---
+    /// O BlueZ respondeu e há um controlador.
+    in property <bool> bt-available: false;
+    in-out property <bool> bt-powered: false;
+    /// Pareados primeiro (conectados no topo), depois os encontrados.
+    in property <[BtDevice]> bt-devices: [];
+    /// Nome do aparelho conectado ("" = nenhum), para o painel rápido.
+    in property <string> bt-connected: "";
+    /// Procurando aparelhos.
+    in property <bool> bt-scanning: false;
+    /// Aparelho sendo pareado/conectado ("" = nenhum).
+    in property <string> bt-busy-mac: "";
+    /// Resultado da última ação ou o código de pareamento.
+    in-out property <string> bt-message: "";
+    callback set-bt(bool);
+    callback bt-scan();
+    /// Pareia (se `pareado` for falso), confia e conecta.
+    callback bt-connect(string /* mac */, string /* nome */, bool /* pareado */);
+    callback bt-disconnect(string /* mac */);
+    callback bt-forget(string /* mac */);
+    /// Quantos aparelhos pareados há no começo da lista.
+    pure callback bt-paired-count([BtDevice]) -> int;
 
     /// "suspend" ou "reboot" (desligar usa `Shell.power-off`).
     callback power-action(string);

@@ -58,7 +58,7 @@ component SmallButton inherits Rectangle {
 }
 
 /// "Esquecer" de uma rede salva (texto que fica em destaque ao passar o mouse).
-component ForgetLink inherits Rectangle {
+export component ForgetLink inherits Rectangle {
     in property <length> font-size;
     callback clicked();
     width: label.preferred-width + 12px;

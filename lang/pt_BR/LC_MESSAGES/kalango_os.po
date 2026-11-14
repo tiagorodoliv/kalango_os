@@ -774,3 +774,28 @@ msgstr "Esquecer"
 
 msgid "Icon size, from 36 to 72 px"
 msgstr "Tamanho dos ícones, de 36 a 72 px"
+
+msgid "Connecting..."
+msgstr "Conectando..."
+
+msgid "Bluetooth service unavailable"
+msgstr "Serviço de Bluetooth indisponível"
+
+msgid "The Bluetooth service (BlueZ) did not respond. Check that it is installed and running."
+msgstr "O serviço de Bluetooth (BlueZ) não respondeu. Confira se ele está instalado e rodando."
+
+msgid "MY DEVICES"
+msgstr "MEUS APARELHOS"
+
+msgid "OTHER DEVICES"
+msgstr "OUTROS APARELHOS"
+
+msgid "Searching..."
+msgstr "Procurando..."
+
+
+msgid "Searching for devices..."
+msgstr "Procurando aparelhos..."
+
+msgid "No devices found. Put the device in pairing mode and search again."
+msgstr "Nenhum aparelho encontrado. Coloque o aparelho no modo de pareamento e procure de novo."
