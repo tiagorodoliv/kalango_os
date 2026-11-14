@@ -94,6 +94,17 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `avahi-browse -tpr _smb._tcp` (Linux/macOS/NAS; Windows não se anuncia: campo de endereço `\\pc\pasta` →
   `smb://` e "Browse network" = `thunar network:///`), tudo pelo gvfs (`gvfs-backends`). Testado na VM: visitante
   lê e não grava, com senha grava, Thunar lista as pastas e a Rede.
+- **Bluetooth, IP fixo e VPN (2026-11-13), como no Ubuntu:** `src/bluetooth.rs` (`bluetoothctl`; parear numa sessão
+  interativa com agente KeyboardDisplay, código do aparelho na tela; botão no painel rápido) e `src/netconfig.rs`
+  (Rede → CONEXÕES → "Configurar IP" pelo `nmcli connection modify`; VPN: importar `.ovpn`/`.conf`, formulários
+  OpenVPN e WireGuard). **WireGuard nunca pelo `nmcli connection import`** (liga na hora; com 0.0.0.0/0 derruba a
+  rede) nem pelo nmcli (não edita `peers`): o shell lê o `.conf` e cria por `gdbus` → `Settings.AddConnection`,
+  desligado. Pacotes: bluez, libspa-0.2-bluetooth, network-manager-openvpn, wireguard-tools, zenity, libglib2.0-bin.
+- **Máquina física do Tiago (notebook HP, 1366×768, dual boot):** atualizar o shell sem formatar por SSH
+  (`root@192.168.1.175`, chave `~/.ssh/id_tiago_desktop`): `distro/testar-vm.sh --so-preparar`, copiar
+  `target/vm-dev/kalango-shell` para `/usr/local/bin/` (guardar o antigo como `.anterior`) e, se a área de trabalho
+  mudou, reiniciá-la dentro da sessão (processo movido para `session-N.scope`, ambiente do labwc +
+  `WAYLAND_DISPLAY=wayland-0`; sem a sessão o polkit nega o NetworkManager). `grim` instalado lá para capturas.
 - **Pendrives (2026-11-13): a cópia não termina antes da gravação.** `etc/udev/rules.d/90-kalango-pendrive.rules`
   (`90-`: precisa do `ID_BUS` do 60-persistent-storage) põe `bdi/strict_limit=1` e `bdi/max_bytes=16 MB` em disco
   USB: a cópia anda na velocidade real. A área de trabalho (`src/usb.rs`, thread a cada 2 s) dá `sync -f` nos
