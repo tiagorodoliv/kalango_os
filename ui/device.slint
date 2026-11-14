@@ -259,8 +259,8 @@ export global Device {
     in property <bool> displays-available: false;
     in property <[DisplayOutput]> displays: [];
     /// Escalas oferecidas (mesma ordem de `SCALES` no Rust).
-    out property <[string]> display-scales: ["100%", "125%", "150%", "175%", "200%"];
-    out property <[float]> display-scale-values: [1.0, 1.25, 1.5, 1.75, 2.0];
+    out property <[string]> display-scales: ["50%", "75%", "100%", "125%", "150%", "175%", "200%"];
+    out property <[float]> display-scale-values: [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
     /// Rotações (mesma ordem de `TRANSFORMS` no Rust).
     out property <[string]> display-rotations: ["Normal", @tr("90° (portrait)"), @tr("180° (upside down)"), @tr("270° (portrait)")];
     /// Uma mudança foi aplicada e espera "Manter" (senão volta sozinha).

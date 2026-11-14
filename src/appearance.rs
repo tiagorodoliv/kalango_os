@@ -154,7 +154,7 @@ fn sync_system(ui: &AppWindow, now: &Prefs, before: Option<&Prefs>) {
 }
 
 /// Tamanho da dock (lado do botão, px): limites (o padrão, 52, fica no Theme).
-const DOCK_SIZE_MIN: i32 = 36;
+const DOCK_SIZE_MIN: i32 = 16;
 const DOCK_SIZE_MAX: i32 = 72;
 
 /// Tamanho da dock lido do arquivo: px (`52`) ou os nomes antigos
@@ -505,7 +505,8 @@ mod tests {
         assert_eq!(parse_dock_size("grande"), Some(60));
         assert_eq!(parse_dock_size("64"), Some(64));
         assert_eq!(parse_dock_size("65"), Some(64));
-        assert_eq!(parse_dock_size("10"), Some(36));
+        assert_eq!(parse_dock_size("10"), Some(16));
+        assert_eq!(parse_dock_size("16"), Some(16));
         assert_eq!(parse_dock_size("999"), Some(72));
         assert_eq!(parse_dock_size("enorme"), None);
     }

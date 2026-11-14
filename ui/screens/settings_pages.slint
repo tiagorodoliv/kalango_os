@@ -1732,13 +1732,13 @@ export component TaskbarPage inherits Rectangle {
                     }
                     Row {
                         title: @tr("Size");
-                        subtitle: @tr("Icon size, from 36 to 72 px");
-                        // 36–72 px de 4 em 4 (10 posições no slider).
+                        subtitle: @tr("Icon size, from 16 to 72 px");
+                        // 16–72 px de 4 em 4 (15 posições no slider).
                         SliderBar {
                             x: parent.width - self.width - 82px;
                             width: clamp(parent.width * 0.3, 100px, 240px);
-                            value: (Theme.dock-size - 36) / 36;
-                            changed(v) => { Theme.dock-size = 36 + round(v * 9) * 4; }
+                            value: (Theme.dock-size - 16) / 56;
+                            changed(v) => { Theme.dock-size = 16 + round(v * 14) * 4; }
                         }
                         Text {
                             x: parent.width - self.width - 20px;

@@ -22,7 +22,8 @@ use slint::{ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel};
 use crate::{AppWindow, Device, DisplayOutput, DisplayResolution, Mode};
 
 /// Escalas oferecidas (mesma ordem de `Device.display-scales`).
-pub const SCALES: [f64; 5] = [1.0, 1.25, 1.5, 1.75, 2.0];
+/// 50% e 75% mostram mais coisas na tela (tudo menor), como no Windows.
+pub const SCALES: [f64; 7] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 /// Rotações do `wlr-randr --transform` (mesma ordem de `Device.display-rotations`).
 pub const TRANSFORMS: [&str; 4] = ["normal", "90", "180", "270"];
 /// Segundos para confirmar a mudança antes de voltar sozinho.
@@ -622,7 +623,7 @@ HDMI-A-1 "Dell Inc. DELL P2419H (HDMI-A-1)"
         assert_eq!(rates, ["74.995003", "59.887001"]);
         assert_eq!(outs[0].current_indices(), (2, 0));
         assert_eq!(outs[1].rotation_index(), 1);
-        assert_eq!(outs[1].scale_index(), 2);
+        assert_eq!(outs[1].scale_index(), 4); // 1,5 (depois de 50%, 75%, 100%, 125%)
     }
 
     #[test]
