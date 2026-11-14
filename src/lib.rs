@@ -18,6 +18,7 @@
 //! - [`wallpaper`]: papel de parede da área de trabalho;
 //! - [`recent`]: arquivos recentes de verdade no menu de apps;
 //! - `workspaces` (Linux): áreas de trabalho na barra (ext-workspace do labwc);
+//! - [`terminal`]: temas do terminal (foot);
 //! - [`usb`]: grava logo nos pendrives e avisa na barra enquanto grava.
 //!
 //! A lógica fica na biblioteca (e não no `main.rs`) para poder ser reusada
@@ -39,6 +40,7 @@ pub mod region;
 pub mod session;
 pub mod sharing;
 pub mod system;
+pub mod terminal;
 pub mod usb;
 #[cfg(target_os = "linux")]
 pub mod workspaces;
@@ -94,6 +96,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     displays::install(&ui, mode);
     region::install(&ui, mode);
     sharing::install(&ui, mode);
+    terminal::install(&ui, mode);
     usb::install(&ui, mode);
     #[cfg(target_os = "linux")]
     workspaces::install(&ui, mode);

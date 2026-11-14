@@ -1,0 +1,27 @@
+#!/bin/sh
+# Kalango OS: zsh com o prompt no estilo do Kali (/etc/skel/.zshrc) é o shell
+# padrão de quem for criado depois: o usuário da ISO live (live-config usa o
+# adduser), o do instalador (Calamares, módulo users) e o useradd.
+set -e
+
+# adduser (live-config e "adduser fulano")
+if [ -f /etc/adduser.conf ]; then
+	sed -i 's|^#\?DSHELL=.*|DSHELL=/bin/zsh|' /etc/adduser.conf
+fi
+
+# useradd
+if grep -q '^SHELL=' /etc/default/useradd 2>/dev/null; then
+	sed -i 's|^SHELL=.*|SHELL=/bin/zsh|' /etc/default/useradd
+else
+	echo 'SHELL=/bin/zsh' >> /etc/default/useradd
+fi
+
+# Calamares (calamares-settings-debian)
+USERS=/etc/calamares/modules/users.conf
+if [ -f "$USERS" ]; then
+	if grep -q '^userShell:' "$USERS"; then
+		sed -i 's|^userShell:.*|userShell: /bin/zsh|' "$USERS"
+	else
+		echo 'userShell: /bin/zsh' >> "$USERS"
+	fi
+fi

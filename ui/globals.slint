@@ -79,6 +79,21 @@ export global Apps {
     ];
 }
 
+/// Tema do terminal (Configurações → Aparência → Terminal, `src/terminal.rs`),
+/// com as cores da prévia.
+export struct TerminalTheme {
+    id: string,
+    name: string,
+    bg: color,
+    fg: color,
+    red: color,
+    green: color,
+    yellow: color,
+    blue: color,
+    magenta: color,
+    cyan: color,
+}
+
 export global Shell {
     // --- Preenchido pelo Rust (src/clock.rs e src/system.rs) ---
 
@@ -112,6 +127,11 @@ export global Shell {
     in property <int> workspace-active: 0;
     /// Vai para a área de trabalho `índice`.
     callback switch-workspace(int);
+    /// Temas do terminal e o escolhido ("" = foot.ini feito à mão).
+    in property <[TerminalTheme]> terminal-themes: [];
+    in property <string> terminal-theme: "kalango";
+    in property <string> terminal-message: "";
+    callback set-terminal-theme(string);
     /// Nome exibido do usuário.
     in property <string> user-name: @tr("User");
     /// Letra do avatar (inicial do nome).

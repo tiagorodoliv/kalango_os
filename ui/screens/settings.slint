@@ -5,7 +5,7 @@
 
 import { Theme, ThemeMode } from "../theme.slint";
 import { Icons } from "../icons.slint";
-import { Shell } from "../globals.slint";
+import { Shell, TerminalTheme } from "../globals.slint";
 import { SectionLabel, IconButton, Toggle, SliderBar } from "../components/widgets.slint";
 import {
     NetworkPage, BluetoothPage, DisplaysPage, SoundPage, PowerPage, UsersPage, SharingPage, RegionPage, UpdatesPage, AboutPage,
@@ -174,6 +174,79 @@ component OptionRow inherits Rectangle {
     }
     // Controle (Toggle/Slider) vem como filho e se alinha pela direita.
     @children
+}
+
+/// Card de tema do terminal: prévia do prompt no estilo do Kali nas cores
+/// do tema e o nome embaixo.
+component TerminalCard inherits Rectangle {
+    in property <TerminalTheme> theme;
+    in property <bool> selected;
+    callback clicked();
+
+    width: 168px;
+    height: 104px;
+    border-radius: Theme.radius-small;
+    background: Theme.panel;
+    border-width: root.selected ? 2px : 1px;
+    border-color: root.selected ? Theme.accent : Theme.border;
+
+    Rectangle {
+        x: 6px;
+        y: 6px;
+        width: parent.width - 12px;
+        height: 66px;
+        border-radius: 6px;
+        background: root.theme.bg;
+        clip: true;
+        VerticalLayout {
+            padding: 7px;
+            spacing: 1px;
+            HorizontalLayout {
+                alignment: start;
+                Text { text: "┌──("; color: root.theme.cyan; font-family: Theme.mono; font-size: 9.5px; }
+                Text { text: "user@kalango"; color: root.theme.blue; font-family: Theme.mono; font-size: 9.5px; font-weight: 700; }
+                Text { text: ")-[~]"; color: root.theme.cyan; font-family: Theme.mono; font-size: 9.5px; }
+            }
+            HorizontalLayout {
+                alignment: start;
+                Text { text: "└─"; color: root.theme.cyan; font-family: Theme.mono; font-size: 9.5px; }
+                Text { text: "$ "; color: root.theme.blue; font-family: Theme.mono; font-size: 9.5px; font-weight: 700; }
+                Text { text: "ls"; color: root.theme.green; font-family: Theme.mono; font-size: 9.5px; font-weight: 700; }
+            }
+            HorizontalLayout {
+                alignment: start;
+                spacing: 6px;
+                Text { text: "docs"; color: root.theme.blue; font-family: Theme.mono; font-size: 9.5px; }
+                Text { text: "app.rs"; color: root.theme.fg; font-family: Theme.mono; font-size: 9.5px; }
+                Text { text: "run.sh"; color: root.theme.green; font-family: Theme.mono; font-size: 9.5px; }
+            }
+            HorizontalLayout {
+                spacing: 3px;
+                for c in [root.theme.red, root.theme.green, root.theme.yellow, root.theme.blue, root.theme.magenta, root.theme.cyan]: Rectangle {
+                    width: 10px;
+                    height: 5px;
+                    border-radius: 2px;
+                    background: c;
+                }
+                Rectangle { horizontal-stretch: 1; }
+            }
+        }
+    }
+    Text {
+        x: 10px;
+        y: 78px;
+        width: parent.width - 20px;
+        text: root.theme.name;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 13px;
+        font-weight: root.selected ? 600 : 400;
+        overflow: elide;
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
 }
 
 /// Página Aparência. Responsiva: os cards encolhem e as miniaturas de papel
@@ -408,6 +481,31 @@ component AppearancePage inherits Rectangle {
                         clicked => { Theme.icon-theme = i; }
                     }
                 }
+            }
+
+            // --- Terminal: temas do foot (prompt no estilo do Kali) ---
+            if Shell.terminal-themes.length > 0: Rectangle { height: 26px; }
+            if Shell.terminal-themes.length > 0: SectionLabel { text: @tr("TERMINAL"); }
+            if Shell.terminal-themes.length > 0: Rectangle { height: 10px; }
+            if Shell.terminal-themes.length > 0: term-grid := Rectangle {
+                // Cards de 168×104 em grade.
+                property <int> cols: max(1, floor((col.w + 12px) / 180px));
+                height: ceil(Shell.terminal-themes.length / self.cols) * 116px - 12px;
+                for t[i] in Shell.terminal-themes: TerminalCard {
+                    x: Math.mod(i, term-grid.cols) * 180px;
+                    y: floor(i / term-grid.cols) * 116px;
+                    theme: t;
+                    selected: Shell.terminal-theme == t.id;
+                    clicked => { Shell.set-terminal-theme(t.id); }
+                }
+            }
+            if Shell.terminal-message != "": Rectangle { height: 8px; }
+            if Shell.terminal-message != "": Text {
+                text: Shell.terminal-message;
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13px;
+                wrap: word-wrap;
             }
         }
     }

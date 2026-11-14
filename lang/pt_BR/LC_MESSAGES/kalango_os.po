@@ -913,3 +913,6 @@ msgstr "Chave pública do servidor"
 
 msgid "Allowed IPs"
 msgstr "IPs permitidos"
+
+msgid "TERMINAL"
+msgstr "TERMINAL"

@@ -30,6 +30,12 @@ thunar
 # Miniaturas de fotos e vídeos no Thunar
 tumbler
 foot
+# Terminal no estilo do Kali: zsh (shell padrão, hook 0140) com sugestões e
+# destaque de sintaxe; o ㉿ do prompt vem da fonte Droid Sans Fallback
+zsh
+zsh-autosuggestions
+zsh-syntax-highlighting
+fonts-droid-fallback
 firefox-esr
 firefox-esr-l10n-pt-br
 mousepad
