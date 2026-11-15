@@ -144,6 +144,15 @@ pub fn renderer_for(
     }
 }
 
+/// Renderer escolhido por [`select_renderer`] (`None` = o padrão do Slint).
+static RENDERER: std::sync::OnceLock<&'static str> = std::sync::OnceLock::new();
+
+/// A janela pode ter partes transparentes: o renderer de software no
+/// Wayland não tem alfa (o transparente sai preto).
+fn window_has_alpha() -> bool {
+    RENDERER.get().is_some_and(|r| *r == "femtovg")
+}
+
 /// Aplica a escolha de [`renderer_for`] (só no backend winit; o `kms` desenha
 /// direto na tela e escolhe sozinho).
 pub(crate) fn select_renderer(mode: Mode) {
@@ -155,6 +164,7 @@ pub(crate) fn select_renderer(mode: Mode) {
     let Some(renderer) = renderer_for(mode, backend.as_deref(), wanted.as_deref(), dock::hardware_gl()) else {
         return;
     };
+    let _ = RENDERER.set(renderer);
     if let Err(err) = slint::BackendSelector::new()
         .backend_name("winit".into())
         .renderer_name(renderer.into())
@@ -224,6 +234,24 @@ pub fn run() -> Result<(), slint::PlatformError> {
             ui.set_settings_page(page);
         }
         timers.extend(session::watch_page_requests(&ui));
+        // Cantos de baixo arredondados como os de cima (o labwc só arredonda
+        // a barra de título); maximizada, retos, como o labwc faz no topo.
+        if window_has_alpha() && session::is_native() {
+            let shell = ui.global::<Shell>();
+            shell.set_rounded_window(true);
+            let weak = ui.as_weak();
+            let t = slint::Timer::default();
+            t.start(slint::TimerMode::Repeated, std::time::Duration::from_millis(300), move || {
+                if let Some(ui) = weak.upgrade() {
+                    let max = ui.window().is_maximized() || ui.window().is_fullscreen();
+                    let shell = ui.global::<Shell>();
+                    if shell.get_window_maximized() != max {
+                        shell.set_window_maximized(max);
+                    }
+                }
+            });
+            timers.push(t);
+        }
     }
     ui.run()
 }

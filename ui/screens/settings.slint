@@ -799,16 +799,25 @@ export component SettingsScreen inherits Rectangle {
             }
         }
 
-        VerticalLayout {
+        // Em tela baixa (notebook de 768 px) os itens encolhem até 34 px; se
+        // ainda não couberem, a lista rola (antes o último ficava cortado).
+        sidebar-list := Flickable {
             x: root.narrow ? 8px : 14px;
             y: root.narrow ? 20px : 120px;
             width: parent.width - 2 * self.x;
-            alignment: start;
-            for i in root.order: SidebarItem {
-                compact: root.narrow;
-                section: root.sections[i];
-                selected: root.current == i;
-                clicked => { root.current = i; }
+            height: parent.height - self.y - 8px;
+            property <length> item-h: clamp((self.height) / root.order.length, 34px, 42px);
+            viewport-height: root.order.length * self.item-h;
+            interactive: self.viewport-height > self.height;
+            VerticalLayout {
+                alignment: start;
+                for i in root.order: SidebarItem {
+                    height: sidebar-list.item-h;
+                    compact: root.narrow;
+                    section: root.sections[i];
+                    selected: root.current == i;
+                    clicked => { root.current = i; }
+                }
             }
         }
     }

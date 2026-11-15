@@ -82,6 +82,7 @@ export component AppWindow inherits Window {
     // O launcher, o painel rápido e a dock são camadas transparentes por cima
     // dos apps (a dock: os cantos arredondados mostram o que está atrás).
     background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings || root.mode == ShellMode.calendar || root.mode == ShellMode.dock
+        || (root.mode == ShellMode.settings && Shell.rounded-window)
         || root.mode == ShellMode.switcher || root.mode == ShellMode.dock-menu
         ? transparent : Theme.background;
     // A dock é uma janela comum (não tela cheia): sem moldura nenhuma.
@@ -519,6 +520,12 @@ export component AppWindow inherits Window {
         }
 
         if root.mode == ShellMode.settings: Rectangle {
+            // Cantos de baixo no raio do labwc (cornerRadius 10 no rc.xml).
+            property <length> corner: Shell.rounded-window && !Shell.window-maximized ? 10px : 0px;
+            border-bottom-left-radius: self.corner;
+            border-bottom-right-radius: self.corner;
+            background: Theme.background;
+            clip: Shell.rounded-window;
             Backdrop { variant: BackdropVariant.plain; }
             SettingsScreen {
                 current <=> root.settings-page;

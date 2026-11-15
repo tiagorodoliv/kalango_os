@@ -104,6 +104,12 @@ export struct LoginUser {
 }
 
 export global Shell {
+    /// Configurações com transparência (OpenGL): cantos de baixo
+    /// arredondados como os da barra de título do labwc.
+    in property <bool> rounded-window: false;
+    /// A janela está maximizada (os cantos ficam retos).
+    in property <bool> window-maximized: false;
+
     // --- Preenchido pelo Rust (src/common/clock.rs e src/common/system.rs) ---
 
     /// Hora "19:38" (tela de login).
