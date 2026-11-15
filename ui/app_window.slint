@@ -27,6 +27,7 @@ import { Backdrop, BackdropVariant } from "components/backdrop.slint";
 import { TopBar } from "components/top_bar.slint";
 import { Dock } from "components/dock.slint";
 import { DesktopMenuArea } from "components/desktop_menu.slint";
+import { CalendarView, Calendar, CalendarDay } from "screens/calendar.slint";
 import { FilesWindow } from "apps/files.slint";
 import { TerminalWindow } from "apps/terminal.slint";
 import { LoginScreen } from "screens/login.slint";
@@ -38,7 +39,7 @@ import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, Power,
 
 // Reexportados para o Rust enxergar os globais e tipos.
 export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry, IconPreview, Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution }
-export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice }
+export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice, Calendar, CalendarDay }
 
 /// Telas de nível superior.
 export enum Screen { login, desktop, settings }
@@ -60,6 +61,8 @@ export enum ShellMode {
     dock,
     /// Só o papel de parede de um monitor extra (`--fundo=`, src/shell/outputs.rs).
     fundo,
+    /// Só o calendário do relógio, sobre fundo transparente (`--calendario`).
+    calendar,
     /// Alt+Tab: as janelas abertas (`--alternar`, src/shell/switcher.rs).
     switcher,
     /// Menu do botão direito de um app da dock (`--menu-dock=`, src/shell/taskbar.rs).
@@ -78,7 +81,7 @@ export component AppWindow inherits Window {
     min-height: root.mode == ShellMode.dock ? 0 : 720px;
     // O launcher, o painel rápido e a dock são camadas transparentes por cima
     // dos apps (a dock: os cantos arredondados mostram o que está atrás).
-    background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings || root.mode == ShellMode.dock
+    background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings || root.mode == ShellMode.calendar || root.mode == ShellMode.dock
         || root.mode == ShellMode.switcher || root.mode == ShellMode.dock-menu
         ? transparent : Theme.background;
     // A dock é uma janela comum (não tela cheia): sem moldura nenhuma.
@@ -94,6 +97,8 @@ export component AppWindow inherits Window {
     in-out property <bool> quick-wifi-open: false;
     in-out property <string> quick-wifi-selected: "";
     in-out property <bool> quick-open: false;
+    /// Protótipo: calendário aberto (na sessão real é o processo `--calendario`).
+    property <bool> calendar-open: false;
     /// Página aberta nas Configurações (2 = Aparência, 3 = Barra de tarefas,
     /// 4 = Monitores...). O Rust escolhe a inicial (`--pagina=`) e troca a
     /// página quando o menu da área de trabalho pede outra.
@@ -202,6 +207,17 @@ export component AppWindow inherits Window {
         }
     }
 
+    /// Abre ou fecha o calendário (clique no relógio da barra).
+    function toggle-calendar() {
+        if (Shell.native) {
+            Shell.open-app("calendar-popup");
+        } else {
+            root.launcher-open = false;
+            root.quick-open = false;
+            root.calendar-open = !root.calendar-open;
+        }
+    }
+
     function lock() {
         root.launcher-open = false;
         root.quick-open = false;
@@ -228,13 +244,17 @@ export component AppWindow inherits Window {
             }
             if (event.text == Key.Escape) {
                 if (root.mode == ShellMode.launcher || root.mode == ShellMode.settings || root.mode == ShellMode.quick-settings
-                    || root.mode == ShellMode.dock-menu) {
+                    || root.mode == ShellMode.dock-menu || root.mode == ShellMode.calendar) {
                     Shell.quit();
                     return accept;
                 }
                 if (root.quick-open) {
                     root.quick-open = false;
                     keys.focus();
+                    return accept;
+                }
+                if (root.calendar-open) {
+                    root.calendar-open = false;
                     return accept;
                 }
                 if (root.launcher-open) {
@@ -364,6 +384,12 @@ export component AppWindow inherits Window {
             quick-open: root.quick-open;
             status-clicked => { root.toggle-quick(); }
             pill-clicked => { root.toggle-launcher(); }
+            clock-clicked => { root.toggle-calendar(); }
+        }
+        // Protótipo: o calendário dentro da área de trabalho.
+        if root.mode == ShellMode.desktop && root.calendar-open: CalendarView {
+            z: 6;
+            close => { root.calendar-open = false; }
         }
 
         // ------------------------------------------------------------------
@@ -473,6 +499,9 @@ export component AppWindow inherits Window {
         if root.mode == ShellMode.switcher: SwitcherView { }
         if root.mode == ShellMode.dock-menu: DockMenuView { }
 
+        if root.mode == ShellMode.calendar: CalendarView {
+            close => { Shell.quit(); }
+        }
         if root.mode == ShellMode.quick-settings: QuickSettings {
             close => { Shell.quit(); }
             open-settings(page) => {

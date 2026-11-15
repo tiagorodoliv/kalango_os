@@ -9,6 +9,8 @@
   - "kalango-quick-settings": o painel rápido do canto da barra (volume,
     brilho, Wi-Fi, desligar). Tela cheia, transparente, por cima;
   - "kalango-settings": as Configurações, janela comum.
+  - "kalango-calendario": o calendário do relógio da barra. Tela cheia,
+    transparente, por cima;
   - "kalango-alternar": o Alt+Tab (src/shell/switcher.rs). Tela cheia, transparente,
     por cima; o processo fica aberto e a janela só aparece no Alt+Tab;
   - "kalango-dock-menu": o menu do botão direito de um app da dock, no
@@ -156,6 +158,16 @@
                 skipTaskbar="yes"
                 skipWindowSwitcher="yes">
       <!-- No monitor principal, junto da barra (o shell põe o nome dele). -->
+      <action name="MoveToOutput" output="" />
+      <action name="ToggleFullscreen"/>
+      <action name="ToggleAlwaysOnTop"/>
+      <action name="ToggleOmnipresent"/>
+    </windowRule>
+    <windowRule identifier="kalango-calendario"
+                serverDecoration="no"
+                skipTaskbar="yes"
+                skipWindowSwitcher="yes">
+      <!-- Calendário do relógio da barra: como o painel rápido. -->
       <action name="MoveToOutput" output="" />
       <action name="ToggleFullscreen"/>
       <action name="ToggleAlwaysOnTop"/>

@@ -1,0 +1,170 @@
+// Calendário que abre ao clicar no relógio da barra (`--calendario`,
+// `src/shell/calendar.rs`): o mês com o dia de hoje em destaque, setas para
+// os outros meses e um atalho para a Agenda.
+
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+
+/// Um dia na grade do mês.
+export struct CalendarDay {
+    number: int,
+    /// É do mês mostrado (os das pontas aparecem apagados).
+    in-month: bool,
+    today: bool,
+}
+
+export global Calendar {
+    /// "novembro de 2026".
+    in property <string> title;
+    /// Data de hoje por extenso, no topo do cartão.
+    in property <string> today;
+    /// Iniciais dos dias da semana (domingo primeiro).
+    in property <[string]> weekdays: ["D", "S", "T", "Q", "Q", "S", "S"];
+    /// 42 dias (6 semanas).
+    in property <[CalendarDay]> days;
+    /// O mês mostrado é o atual (esconde o "Hoje").
+    in property <bool> is-current-month: true;
+    in property <bool> agenda-available: false;
+    /// Anda `n` meses (negativo = para trás).
+    callback move-month(int);
+    callback go-today();
+    callback open-agenda();
+}
+
+component ArrowButton inherits Rectangle {
+    in property <image> icon;
+    callback clicked();
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: touch.has-hover ? Theme.tile-hover : transparent;
+    Image { source: root.icon; colorize: Theme.text; width: 16px; height: 16px; }
+    touch := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+/// O cartão do calendário, embaixo do relógio. `close` = clique fora.
+export component CalendarView inherits Rectangle {
+    callback close();
+
+    TouchArea { clicked => { root.close(); } }
+
+    card := Rectangle {
+        width: 320px;
+        height: col.preferred-height;
+        x: (root.width - self.width) / 2;
+        y: Theme.bar-height + 8px;
+        border-radius: 16px;
+        background: Theme.panel-solid;
+        border-width: 1px;
+        border-color: Theme.border;
+        drop-shadow-blur: 30px;
+        drop-shadow-color: #00000090;
+        // Absorve os cliques (não fecha).
+        TouchArea { }
+
+        col := VerticalLayout {
+            padding: 16px;
+            spacing: 10px;
+
+            Text {
+                text: Calendar.today;
+                color: Theme.text;
+                font-family: Theme.sans;
+                font-size: 15px;
+                font-weight: 600;
+                overflow: elide;
+            }
+            Rectangle { height: 1px; background: Theme.border; }
+
+            HorizontalLayout {
+                spacing: 4px;
+                Text {
+                    text: Calendar.title;
+                    color: Theme.text;
+                    font-family: Theme.sans;
+                    font-size: 14px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+                if !Calendar.is-current-month: Rectangle {
+                    width: today-label.preferred-width + 16px;
+                    border-radius: 8px;
+                    background: today-touch.has-hover ? Theme.tile-hover : transparent;
+                    today-label := Text {
+                        text: @tr("Today");
+                        color: Theme.accent;
+                        font-family: Theme.sans;
+                        font-size: 13px;
+                        font-weight: 600;
+                    }
+                    today-touch := TouchArea { mouse-cursor: pointer; clicked => { Calendar.go-today(); } }
+                }
+                ArrowButton { icon: Icons.chevron-left; clicked => { Calendar.move-month(-1); } }
+                ArrowButton { icon: Icons.chevron-right; clicked => { Calendar.move-month(1); } }
+            }
+
+            // Dias da semana e a grade (7 colunas).
+            grid := Rectangle {
+                property <length> cell: self.width / 7;
+                height: self.cell * 0.8 + 6 * self.cell * 0.9;
+                for w[i] in Calendar.weekdays: Text {
+                    x: i * grid.cell;
+                    y: 0;
+                    width: grid.cell;
+                    height: grid.cell * 0.8;
+                    text: w;
+                    color: Theme.text-muted;
+                    font-family: Theme.sans;
+                    font-size: 12px;
+                    font-weight: 600;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+                for d[i] in Calendar.days: Rectangle {
+                    x: Math.mod(i, 7) * grid.cell + (grid.cell - self.width) / 2;
+                    y: grid.cell * 0.8 + floor(i / 7) * grid.cell * 0.9 + (grid.cell * 0.9 - self.height) / 2;
+                    width: min(grid.cell, 34px);
+                    height: self.width;
+                    border-radius: self.width / 2;
+                    background: d.today ? Theme.accent : transparent;
+                    Text {
+                        text: d.number;
+                        color: d.today ? Theme.on-accent : d.in-month ? Theme.text : Theme.text-muted.with-alpha(0.5);
+                        font-family: Theme.sans;
+                        font-size: 13px;
+                        font-weight: d.today ? 700 : 400;
+                    }
+                }
+            }
+
+            if Calendar.agenda-available: Rectangle {
+                height: 36px;
+                border-radius: 10px;
+                background: agenda-touch.has-hover ? Theme.tile-hover : Theme.tile;
+                border-width: 1px;
+                border-color: Theme.border;
+                HorizontalLayout {
+                    alignment: center;
+                    spacing: 8px;
+                    Image { source: Icons.calendar; colorize: Theme.text; width: 16px; height: 16px; y: (parent.height - self.height) / 2; }
+                    Text {
+                        text: @tr("Open Calendar");
+                        color: Theme.text;
+                        font-family: Theme.sans;
+                        font-size: 13.5px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                    }
+                }
+                agenda-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        Calendar.open-agenda();
+                        root.close();
+                    }
+                }
+            }
+        }
+    }
+}

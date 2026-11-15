@@ -34,6 +34,10 @@ export component TopBar inherits Rectangle {
     /// Clique no bloco de status (Wi-Fi, volume, bateria, energia): abre o
     /// painel rápido (`ui/screens/quick_settings.slint`).
     callback status-clicked();
+    /// Clique no relógio: abre o calendário.
+    callback clock-clicked();
+    /// Largura da área clicável do relógio.
+    property <length> clock-text-w: 220px;
 
     height: Theme.bar-height;
     background: Theme.bar;
@@ -107,8 +111,10 @@ export component TopBar inherits Rectangle {
         }
     }
 
-    // --- Centro: data e hora ---
-    Text {
+    // --- Centro: data e hora (clique abre o calendário) ---
+    clock := Text {
+        // Por cima do destaque de quando o mouse passa.
+        z: 1;
         text: root.message != "" ? root.message
             : (Theme.bar-show-date ? Shell.bar-day + " " : "") + Shell.bar-time
               + (Theme.bar-show-seconds ? ":" + Shell.bar-seconds : "");
@@ -118,6 +124,18 @@ export component TopBar inherits Rectangle {
         font-weight: 600;
         horizontal-alignment: center;
         vertical-alignment: center;
+    }
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        width: clock-text-w;
+        height: parent.height - 8px;
+        border-radius: 8px;
+        background: clock-touch.has-hover && root.message == "" ? Theme.tile-hover.with-alpha(0.6) : transparent;
+        clock-touch := TouchArea {
+            enabled: root.message == "";
+            mouse-cursor: pointer;
+            clicked => { root.clock-clicked(); }
+        }
     }
 
     // --- Direita: CPU e o bloco de status (abre o painel rápido) ---

@@ -233,7 +233,7 @@ fn build(system_xml: &str, w: &Wanted) -> Option<String> {
         xml = replace_action(&xml, "kalango-shell", "MoveToOutput", &format!("output=\"{name}\""))?;
         // O menu da dock, o menu de apps e o painel rápido também (ficam junto
         // da barra e da dock). Sem isso abriam no monitor em foco.
-        for rule in ["kalango-dock-menu", "kalango-launcher", "kalango-quick-settings"] {
+        for rule in ["kalango-dock-menu", "kalango-launcher", "kalango-quick-settings", "kalango-calendario"] {
             if let Some(x) = replace_action(&xml, rule, "MoveToOutput", &format!("output=\"{name}\"")) {
                 xml = x;
             }

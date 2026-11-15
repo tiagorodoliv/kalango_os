@@ -98,7 +98,11 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
         }
     }
     timers.extend(power::install(&ui, mode));
+    if mode == Mode::Desktop && native {
+        shell::thunar::ensure_wallpaper_action();
+    }
     users::install(&ui, mode);
+    shell::calendar::install(&ui, mode);
     timers.extend(printers::install(&ui, mode));
     Ok((ui, timers))
 }
@@ -132,7 +136,7 @@ pub fn renderer_for(
         // página Aparência, alta, travava no renderer de software).
         _ if hardware_gl => Some("femtovg"),
         // A dock em janela própria só abre com placa de vídeo (src/shell/dock.rs).
-        _ if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Dock | Mode::Switcher | Mode::DockMenu) => {
+        _ if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Calendar | Mode::Dock | Mode::Switcher | Mode::DockMenu) => {
             Some("femtovg")
         }
         _ => Some("software"),
@@ -209,7 +213,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
     }
     // Menu de apps e painel rápido: já no tamanho da tela (ver
     // `outputs::primary_size`).
-    if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::DockMenu) && session::is_native() {
+    if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Calendar | Mode::DockMenu) && session::is_native() {
         if let Some((w, h)) = outputs::primary_size() {
             ui.window().set_size(slint::LogicalSize::new(w as f32, h as f32));
         }

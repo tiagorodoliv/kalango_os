@@ -1200,3 +1200,10 @@ msgstr "IP ou nome na rede, ex.: 192.168.0.50"
 
 msgid "Add by address"
 msgstr "Adicionar pelo endereço"
+
+# Calendário do relógio (src/shell/calendar.rs)
+msgid "Today"
+msgstr "Hoje"
+
+msgid "Open Calendar"
+msgstr "Abrir Agenda"

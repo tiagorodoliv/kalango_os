@@ -1,0 +1,14 @@
+#!/bin/sh
+# Kalango OS: esconde o "Set as wallpaper" do próprio Thunar.
+#
+# O plugin thunar-wallpaper-plugin só sabe trocar o papel de parede do Xfce,
+# do GNOME e de poucos outros; no labwc o item aparece no botão direito e não
+# faz nada. A área de trabalho põe no lugar a ação "Definir como papel de
+# parede" (src/shell/thunar.rs → kalango-shell --papel-de-parede). O
+# dpkg-divert mantém o arquivo fora do lugar mesmo depois de atualizar o Thunar.
+set -e
+
+PLUGIN=/usr/lib/x86_64-linux-gnu/thunarx-3/thunar-wallpaper-plugin.so
+if [ -e "$PLUGIN" ] || dpkg -S "$PLUGIN" >/dev/null 2>&1; then
+	dpkg-divert --local --rename --divert "$PLUGIN.desativado" --add "$PLUGIN"
+fi
