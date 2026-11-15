@@ -1,0 +1,15 @@
+#!/bin/sh
+# KalangOS: sem o texto do Debian ao entrar pelo terminal (SSH, console). A
+# ficha do sistema (kalango-ficha, no ~/.zshrc) já mostra o que importa.
+#   - /etc/motd ("The programs included with the Debian GNU/Linux system...")
+#     fica vazio;
+#   - /etc/update-motd.d/10-uname ("Linux hp 6.12...") é desviado pelo
+#     dpkg-divert: o run-parts não roda nomes com ponto e uma atualização do
+#     base-files grava no nome desviado, sem voltar.
+# O 85-fwupd continua (só fala quando há firmware para atualizar).
+set -e
+
+: >/etc/motd
+if [ -e /etc/update-motd.d/10-uname ] || ! dpkg-divert --list /etc/update-motd.d/10-uname | grep -q .; then
+	dpkg-divert --local --rename --divert /etc/update-motd.d/10-uname.kalango --add /etc/update-motd.d/10-uname
+fi

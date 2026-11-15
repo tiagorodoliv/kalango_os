@@ -61,7 +61,11 @@ i=0
 while [ "$i" -le "$LINHAS" ]; do printf '\n'; i=$((i + 1)); done
 printf '\033[%dA' "$LINHAS"
 printf '\0337'
-chafa $formato --size="${COLUNAS}x${LINHAS}" --animate=off --polite=on "$ICONE" 2>/dev/null
+# Em símbolos: com os sextantes (6 pixels por caractere) e sem transparência
+# (-t 1, misturada no fundo escuro): os cantos arredondados do ícone saíam
+# como pedaços na cor do texto do terminal.
+chafa $formato --symbols=block+border+space+sextant --bg=07090d -t 1 \
+	--size="${COLUNAS}x${LINHAS}" --animate=off --polite=on "$ICONE" 2>/dev/null
 printf '\0338'
 # Logotipo "vazio" de COLUNAS espaços: o fastfetch mede a largura pelo
 # conteúdo (o --logo-width não vale para data-raw).
