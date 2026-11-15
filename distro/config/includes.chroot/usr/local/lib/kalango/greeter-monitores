@@ -1,0 +1,45 @@
+#!/bin/sh
+# Monitor da tela de login (KalangOS). Roda dentro do labwc do greeter, antes
+# da janela do kalango-shell --greeter aparecer.
+#
+# Sem isto o labwc abria a tela de login no monitor do notebook: com um
+# monitor externo ligado (e a tampa fechada, muitas vezes), a pessoa só via o
+# fundo vazio e não tinha onde digitar a senha.
+#
+# Com um monitor externo:
+#   - a tela de login vai para ele (regra MoveToOutput no rc.xml do greeter,
+#     que o kalango-greeter copiou para uma pasta gravável);
+#   - com a tampa fechada, a tela do notebook é desligada (o ponteiro não se
+#     perde nela).
+# A escolha de monitor principal feita na sessão (~/.config/kalango) não vale
+# aqui: o greeter roda como _greetd e não lê a pasta das pessoas.
+#
+# Uso: greeter-monitores <pasta da configuração do labwc do greeter>
+
+RC="$1/rc.xml"
+command -v wlr-randr >/dev/null 2>&1 || exit 0
+[ -w "$RC" ] || exit 0
+
+# Saídas ligadas, uma por linha ("HDMI-A-1", "eDP-1").
+ligadas=$(wlr-randr 2>/dev/null | awk '/^[^ ]/ { nome = $1 } /^  Enabled: yes/ { print nome }')
+interna=$(printf '%s\n' "$ligadas" | grep -E '^(eDP|LVDS|DSI)' | head -n 1)
+externa=$(printf '%s\n' "$ligadas" | grep -vE '^(eDP|LVDS|DSI)' | grep . | head -n 1)
+[ -n "$externa" ] || exit 0
+
+tampa_fechada() {
+	for f in /proc/acpi/button/lid/*/state; do
+		[ -r "$f" ] && grep -q closed "$f" && return 0
+	done
+	return 1
+}
+
+if [ -n "$interna" ] && tampa_fechada; then
+	wlr-randr --output "$interna" --off
+fi
+
+# A regra precisa vir antes do ToggleFullscreen: a tela cheia usa o monitor
+# em que a janela está.
+sed -i "s|<windowRule identifier=\"kalango-greeter\"\([^>]*\)>|&\n      <action name=\"MoveToOutput\" output=\"$externa\" />|" "$RC"
+labwc --reconfigure
+# O labwc relê a configuração no laço dele; espera antes de a janela abrir.
+sleep 0.3

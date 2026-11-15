@@ -14,4 +14,8 @@ fi
 kalango_regiao
 # Assento pelo logind, como as sessões (ver kalango-session).
 export LIBSEAT_BACKEND=logind
-exec labwc -C /etc/kalango/greeter -s 'sh -c "kalango-shell --greeter; labwc --exit"'
+# Cópia gravável da configuração: o greeter-monitores põe nela o monitor da
+# tela de login (o externo, se houver) antes de a janela abrir.
+CONF=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/kalango-greeter.XXXXXX") &&
+	cp -r /etc/kalango/greeter/. "$CONF/" || CONF=/etc/kalango/greeter
+exec labwc -C "$CONF" -s "sh -c '/usr/local/lib/kalango/greeter-monitores \"$CONF\"; kalango-shell --greeter; labwc --exit'"
