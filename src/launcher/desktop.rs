@@ -378,9 +378,14 @@ pub fn find_themed_icon(icon: &str, theme: &str, dirs: &[PathBuf]) -> Option<Pat
         if name == "hicolor" {
             hicolor_done = true;
         }
-        let Some(index) = roots
+        // Só as raízes que têm este tema: sem isso cada pasta do tema era
+        // procurada também em ~/.local/share/icons, no Flatpak... (18 mil
+        // stat ao abrir as Configurações, ~0,2 s, quase tudo em pastas que
+        // não existem).
+        let theme_roots: Vec<PathBuf> = roots.iter().map(|r| r.join(&name)).filter(|p| p.is_dir()).collect();
+        let Some(index) = theme_roots
             .iter()
-            .map(|r| r.join(&name).join("index.theme"))
+            .map(|r| r.join("index.theme"))
             .find(|p| p.is_file())
             .and_then(|p| fs::read_to_string(p).ok())
         else {
@@ -393,8 +398,8 @@ pub fn find_themed_icon(icon: &str, theme: &str, dirs: &[PathBuf]) -> Option<Pat
             if best.as_ref().is_some_and(|(s, _)| *s <= score) {
                 continue;
             }
-            for root in &roots {
-                let base = root.join(&name).join(&dir.path);
+            for root in &theme_roots {
+                let base = root.join(&dir.path);
                 let found = ["svg", "png"]
                     .iter()
                     .map(|ext| base.join(format!("{icon}.{ext}")))

@@ -63,11 +63,30 @@ pub fn admins(group: &str) -> HashSet<String> {
         .unwrap_or_default()
 }
 
-/// Logins com sessão aberta (`loginctl list-sessions`).
+/// Logins com sessão aberta (gráfica, console ou SSH), pelos arquivos de
+/// `/run/systemd/sessions` (o mesmo que o `loginctl list-sessions` mostra;
+/// chamar o `loginctl` segurava a abertura das Configurações ~0,1 s).
 fn signed_in() -> HashSet<String> {
-    crate::settings::device::output("loginctl", &["list-sessions", "--no-legend"])
-        .map(|text| text.lines().filter_map(|l| l.split_whitespace().nth(2)).map(String::from).collect())
-        .unwrap_or_default()
+    let Ok(dir) = std::fs::read_dir("/run/systemd/sessions") else { return HashSet::new() };
+    let texts: Vec<String> = dir
+        .flatten()
+        .filter(|e| !e.file_name().to_string_lossy().contains('.'))
+        .filter_map(|e| std::fs::read_to_string(e.path()).ok())
+        .collect();
+    users_with_sessions(texts.iter().map(String::as_str))
+}
+
+/// Logins das sessões de pessoas que não estão encerrando (arquivos de
+/// `/run/systemd/sessions`).
+pub fn users_with_sessions<'a>(files: impl IntoIterator<Item = &'a str>) -> HashSet<String> {
+    let field = |text: &'a str, key: &str| -> Option<&'a str> {
+        text.lines().find_map(|l| l.strip_prefix(key)?.strip_prefix('=')).map(str::trim)
+    };
+    files
+        .into_iter()
+        .filter(|t| field(t, "CLASS") == Some("user") && field(t, "STATE") != Some("closing"))
+        .filter_map(|t| field(t, "USER").map(String::from))
+        .collect()
 }
 
 /// Login válido para o `useradd` (o mesmo teste do `kalango-usuarios`).
@@ -454,6 +473,16 @@ mod tests {
                           nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\n\
                           maria:x:1001:1001::/home/maria:/bin/bash\n\
                           svc:x:1002:1002::/srv:/usr/sbin/nologin\n";
+
+    #[test]
+    fn sessoes_abertas() {
+        let grafica = "UID=1000\nUSER=ana\nACTIVE=1\nSTATE=active\nCLASS=user\nSERVICE=greetd\n";
+        let ssh = "UID=1001\nUSER=joao\nSTATE=online\nCLASS=user\nSERVICE=sshd\n";
+        let saindo = "UID=1002\nUSER=bia\nSTATE=closing\nCLASS=user\n";
+        let greeter = "UID=101\nUSER=_greetd\nSTATE=online\nCLASS=greeter\n";
+        let s = users_with_sessions([grafica, ssh, saindo, greeter]);
+        assert!(s.contains("ana") && s.contains("joao") && s.len() == 2);
+    }
 
     #[test]
     fn contas_de_pessoas() {

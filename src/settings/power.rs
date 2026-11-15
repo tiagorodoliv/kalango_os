@@ -186,27 +186,49 @@ fn install_settings(ui: &AppWindow) {
     pw.set_lid_ac(pos(&LID_ACTIONS, &lid_ac));
     pw.set_power_button(pos(&BUTTON_ACTIONS, &button));
 
-    // Modo de energia (sem o power-profiles-daemon, a seção some).
-    if let Some(list) = command_ok("powerprofilesctl", &["list"]) {
-        pw.set_profiles_available(true);
-        pw.set_has_performance(list.contains("performance:"));
-        if let Some(cur) = command_ok("powerprofilesctl", &["get"]) {
-            pw.set_profile(PROFILES.iter().position(|p| *p == cur.trim()).unwrap_or(1) as i32);
-        }
-    }
+    // Modo de energia (sem o power-profiles-daemon, a seção some). Numa
+    // thread: o powerprofilesctl é um script Python e leva ~0,8 s para as duas
+    // leituras; feitas aqui, seguravam a janela inteira das Configurações.
+    let weak = ui.as_weak();
+    std::thread::spawn(move || {
+        let Some(list) = command_ok("powerprofilesctl", &["list"]) else { return };
+        let current = command_ok("powerprofilesctl", &["get"]);
+        let _ = slint::invoke_from_event_loop(move || {
+            let Some(ui) = weak.upgrade() else { return };
+            let pw = ui.global::<Power>();
+            pw.set_profiles_available(true);
+            pw.set_has_performance(list.contains("performance:"));
+            if let Some(cur) = current {
+                pw.set_profile(PROFILES.iter().position(|p| *p == cur.trim()).unwrap_or(1) as i32);
+            }
+        });
+    });
     let weak = ui.as_weak();
     pw.on_set_profile(move |i| {
         let Some(name) = PROFILES.get(i.max(0) as usize) else { return };
-        let ok = command_ok("powerprofilesctl", &["set", name]).is_some();
-        if let Some(ui) = weak.upgrade() {
+        // Mostra a escolha na hora; o powerprofilesctl roda numa thread.
+        let before = weak.upgrade().map(|ui| {
             let pw = ui.global::<Power>();
-            if ok {
-                pw.set_profile(i);
-                pw.set_message("".into());
-            } else {
-                pw.set_message(tr("Could not change the power mode.", "Não deu para trocar o modo de energia.").into());
-            }
-        }
+            let before = pw.get_profile();
+            pw.set_profile(i);
+            before
+        });
+        let weak = weak.clone();
+        std::thread::spawn(move || {
+            let ok = command_ok("powerprofilesctl", &["set", name]).is_some();
+            let _ = slint::invoke_from_event_loop(move || {
+                let Some(ui) = weak.upgrade() else { return };
+                let pw = ui.global::<Power>();
+                if ok {
+                    pw.set_message("".into());
+                } else {
+                    if let Some(b) = before {
+                        pw.set_profile(b);
+                    }
+                    pw.set_message(tr("Could not change the power mode.", "Não deu para trocar o modo de energia.").into());
+                }
+            });
+        });
     });
 
     let weak = ui.as_weak();
