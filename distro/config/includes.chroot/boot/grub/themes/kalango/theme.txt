@@ -1,0 +1,64 @@
+# Tema do GRUB do Kalango OS (gerado por distro/grub/gerar-tema.py).
+# Ícones por classe da entrada em icons/ (kalango = o próprio sistema).
+title-text: ""
+desktop-image: "background.png"
+desktop-color: "#07090d"
+terminal-font: "JetBrains Mono Regular 18"
+terminal-box: "terminal_box_*.png"
+terminal-left: "10%"
+terminal-top: "12%"
+terminal-width: "80%"
+terminal-height: "76%"
+
++ image {
+    left = 50%-240
+    top = 9%
+    width = 480
+    height = 160
+    file = "logo.png"
+}
+
++ boot_menu {
+    left = 50%-380
+    top = 34%
+    width = 760
+    height = 44%
+    item_font = "Inter Regular 22"
+    selected_item_font = "Inter Bold 22"
+    item_color = "#c9d2de"
+    selected_item_color = "#ffffff"
+    icon_width = 44
+    icon_height = 44
+    item_icon_space = 18
+    item_height = 60
+    item_padding = 0
+    item_spacing = 12
+    selected_item_pixmap_style = "select_*.png"
+    scrollbar = true
+    scrollbar_width = 6
+    scrollbar_thumb = "barra_*.png"
+}
+
+# Contagem até iniciar a entrada escolhida (some ao apertar uma tecla).
+# Sem barra: o GRUB ignora a altura da progress_bar e ela saía grossa.
++ label {
+    id = "__timeout__"
+    left = 50%-200
+    top = 100%-96
+    width = 400
+    height = 24
+    align = "center"
+    font = "Inter Regular 16"
+    color = "#3dd6f5"
+    text = "%d s"
+}
+
++ label {
+    left = 0
+    top = 100%-48
+    width = 100%
+    align = "center"
+    font = "Inter Regular 16"
+    color = "#8b98a5"
+    text = "↑ ↓   •   Enter   •   E: editar / edit   •   C: comandos / command line"
+}
