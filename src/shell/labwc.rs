@@ -183,6 +183,9 @@ struct Wanted {
     primary: Option<(String, i32, i32)>,
     /// Monitores extras (nome e origem) com janela de fundo.
     backgrounds: Vec<(String, i32, i32)>,
+    /// Botões das janelas (`src/settings/window_buttons.rs`): nome do tema
+    /// do labwc e ordem dos botões. `None` = os do labwc.
+    window_theme: Option<(String, String)>,
 }
 
 static WANTED: std::sync::Mutex<Option<Wanted>> = std::sync::Mutex::new(None);
@@ -205,6 +208,22 @@ pub fn set_dock_margins(margins: Margins) {
 /// sistema. Devolve se o `rc.xml` ficou como pedido (a dock pode ser aberta).
 pub fn set_dock_geometry(position: Option<DockGeometry>) -> bool {
     update(|w| w.dock = position)
+}
+
+/// Tema dos botões das janelas e a ordem deles na barra de título (`None` =
+/// os padrões do labwc).
+pub fn set_window_theme(theme: Option<(String, String)>) -> bool {
+    update(|w| w.window_theme = theme)
+}
+
+/// `<theme>` com o nome do tema e a ordem dos botões (`<titlebar><layout>`).
+pub fn set_theme(xml: &str, name: &str, layout: &str) -> Option<String> {
+    let at = xml.find("<theme>")? + "<theme>".len();
+    let insert = format!(
+        "\n    <!-- Botões das janelas (Configurações → Aparência). -->\n    <name>{name}</name>\n    \
+         <titlebar><layout>{layout}</layout></titlebar>"
+    );
+    Some(format!("{}{}{}", &xml[..at], insert, &xml[at..]))
 }
 
 /// Monitores (`src/shell/outputs.rs`): o principal e os extras com fundo. Devolve
@@ -241,6 +260,9 @@ fn build(system_xml: &str, w: &Wanted) -> Option<String> {
     }
     if let Some(g) = w.dock {
         xml = replace_dock_geometry(&xml, g)?;
+    }
+    if let Some((name, layout)) = &w.window_theme {
+        xml = set_theme(&xml, name, layout)?;
     }
     if !w.backgrounds.is_empty() {
         let at = xml.rfind("</windowRules>")?;

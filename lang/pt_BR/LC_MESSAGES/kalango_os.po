@@ -1232,3 +1232,19 @@ msgstr "Reiniciar agora"
 
 msgid "AVAILABLE"
 msgstr "DISPONÍVEIS"
+
+# Aparência → Botões das janelas (src/settings/window_buttons.rs)
+msgid "WINDOW BUTTONS"
+msgstr "BOTÕES DAS JANELAS"
+
+msgid "Circles"
+msgstr "Círculos"
+
+msgid "Rounded"
+msgstr "Arredondados"
+
+msgid "Accent"
+msgstr "Destaque"
+
+msgid "Rectangular"
+msgstr "Retangulares"

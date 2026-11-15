@@ -53,6 +53,8 @@ pub struct Prefs {
     pub wallpaper_file: String,
     /// Família de ícones: 0 = Flat Remix, 1 = Colloid, 2 = Fluent.
     pub icon_theme: i32,
+    /// Botões das janelas ([`crate::settings::window_buttons::STYLES`]).
+    pub window_buttons: i32,
 }
 
 /// Nomes da borda da dock no arquivo (índice = `dock_position`).
@@ -158,6 +160,11 @@ fn sync_system(ui: &AppWindow, now: &Prefs, before: Option<&Prefs>) {
     if before.is_none_or(|b| b.accent_index != now.accent_index) {
         sync_gtk_accent(now.accent_index);
     }
+    // Botões das janelas (o estilo "destaque" segue a cor de destaque).
+    if before.is_none_or(|b| b.window_buttons != now.window_buttons || b.accent_index != now.accent_index) {
+        let accent = ACCENTS[now.accent_index.clamp(0, ACCENTS.len() as i32 - 1) as usize];
+        crate::settings::window_buttons::apply(now.window_buttons, accent);
+    }
     if before.is_none_or(|b| b.accent_index != now.accent_index || b.icon_theme != now.icon_theme) {
         let theme = sync_icon_theme(now.icon_theme, now.accent_index);
         // Dock e menu desta janela com os ícones do tema novo.
@@ -212,6 +219,7 @@ impl Prefs {
             wallpaper: t.get_wallpaper(),
             wallpaper_file: t.get_wallpaper_file().into(),
             icon_theme: t.get_icon_theme(),
+            window_buttons: t.get_window_buttons(),
         }
     }
 
@@ -236,6 +244,7 @@ impl Prefs {
         t.set_wallpaper(self.wallpaper);
         t.set_wallpaper_file(self.wallpaper_file.clone().into());
         t.set_icon_theme(self.icon_theme);
+        t.set_window_buttons(self.window_buttons);
     }
 
     /// Margens que o labwc reserva para a dock na borda dela: a espessura da
@@ -272,7 +281,7 @@ impl Prefs {
              # Barra de tarefas\n\
              barra-data={}\nbarra-segundos={}\nbarra-cpu={}\nbarra-bateria={}\n\
              dock-tamanho={}\ndock-apps={}\ndock-posicao={}\ndock-estilo={}\ndock-transparencia={}\n\
-             papel-de-parede={}\npapel-de-parede-arquivo={}\nicones={}\n",
+             papel-de-parede={}\npapel-de-parede-arquivo={}\nicones={}\nbotoes-janela={}\n",
             self.accent_index,
             mode,
             self.transparency,
@@ -291,6 +300,8 @@ impl Prefs {
             crate::shell::wallpaper::name(self.wallpaper),
             self.wallpaper_file,
             ICON_FAMILIES[self.icon_theme.clamp(0, 2) as usize],
+            crate::settings::window_buttons::STYLES
+                [self.window_buttons.clamp(0, crate::settings::window_buttons::STYLES.len() as i32 - 1) as usize],
         )
     }
 
@@ -366,6 +377,11 @@ impl Prefs {
                     }
                 }
                 "papel-de-parede-arquivo" => p.wallpaper_file = value.to_string(),
+                "botoes-janela" => {
+                    if let Some(i) = crate::settings::window_buttons::STYLES.iter().position(|s| *s == value) {
+                        p.window_buttons = i as i32;
+                    }
+                }
                 "dock-apps" => {
                     let ids = crate::launcher::apps::dock_ids(value);
                     if !ids.is_empty() {
@@ -516,6 +532,7 @@ mod tests {
             wallpaper: 1,
             wallpaper_file: String::new(),
             icon_theme: 0,
+            window_buttons: 0,
         }
     }
 
@@ -540,6 +557,7 @@ mod tests {
             wallpaper: 0,
             wallpaper_file: String::new(),
             icon_theme: 2,
+            window_buttons: 0,
         };
         assert_eq!(Prefs::parse(&p.to_text(), &padrao()), p);
     }

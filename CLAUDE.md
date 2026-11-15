@@ -184,6 +184,15 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   com o CUPS; os outros pelo `pkexec /usr/local/sbin/kalango-impressoras` (`org.kalango.impressoras`).
   "Opções avançadas" = `system-config-printer`. Drivers: hplip, escpr (Epson), brlaser, gutenprint. Teste:
   `ippeveprinter` (cups-ipp-utils) simula uma impressora IPP na rede.
+- **Novidades de 2026-11-15:** calendário ao clicar no relógio (`--calendario`, `src/shell/calendar.rs`, regra
+  `kalango-calendario`); Atualizações sem terminal (`src/settings/updates.rs`, `pkexec kalango-atualizar
+  procurar|instalar`, progresso pelo `APT::Status-Fd`, selo na barra lateral); botões das janelas por estilo
+  (`src/settings/window_buttons.rs`: SVGs em `~/.local/share/themes/Kalango-Janelas/openbox-3/` + `<name>` e
+  `<titlebar><layout>` no rc.xml do usuário; `botoes-janela=` no aparencia.conf); "Definir como papel de parede" no
+  Thunar (`src/shell/thunar.rs` grava a ação no `uca.xml`; o plugin do próprio Thunar sai pelo hook `0150`).
+  **Sessões sempre pelo logind** (`LIBSEAT_BACKEND=logind` no kalango-session e no kalango-greeter): com o seatd
+  instalado, quem está no grupo video ia para o seatd e a sessão aberta por "Trocar de usuário" caía. Saída do labwc
+  no journal (`journalctl -t labwc`).
 - **Energia (2026-11-14):** `src/settings/power.rs` + global `Power`: modo (`powerprofilesctl`), apagar a tela/bloquear/
   suspender na bateria e na tomada (`~/.config/kalango/energia.conf`; a área de trabalho roda o `swayidle` com
   `wlopm` e troca ao mudar a escolha ou o carregador; pidfile `kalango-swayidle.pid`), tampa e botão de ligar pelo

@@ -60,6 +60,9 @@ export global Theme {
     in-out property <int> wallpaper: 1;
     /// Imagem própria (`wallpaper` = 8): a cópia reduzida que o Rust gravou.
     in-out property <string> wallpaper-file: "";
+    /// Botões das janelas: 0 padrão, 1 círculos, 2 arredondados, 3 destaque,
+    /// 4 retangulares (`src/settings/window_buttons.rs`).
+    in-out property <int> window-buttons: 0;
     out property <[string]> wallpaper-names: [@tr("Circuits"), @tr("Black and blue"), @tr("Black"), @tr("Blue"), @tr("Green"), @tr("Purple"), @tr("Orange"), @tr("White")];
     /// Ids dos apps da dock, separados por vírgula, na ordem exibida
     /// (Configurações fica sempre no fim, depois do separador).

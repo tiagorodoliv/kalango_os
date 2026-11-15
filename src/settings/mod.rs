@@ -11,7 +11,8 @@
 //! - [`updates`]: atualizações do sistema e dos apps, sem terminal;
 //! - [`sharing`]: pastas na rede local (Samba) e computadores da rede;
 //! - [`region`]: idioma e teclado;
-//! - [`terminal`]: temas do terminal (foot).
+//! - [`terminal`]: temas do terminal (foot);
+//! - [`window_buttons`]: botões das janelas (fechar, maximizar) por estilo.
 
 pub mod appearance;
 pub mod bluetooth;
@@ -25,3 +26,4 @@ pub mod sharing;
 pub mod terminal;
 pub mod updates;
 pub mod users;
+pub mod window_buttons;

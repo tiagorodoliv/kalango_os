@@ -251,6 +251,65 @@ component TerminalCard inherits Rectangle {
     }
 }
 
+/// Miniatura de uma barra de título com os botões de um estilo
+/// (`src/settings/window_buttons.rs`).
+component TitlebarPreview inherits Rectangle {
+    in property <int> style;
+    height: 26px;
+    border-radius: 6px;
+    background: #0d1218;
+    border-width: 1px;
+    border-color: #1e2a33;
+    property <[string]> glyphs: ["–", "□", "✕"];
+    property <[color]> mac: [#febc2e, #28c840, #ff5f57];
+    // Título.
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        width: 22%;
+        height: 4px;
+        border-radius: 2px;
+        background: #e6edf3.with-alpha(0.35);
+    }
+    // Círculos à esquerda (fechar primeiro, como no macOS).
+    if root.style == 1: HorizontalLayout {
+        x: 8px;
+        spacing: 6px;
+        alignment: start;
+        for c[i] in [root.mac[2], root.mac[0], root.mac[1]]: Rectangle {
+            y: 7px;
+            width: 12px;
+            height: 12px;
+            border-radius: 6px;
+            background: c;
+        }
+    }
+    if root.style != 1: HorizontalLayout {
+        x: parent.width - self.preferred-width - (root.style == 4 ? 0px : 6px);
+        width: self.preferred-width;
+        spacing: root.style == 4 ? 0px : 2px;
+        for g[i] in root.glyphs: Rectangle {
+            width: root.style == 4 ? 30px : 20px;
+            height: 26px;
+            border-radius: root.style == 4 ? 0px : 10px;
+            background: root.style == 2 ? #ffffff1c
+                : root.style == 4 && i == 2 ? #e81123 : transparent;
+            Rectangle {
+                width: 18px;
+                height: 18px;
+                border-radius: 9px;
+                background: root.style == 2 ? #ffffff1c : transparent;
+                visible: false;
+            }
+            Text {
+                text: g;
+                color: root.style == 3 ? Theme.accent : #e6edf3;
+                font-size: 11px;
+                font-weight: 600;
+            }
+        }
+    }
+}
+
 /// Página Aparência. Responsiva: os cards encolhem e as miniaturas de papel
 /// de parede quebram linha quando a janela é estreita.
 component AppearancePage inherits Rectangle {
@@ -535,6 +594,46 @@ component AppearancePage inherits Rectangle {
                     TouchArea {
                         mouse-cursor: pointer;
                         clicked => { Theme.icon-theme = i; }
+                    }
+                }
+            }
+
+            // --- Botões das janelas (fechar, maximizar, minimizar) ---
+            Rectangle { height: 22px; }
+            SectionLabel { text: @tr("WINDOW BUTTONS"); }
+            Rectangle { height: 10px; }
+            buttons-grid := Rectangle {
+                property <[string]> names: [@tr("Default"), @tr("Circles"), @tr("Rounded"), @tr("Accent"), @tr("Rectangular")];
+                // Cartões de 150×78 em grade: quantos couberem por linha.
+                property <int> cols: max(1, floor((col.w + 12px) / 162px));
+                height: ceil(self.names.length / self.cols) * 90px - 12px;
+                for nome[i] in self.names: Rectangle {
+                    x: Math.mod(i, buttons-grid.cols) * 162px;
+                    y: floor(i / buttons-grid.cols) * 90px;
+                    width: 150px;
+                    height: 78px;
+                    border-radius: Theme.radius;
+                    background: Theme.panel;
+                    border-width: Theme.window-buttons == i ? 2px : 1px;
+                    border-color: Theme.window-buttons == i ? Theme.accent : Theme.border;
+                    TitlebarPreview {
+                        x: 12px;
+                        y: 12px;
+                        width: parent.width - 24px;
+                        style: i;
+                    }
+                    Text {
+                        y: 50px;
+                        x: 12px;
+                        text: nome;
+                        color: Theme.text;
+                        font-family: Theme.sans;
+                        font-size: 13.5px;
+                        font-weight: Theme.window-buttons == i ? 600 : 400;
+                    }
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { Theme.window-buttons = i; }
                     }
                 }
             }
