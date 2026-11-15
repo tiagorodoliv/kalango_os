@@ -140,7 +140,12 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
         "music" => vec!["parole".into()],
         "monitor" => vec!["foot".into(), "--title=Monitor".into(), "htop".into()],
         // Ícones de Wi-Fi e volume da barra superior.
-        "network" => vec!["foot".into(), format!("--title={}", tr("Network & Wi-Fi", "Rede e Wi-Fi")), "nmtui".into()],
+        // Editor gráfico do NetworkManager (opções raras: 802.1X, VLAN, ponte...);
+        // sem ele, o nmtui no terminal.
+        "network" => match find_in_path("nm-connection-editor") {
+            Some(_) => vec!["nm-connection-editor".into()],
+            None => vec!["foot".into(), format!("--title={}", tr("Network & Wi-Fi", "Rede e Wi-Fi")), "nmtui".into()],
+        },
         "sound" => vec!["pavucontrol".into()],
         // Rodapé do menu de apps. O kalango-bloquear (gtklock) usa o protocolo
         // de bloqueio do Wayland (ext-session-lock): nenhuma janela aparece por
@@ -514,7 +519,8 @@ mod tests {
         let code = command_for("code").unwrap();
         assert!(code == ["geany"] || code == ["mousepad"]);
         assert_eq!(command_for("documents").unwrap()[0], "thunar");
-        assert_eq!(command_for("network").unwrap().last().unwrap(), "nmtui");
+        let network = command_for("network").unwrap();
+        assert!(network == ["nm-connection-editor"] || network.last().unwrap() == "nmtui");
         assert_eq!(command_for("store").unwrap(), ["gnome-software"]);
         assert_eq!(command_for("installer").unwrap(), ["kalango-instalar"]);
         assert!(command_for("inexistente").is_none());

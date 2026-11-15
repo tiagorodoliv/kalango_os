@@ -171,6 +171,29 @@ fn main() {
         d.set_ip_mask("255.255.255.0".into());
         d.set_ip_gateway("192.168.1.1".into());
         d.set_ip_dns("8.8.8.8, 1.1.1.1".into());
+        // Painel "Detalhes" de um Wi-Fi em uso (IP automático).
+        let rows: Vec<kalango_os::InfoItem> = [
+            ("Signal", "Good (68%)"),
+            ("Link speed", "270 Mb/s"),
+            ("Security", "WPA2 / WPA3"),
+            ("Band", "5 GHz"),
+            ("IPv4 address", "192.168.1.50"),
+            ("Router", "192.168.1.1"),
+            ("DNS", "192.168.1.1"),
+            ("Hardware address", "AA:BB:CC:DD:EE:FF"),
+        ]
+        .into_iter()
+        .map(|(l, v)| kalango_os::InfoItem { label: l.into(), value: v.into() })
+        .collect();
+        d.set_conn_details(slint::ModelRc::new(slint::VecModel::from(rows)));
+        d.set_conn_kind("wifi".into());
+        d.set_conn_active(true);
+        d.set_conn_secured(true);
+        d.set_ip_manual(false);
+        window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (1100.0 * SCALE) as u32));
+        ui.set_settings_page(0);
+        save(&window, &out.join("config_rede_detalhes.png"));
+        d.set_ip_manual(true);
         d.set_vpn_form(1);
         window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (1500.0 * SCALE) as u32));
         ui.set_settings_page(0);

@@ -79,6 +79,8 @@ calamares-settings-debian
 
 # Rede e som (Wi-Fi da barra abre o nmtui; volume abre o pavucontrol)
 network-manager
+# Configurações → Rede → Avançado (editor gráfico das conexões)
+nm-connection-editor
 # VPN: OpenVPN e WireGuard pelo NetworkManager (Configurações → Rede → VPN);
 # wireguard-tools gera as chaves e o zenity abre a janela de escolher arquivo
 network-manager-openvpn

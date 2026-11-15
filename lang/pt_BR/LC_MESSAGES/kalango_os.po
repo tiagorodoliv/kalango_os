@@ -1293,3 +1293,63 @@ msgstr "Transparência dos ícones"
 
 msgid "The icons become solid under the mouse"
 msgstr "Com o mouse em cima, o ícone fica opaco"
+
+msgid "Details"
+msgstr "Detalhes"
+
+msgid "Status"
+msgstr "Estado"
+
+msgid "Not connected now"
+msgstr "Não está conectada agora"
+
+msgid "Connect automatically"
+msgstr "Conectar automaticamente"
+
+msgid "Join this network whenever it is in range."
+msgstr "Entrar nesta rede sempre que ela estiver por perto."
+
+msgid "Connect as soon as the cable is plugged in."
+msgstr "Conectar assim que o cabo for ligado."
+
+msgid "Metered connection"
+msgstr "Conexão limitada"
+
+msgid "Mobile data or phone hotspot: avoid large downloads in the background."
+msgstr "Dados móveis ou roteador do celular: evita downloads grandes em segundo plano."
+
+msgid "Hide"
+msgstr "Esconder"
+
+msgid "Show"
+msgstr "Mostrar"
+
+msgid "Yes, forget it"
+msgstr "Sim, esquecer"
+
+msgid "Forget network"
+msgstr "Esquecer rede"
+
+msgid "Remove connection"
+msgstr "Remover conexão"
+
+msgid "The saved password will be erased."
+msgstr "A senha salva será apagada."
+
+msgid "Its settings will be erased."
+msgstr "As configurações dela serão apagadas."
+
+msgid "Hidden network..."
+msgstr "Rede oculta..."
+
+msgid "Connect to a hidden network"
+msgstr "Conectar a uma rede oculta"
+
+msgid "Network name"
+msgstr "Nome da rede"
+
+msgid "Exactly as set on the router"
+msgstr "Exatamente como está no roteador"
+
+msgid "Leave empty for an open network"
+msgstr "Deixe vazio se a rede for aberta"

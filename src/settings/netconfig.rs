@@ -24,7 +24,7 @@ use slint::{ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel, 
 
 use crate::settings::device::split_terse;
 use crate::common::i18n::tr;
-use crate::{AppWindow, Device, Mode, NetConnection, VpnConnection};
+use crate::{AppWindow, Device, InfoItem, Mode, NetConnection, VpnConnection};
 
 /// Intervalo entre as leituras da lista de conexões.
 const INTERVAL: Duration = Duration::from_secs(3);
@@ -378,6 +378,171 @@ fn quote_path(p: &str) -> String {
 // Conexões salvas
 // ---------------------------------------------------------------------------
 
+/// Detalhes de uma conexão para o painel "Detalhes" (como no Ubuntu).
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct ConnDetails {
+    /// A conexão está em uso agora.
+    pub active: bool,
+    pub autoconnect: bool,
+    /// `connection.metered` = yes.
+    pub metered: bool,
+    /// Wi-Fi com senha pessoal (WPA/WPA2/WPA3).
+    pub secured: bool,
+    /// Nome da rede Wi-Fi (pode ser diferente do nome da conexão).
+    pub ssid: String,
+    /// Interface em uso ("wlp2s0").
+    pub device: String,
+    pub ipv4: String,
+    pub ipv6: String,
+    pub gateway: String,
+    pub dns: String,
+    pub hwaddr: String,
+    /// Velocidade do link ("1000 Mb/s", "270 Mbit/s").
+    pub speed: String,
+    /// Sinal do Wi-Fi, 0–100.
+    pub signal: Option<u8>,
+    /// Frequência do Wi-Fi em MHz.
+    pub freq: Option<u32>,
+    /// Segurança do Wi-Fi ("WPA2", "WPA3"...).
+    pub security: String,
+}
+
+/// Lê `nmcli -t -f connection.autoconnect,connection.metered,GENERAL.STATE,
+/// GENERAL.DEVICES,802-11-wireless.ssid,802-11-wireless-security.key-mgmt,
+/// IP4.ADDRESS,IP4.GATEWAY,IP4.DNS,IP6.ADDRESS connection show id <nome>`.
+pub fn parse_conn_details(text: &str) -> ConnDetails {
+    let mut d = ConnDetails { autoconnect: true, ..Default::default() };
+    let mut dns = Vec::new();
+    // Melhor endereço IPv6 visto até agora e a "classe" dele (2 = global).
+    let mut ipv6_link = String::new();
+    let mut ipv6_rank = 0;
+    for line in text.lines() {
+        let f = split_terse(line);
+        if f.len() < 2 {
+            continue;
+        }
+        let value = f[1..].join(":").trim().to_string();
+        // "IP4.DNS[2]" → "IP4.DNS"
+        let key = f[0].split('[').next().unwrap_or("");
+        match key {
+            "connection.autoconnect" => d.autoconnect = value != "no",
+            "connection.metered" => d.metered = value == "yes",
+            "GENERAL.STATE" => d.active = value == "activated",
+            "GENERAL.DEVICES" => d.device = value.split(',').next().unwrap_or("").to_string(),
+            "802-11-wireless.ssid" => d.ssid = value,
+            "802-11-wireless-security.key-mgmt" => d.secured = matches!(value.as_str(), "wpa-psk" | "sae" | "wpa-psk-sae"),
+            "IP4.ADDRESS" if d.ipv4.is_empty() => d.ipv4 = value.split('/').next().unwrap_or("").to_string(),
+            "IP4.GATEWAY" => d.gateway = value,
+            "IP4.DNS" | "IP6.DNS" if !value.is_empty() => dns.push(value),
+            // Prefere o endereço global ao local (fc00::/7) e ao de enlace (fe80::).
+            "IP6.ADDRESS" => {
+                let addr = value.split('/').next().unwrap_or("").to_string();
+                let rank = match addr.get(..2).unwrap_or("") {
+                    "fe" => 0,
+                    "fc" | "fd" => 1,
+                    _ => 2,
+                };
+                if ipv6_link.is_empty() || rank > ipv6_rank {
+                    ipv6_link = addr;
+                    ipv6_rank = rank;
+                }
+            }
+            _ => {}
+        }
+    }
+    d.ipv6 = ipv6_link;
+    d.dns = dns.join(", ");
+    if !d.active {
+        // Sem conexão em uso, os endereços que sobraram são velhos.
+        d.ipv4.clear();
+        d.ipv6.clear();
+        d.gateway.clear();
+        d.dns.clear();
+    }
+    d
+}
+
+/// Completa com `nmcli -t -f GENERAL.HWADDR,CAPABILITIES.SPEED device show <dev>`.
+pub fn apply_device_details(d: &mut ConnDetails, text: &str) {
+    for line in text.lines() {
+        let f = split_terse(line);
+        if f.len() < 2 {
+            continue;
+        }
+        let value = f[1..].join(":").trim().to_string();
+        match f[0].as_str() {
+            "GENERAL.HWADDR" => d.hwaddr = value,
+            "CAPABILITIES.SPEED" if value.chars().next().is_some_and(|c| c.is_ascii_digit()) => d.speed = value,
+            _ => {}
+        }
+    }
+}
+
+/// Completa com a rede em uso de `nmcli -t -f IN-USE,SSID,SIGNAL,FREQ,RATE,SECURITY
+/// device wifi list --rescan no` (sinal, frequência, velocidade, segurança).
+pub fn apply_wifi_details(d: &mut ConnDetails, text: &str) {
+    for line in text.lines() {
+        let f = split_terse(line);
+        if f.len() < 6 || f[0] != "*" || (!d.ssid.is_empty() && f[1] != d.ssid) {
+            continue;
+        }
+        d.signal = f[2].trim().parse().ok();
+        d.freq = f[3].split_whitespace().next().and_then(|v| v.parse().ok());
+        d.speed = f[4].trim().to_string();
+        d.security = f[5].trim().to_string();
+        return;
+    }
+}
+
+/// Faixa do Wi-Fi pela frequência em MHz.
+pub fn wifi_band(mhz: u32) -> &'static str {
+    match mhz {
+        0..=3000 => tr("2.4 GHz", "2,4 GHz"),
+        3001..=5924 => "5 GHz",
+        _ => "6 GHz",
+    }
+}
+
+/// Linhas do painel (rótulo, valor), já no idioma, só as que têm valor.
+pub fn detail_rows(d: &ConnDetails) -> Vec<(String, String)> {
+    let mut rows = Vec::new();
+    if !d.active {
+        return rows;
+    }
+    let mut push = |label: &str, value: String| {
+        if !value.is_empty() {
+            rows.push((label.to_string(), value));
+        }
+    };
+    if let Some(s) = d.signal {
+        let word = match s {
+            75.. => tr("Excellent", "Excelente"),
+            50..=74 => tr("Good", "Bom"),
+            30..=49 => tr("OK", "Razoável"),
+            _ => tr("Weak", "Fraco"),
+        };
+        push(tr("Signal", "Sinal"), format!("{word} ({s}%)"));
+    }
+    push(tr("Link speed", "Velocidade"), d.speed.replace("Mbit/s", "Mb/s"));
+    if !d.ssid.is_empty() {
+        let security = if d.security.is_empty() || d.security == "--" {
+            tr("None (open network)", "Nenhuma (rede aberta)").to_string()
+        } else {
+            d.security.replace(' ', " / ")
+        };
+        push(tr("Security", "Segurança"), security);
+    }
+    if let Some(f) = d.freq {
+        push(tr("Band", "Faixa"), wifi_band(f).to_string());
+    }
+    push(tr("IPv4 address", "Endereço IPv4"), d.ipv4.clone());
+    push(tr("IPv6 address", "Endereço IPv6"), d.ipv6.clone());
+    push(tr("Router", "Roteador"), d.gateway.clone());
+    push("DNS", d.dns.clone());
+    push(tr("Hardware address", "Endereço físico (MAC)"), d.hwaddr.clone());
+    rows
+}
+
 /// Conexão salva: nome, tipo e se está ativa.
 pub type SavedConnection = (String, String, bool);
 
@@ -543,6 +708,32 @@ fn refresh(ui: &AppWindow) {
     d.set_vpns(ModelRc::from(Rc::new(VecModel::from(vpns))));
 }
 
+/// Lê os detalhes de uma conexão (três `nmcli` rápidos; sem procurar redes).
+fn read_details(name: &str) -> ConnDetails {
+    let text = nm(&[
+        "-t",
+        "-f",
+        "connection.autoconnect,connection.metered,GENERAL.STATE,GENERAL.DEVICES,802-11-wireless.ssid,\
+         802-11-wireless-security.key-mgmt,IP4.ADDRESS,IP4.GATEWAY,IP4.DNS,IP6.ADDRESS,IP6.DNS",
+        "connection",
+        "show",
+        "id",
+        name,
+    ])
+    .unwrap_or_default();
+    let mut d = parse_conn_details(&text);
+    if d.active && !d.device.is_empty() {
+        let dev = nm(&["-t", "-f", "GENERAL.HWADDR,CAPABILITIES.SPEED", "device", "show", &d.device]).unwrap_or_default();
+        apply_device_details(&mut d, &dev);
+        if !d.ssid.is_empty() {
+            let list = nm(&["-t", "-f", "IN-USE,SSID,SIGNAL,FREQ,RATE,SECURITY", "device", "wifi", "list", "--rescan", "no"])
+                .unwrap_or_default();
+            apply_wifi_details(&mut d, &list);
+        }
+    }
+    d
+}
+
 /// Abre a janela de escolher arquivo (zenity) e devolve o caminho.
 fn pick_file(title: &str, filter: Option<&str>) -> Option<String> {
     let mut args = vec!["--file-selection".to_string(), format!("--title={title}")];
@@ -569,7 +760,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             || std::path::Path::new("/usr/lib/NetworkManager/VPN/nm-openvpn-service.name").exists(),
     );
 
-    // --- IP ---
+    // --- Detalhes da conexão e IP ---
     let weak = ui.as_weak();
     d.on_ip_edit(move |name| {
         let Some(ui) = weak.upgrade() else { return };
@@ -592,11 +783,24 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         d.set_ip_dns(s.dns.into());
         d.set_ip_current(s.current.into());
         d.set_ip_message(SharedString::new());
+
+        let details = read_details(&name);
+        let rows: Vec<InfoItem> = detail_rows(&details)
+            .into_iter()
+            .map(|(label, value)| InfoItem { label: label.into(), value: value.into() })
+            .collect();
+        d.set_conn_details(ModelRc::from(Rc::new(VecModel::from(rows))));
+        d.set_conn_kind(if details.ssid.is_empty() { "ethernet" } else { "wifi" }.into());
+        d.set_conn_active(details.active);
+        d.set_conn_autoconnect(details.autoconnect);
+        d.set_conn_metered(details.metered);
+        d.set_conn_secured(details.secured);
+        d.set_conn_password(SharedString::new());
         d.set_ip_for(name);
     });
 
     let weak = ui.as_weak();
-    d.on_ip_apply(move |name, manual, address, mask, gateway, dns| {
+    d.on_ip_apply(move |name, manual, address, mask, gateway, dns, autoconnect, metered| {
         let args = match ip_modify_args(manual, &address, &mask, &gateway, &dns) {
             Ok(a) => a,
             Err(msg) => {
@@ -610,22 +814,76 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         background(
             &weak,
             move || {
+                // O IP mudou? Só então a conexão é ativada de novo (derruba a
+                // rede por um instante); as outras opções valem sem isso.
+                let before = parse_ip_settings(
+                    &nm(&["-t", "-f", "ipv4.method,ipv4.addresses,ipv4.gateway,ipv4.dns", "connection", "show", "id", &name])
+                        .unwrap_or_default(),
+                );
+                let ip_changed =
+                    ip_modify_args(before.manual, &before.address, &before.prefix, &before.gateway, &before.dns).ok()
+                        != Some(args.clone());
                 let mut cmd: Vec<&str> = vec!["connection", "modify", "id", &name];
                 cmd.extend(args.iter().map(String::as_str));
+                cmd.extend([
+                    "connection.autoconnect",
+                    if autoconnect { "yes" } else { "no" },
+                    // Desligado = "unknown": o NetworkManager ainda percebe sozinho
+                    // o roteador do celular (como no Ubuntu).
+                    "connection.metered",
+                    if metered { "yes" } else { "unknown" },
+                ]);
                 nm(&cmd)?;
-                // Ativa de novo para valer na hora (só se estava ativa).
-                let active = nm(&["-g", "GENERAL.STATE", "connection", "show", "id", &name]).unwrap_or_default();
-                if active.contains("activated") {
-                    nm(&["connection", "up", "id", &name])?;
+                let state = nm(&["-g", "GENERAL.STATE,GENERAL.DEVICES", "connection", "show", "id", &name]).unwrap_or_default();
+                if state.contains("activated") {
+                    if ip_changed {
+                        nm(&["connection", "up", "id", &name])?;
+                    } else if let Some(dev) = state.lines().nth(1).filter(|d| !d.is_empty()) {
+                        // Conexão limitada vale na hora com o reapply.
+                        let _ = nm(&["device", "reapply", dev]);
+                    }
                 }
                 Ok(String::new())
             },
             |d, r| match r {
                 Ok(_) => {
-                    d.set_ip_message(tr("IP settings saved.", "Configuração de IP salva.").into());
+                    d.set_ip_message(tr("Settings saved.", "Configurações salvas.").into());
                     d.set_ip_for(SharedString::new());
                 }
                 Err(e) => d.set_ip_message(format!("{} {e}", tr("Not saved:", "Não salvo:")).into()),
+            },
+        );
+    });
+
+    let weak = ui.as_weak();
+    d.on_conn_show_password(move |name| {
+        let Some(ui) = weak.upgrade() else { return };
+        let d = ui.global::<Device>();
+        match nm(&["-s", "-g", "802-11-wireless-security.psk", "connection", "show", "id", &name]) {
+            Ok(p) if !p.trim().is_empty() => d.set_conn_password(p.trim().into()),
+            _ => d.set_ip_message(
+                tr(
+                    "The password could not be read (it may be stored only for another user).",
+                    "Não foi possível ler a senha (ela pode estar guardada só para outro usuário).",
+                )
+                .into(),
+            ),
+        }
+    });
+
+    let weak = ui.as_weak();
+    d.on_conn_forget(move |name| {
+        let name = name.to_string();
+        let shown = name.clone();
+        background(
+            &weak,
+            move || nm(&["connection", "delete", "id", &name]).map(|_| String::new()),
+            move |d, r| match r {
+                Ok(_) => {
+                    d.set_ip_for(SharedString::new());
+                    d.set_ip_message(format!("{} {shown}", tr("Removed:", "Removida:")).into());
+                }
+                Err(e) => d.set_ip_message(format!("{} {e}", tr("Not removed:", "Não removida:")).into()),
             },
         );
     });
@@ -932,6 +1190,41 @@ mod tests {
         assert!(build_ovpn("vpn.exemplo.com", "443", true, AUTH_CERTS, &ca, "", "").is_err());
         assert!(build_ovpn("vpn exemplo", "", false, AUTH_PASSWORD, &ca, "", "").is_err());
         assert!(build_ovpn("vpn.exemplo.com", "99999", false, AUTH_PASSWORD, &ca, "", "").is_err());
+    }
+
+    #[test]
+    fn detalhes_do_wifi_em_uso() {
+        let mut d = parse_conn_details(
+            "connection.autoconnect:yes\nconnection.metered:yes\n802-11-wireless.ssid:Casa 5G\n\
+             802-11-wireless-security.key-mgmt:wpa-psk\nGENERAL.STATE:activated\nGENERAL.DEVICES:wlp2s0\n\
+             IP4.ADDRESS[1]:192.168.1.50/24\nIP4.GATEWAY:192.168.1.1\nIP4.DNS[1]:192.168.1.1\nIP4.DNS[2]:8.8.8.8\n\
+             IP6.ADDRESS[1]:fd28::19a/128\nIP6.ADDRESS[2]:2804:14c::5/64\nIP6.ADDRESS[3]:fe80\\:\\:1/64\n",
+        );
+        assert!(d.active && d.autoconnect && d.metered && d.secured);
+        assert_eq!((d.ssid.as_str(), d.device.as_str(), d.ipv4.as_str()), ("Casa 5G", "wlp2s0", "192.168.1.50"));
+        assert_eq!(d.ipv6, "2804:14c::5");
+        assert_eq!(d.dns, "192.168.1.1, 8.8.8.8");
+        apply_device_details(&mut d, "GENERAL.HWADDR:AA\\:BB\\:CC\\:DD\\:EE\\:FF\nCAPABILITIES.SPEED:unknown\n");
+        assert_eq!(d.hwaddr, "AA:BB:CC:DD:EE:FF");
+        apply_wifi_details(&mut d, ":Vizinho:90:2412 MHz:54 Mbit/s:WPA2\n*:Casa 5G:68:5180 MHz:270 Mbit/s:WPA2 WPA3\n");
+        assert_eq!((d.signal, d.freq), (Some(68), Some(5180)));
+        let rows = detail_rows(&d);
+        let get = |l: &str| rows.iter().find(|(k, _)| k == l).map(|(_, v)| v.as_str());
+        assert_eq!(get("Signal"), Some("Good (68%)"));
+        assert_eq!(get("Link speed"), Some("270 Mb/s"));
+        assert_eq!(get("Security"), Some("WPA2 / WPA3"));
+        assert_eq!(get("Band"), Some("5 GHz"));
+        assert_eq!(get("Hardware address"), Some("AA:BB:CC:DD:EE:FF"));
+    }
+
+    #[test]
+    fn detalhes_do_cabo_desligado() {
+        let d = parse_conn_details("connection.autoconnect:no\nconnection.metered:unknown\nGENERAL.STATE:\nIP4.ADDRESS[1]:10.0.0.9/8\n");
+        assert!(!d.active && !d.autoconnect && !d.metered && !d.secured);
+        assert!(d.ipv4.is_empty(), "endereço velho não aparece");
+        assert!(detail_rows(&d).is_empty());
+        assert_eq!(wifi_band(2437), "2.4 GHz");
+        assert_eq!(wifi_band(5955), "6 GHz");
     }
 
     #[test]

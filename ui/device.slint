@@ -148,10 +148,32 @@ export global Device {
     /// Endereço em uso agora ("192.168.1.50/24").
     in property <string> ip-current: "";
     in-out property <string> ip-message: "";
-    /// Abre o editor de IP de uma conexão (o Rust lê os valores atuais).
+    /// Abre os detalhes de uma conexão (o Rust lê os valores atuais).
     callback ip-edit(string /* conexão */);
-    /// Salva: conexão, manual, endereço, máscara, gateway, DNS.
-    callback ip-apply(string, bool, string, string, string, string);
+    /// Salva: conexão, manual, endereço, máscara, gateway, DNS, conectar
+    /// automaticamente, conexão limitada.
+    callback ip-apply(string, bool, string, string, string, string, bool, bool);
+
+    // Painel de detalhes da conexão (`ip-for`), como o "Detalhes" do Ubuntu.
+    /// Sinal, velocidade, segurança, endereços, MAC... (só com a conexão ativa).
+    in property <[InfoItem]> conn-details: [];
+    /// "wifi" ou "ethernet".
+    in property <string> conn-kind: "";
+    /// A conexão está em uso agora.
+    in property <bool> conn-active: false;
+    /// Conectar sozinho quando a rede estiver por perto.
+    in-out property <bool> conn-autoconnect: true;
+    /// Conexão limitada (dados móveis, roteador do celular): o sistema evita
+    /// baixar atualizações grandes sozinho.
+    in-out property <bool> conn-metered: false;
+    /// Wi-Fi com senha (WPA/WPA2/WPA3 pessoal).
+    in property <bool> conn-secured: false;
+    /// Senha revelada pelo botão "Mostrar" ("" = escondida).
+    in-out property <string> conn-password: "";
+    /// Lê a senha salva da rede e a mostra em `conn-password`.
+    callback conn-show-password(string /* conexão */);
+    /// Apaga a conexão salva (e desconecta, se estiver em uso).
+    callback conn-forget(string /* conexão */);
 
     /// Há NetworkManager (sessão real) para as VPNs.
     in property <bool> vpn-available: false;
@@ -195,6 +217,8 @@ export global Device {
     callback rescan();
     /// Conecta a uma rede (senha vazia para rede aberta ou já salva).
     callback connect-wifi(string /* ssid */, string /* senha */);
+    /// Conecta a uma rede oculta (que não anuncia o nome); senha vazia = aberta.
+    callback connect-hidden(string /* ssid */, string /* senha */);
     /// Posição da rede `ssid` na lista (-1 se não está). A lista vai como
     /// argumento para a ligação ser refeita quando ela muda.
     /// Esquece uma rede salva (apaga o perfil; desconecta se for a atual).

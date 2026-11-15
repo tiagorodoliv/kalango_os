@@ -585,8 +585,9 @@ fn apply(ui: &AppWindow, s: Snapshot, hold_volume: bool, rescan: bool) {
 ///
 /// A senha vai como argumento do `nmcli` (fica visível na lista de processos
 /// por instantes, só para o próprio computador); o NetworkManager a guarda
-/// para as próximas vezes.
-fn connect(weak: Weak<AppWindow>, shared: Arc<Shared>, ssid: SharedString, password: SharedString) {
+/// para as próximas vezes. `hidden`: rede oculta (não anuncia o nome; o
+/// `nmcli` pergunta por ela pelo nome).
+fn connect(weak: Weak<AppWindow>, shared: Arc<Shared>, ssid: SharedString, password: SharedString, hidden: bool) {
     if let Some(ui) = weak.upgrade() {
         let d = ui.global::<Device>();
         d.set_network_busy(true);
@@ -600,6 +601,9 @@ fn connect(weak: Weak<AppWindow>, shared: Arc<Shared>, ssid: SharedString, passw
             // senha errada) faz o `nmcli` recusar a senha nova com
             // "key-mgmt: property is missing". Senha digitada = perfil novo.
             forget_network(&ssid);
+        }
+        if hidden {
+            args.extend(["hidden", "yes"]);
         }
         // Sem senha: usa o perfil salvo, se houver (rede já conhecida).
         let ok = (password.is_empty()
@@ -754,7 +758,15 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     {
         let weak = ui.as_weak();
         let shared = shared.clone();
-        d.on_connect_wifi(move |ssid, password| connect(weak.clone(), shared.clone(), ssid, password));
+        d.on_connect_wifi(move |ssid, password| connect(weak.clone(), shared.clone(), ssid, password, false));
+    }
+    {
+        let weak = ui.as_weak();
+        let shared = shared.clone();
+        d.on_connect_hidden(move |ssid, password| {
+            let ssid: SharedString = ssid.trim().into();
+            connect(weak.clone(), shared.clone(), ssid, password, true)
+        });
     }
     {
         let weak = ui.as_weak();

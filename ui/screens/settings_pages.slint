@@ -465,6 +465,49 @@ component FormTitle inherits Rectangle {
     }
 }
 
+/// Linha só de leitura: rótulo à esquerda e valor à direita (detalhes da conexão).
+component DetailRow inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    height: 30px;
+    Text {
+        x: 20px;
+        width: min(170px, root.width * 0.36) - 10px;
+        text: root.label;
+        color: Theme.text-muted;
+        font-family: Theme.sans;
+        font-size: 13.5px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    Text {
+        x: 20px + min(170px, root.width * 0.36);
+        width: root.width - self.x - 20px;
+        text: root.value;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 13.5px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+/// Linha com título, explicação embaixo e um controle à direita (filho).
+component OptionRow inherits Rectangle {
+    in property <string> title;
+    in property <string> hint;
+    height: root.hint != "" ? 58px : 46px;
+    VerticalLayout {
+        x: 20px;
+        width: root.width - 110px;
+        alignment: center;
+        spacing: 2px;
+        Text { text: root.title; color: Theme.text; font-family: Theme.sans; font-size: 14px; overflow: elide; }
+        if root.hint != "": Text { text: root.hint; color: Theme.text-muted; font-family: Theme.sans; font-size: 12.5px; overflow: elide; }
+    }
+    @children
+}
+
 /// Botões Cancelar e Salvar, à direita.
 component FormButtons inherits HorizontalLayout {
     in property <bool> busy: false;
@@ -481,6 +524,12 @@ component FormButtons inherits HorizontalLayout {
 }
 
 export component NetworkPage inherits Rectangle {
+    /// "Esquecer rede" pede confirmação no segundo clique.
+    property <bool> confirm-forget: false;
+    /// Formulário de rede oculta aberto.
+    property <bool> show-hidden: false;
+    property <string> hidden-ssid;
+    property <string> hidden-pass;
     // Formulários de VPN (os valores só vão para o Rust ao salvar).
     property <string> login-user;
     property <string> login-pass;
@@ -564,8 +613,14 @@ export component NetworkPage inherits Rectangle {
         // --- Lista de redes ---
         if Device.network-available && Device.wifi-present && Device.wifi-enabled: HorizontalLayout {
             height: 24px;
+            spacing: 8px;
             SectionLabel { text: @tr("AVAILABLE NETWORKS"); vertical-alignment: center; }
             Rectangle { horizontal-stretch: 1; }
+            PillButton {
+                height: 24px;
+                text: @tr("Hidden network...");
+                clicked => { root.show-hidden = !root.show-hidden; }
+            }
             PillButton {
                 height: 24px;
                 text: Device.network-busy ? @tr("Please wait...") : @tr("Refresh");
@@ -577,6 +632,42 @@ export component NetworkPage inherits Rectangle {
         if Device.network-available && Device.wifi-present && Device.wifi-enabled: Panel {
             height: wifi-list.height;
             wifi-list := WifiList { }
+        }
+
+        if Device.network-available && Device.wifi-present && Device.wifi-enabled && root.show-hidden: Panel {
+            height: hidden-col.preferred-height;
+            hidden-col := VerticalLayout {
+                padding-top: 10px;
+                padding-bottom: 12px;
+                FormTitle { text: @tr("Connect to a hidden network"); }
+                Field { label: @tr("Network name"); text <=> root.hidden-ssid; placeholder: @tr("Exactly as set on the router"); }
+                Field { label: @tr("Password"); text <=> root.hidden-pass; password: true; placeholder: @tr("Leave empty for an open network"); }
+                HorizontalLayout {
+                    padding-left: 20px;
+                    padding-right: 20px;
+                    padding-top: 6px;
+                    spacing: 10px;
+                    alignment: end;
+                    height: 44px;
+                    PillButton {
+                        text: @tr("Cancel");
+                        clicked => {
+                            root.show-hidden = false;
+                            root.hidden-pass = "";
+                        }
+                    }
+                    PillButton {
+                        text: @tr("Connect");
+                        primary: true;
+                        enabled: root.hidden-ssid != "" && !Device.network-busy;
+                        clicked => {
+                            Device.connect-hidden(root.hidden-ssid, root.hidden-pass);
+                            root.show-hidden = false;
+                            root.hidden-pass = "";
+                        }
+                    }
+                }
+            }
         }
 
         if Device.network-message != "": Text {
@@ -623,8 +714,15 @@ export component NetworkPage inherits Rectangle {
                 ip-btn := PillButton {
                     x: parent.width - self.width - 20px;
                     height: 32px;
-                    text: @tr("IP settings");
-                    clicked => { Device.ip-edit(c.name); }
+                    text: Device.ip-for == c.name ? @tr("Close") : @tr("Details");
+                    clicked => {
+                        root.confirm-forget = false;
+                        if (Device.ip-for == c.name) {
+                            Device.ip-for = "";
+                        } else {
+                            Device.ip-edit(c.name);
+                        }
+                    }
                 }
             }
         }
@@ -633,7 +731,60 @@ export component NetworkPage inherits Rectangle {
             ip-col := VerticalLayout {
                 padding-top: 10px;
                 padding-bottom: 12px;
-                FormTitle { text: @tr("IP settings: {}", Device.ip-for); }
+                FormTitle { text: Device.ip-for; }
+                if !Device.conn-active: DetailRow {
+                    label: @tr("Status");
+                    value: @tr("Not connected now");
+                }
+                for item in Device.conn-details: DetailRow { label: item.label; value: item.value; }
+
+                // --- Opções ---
+                Rectangle { height: 10px; }
+                Rectangle { height: 1px; background: Theme.border; }
+                OptionRow {
+                    title: @tr("Connect automatically");
+                    hint: Device.conn-kind == "wifi" ? @tr("Join this network whenever it is in range.") : @tr("Connect as soon as the cable is plugged in.");
+                    Toggle {
+                        x: parent.width - self.width - 20px;
+                        checked <=> Device.conn-autoconnect;
+                    }
+                }
+                OptionRow {
+                    title: @tr("Metered connection");
+                    hint: @tr("Mobile data or phone hotspot: avoid large downloads in the background.");
+                    Toggle {
+                        x: parent.width - self.width - 20px;
+                        checked <=> Device.conn-metered;
+                    }
+                }
+                if Device.conn-secured: FormRow {
+                    label: @tr("Password");
+                    Text {
+                        x: parent.width * 0.36;
+                        width: parent.width - self.x - show-btn.width - 30px;
+                        text: Device.conn-password != "" ? Device.conn-password : "••••••••";
+                        color: Theme.text;
+                        font-family: Device.conn-password != "" ? Theme.mono : Theme.sans;
+                        font-size: 14px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                    show-btn := PillButton {
+                        x: parent.width - self.width - 20px;
+                        height: 32px;
+                        text: Device.conn-password != "" ? @tr("Hide") : @tr("Show");
+                        clicked => {
+                            if (Device.conn-password != "") {
+                                Device.conn-password = "";
+                            } else {
+                                Device.conn-show-password(Device.ip-for);
+                            }
+                        }
+                    }
+                }
+
+                // --- IPv4 ---
+                Rectangle { height: 1px; background: Theme.border; }
                 FormRow {
                     label: "IPv4";
                     Segmented {
@@ -643,21 +794,57 @@ export component NetworkPage inherits Rectangle {
                         chosen(i) => { Device.ip-manual = i == 1; }
                     }
                 }
-                if !Device.ip-manual: FormTitle {
-                    text: Device.ip-current != "" ? @tr("Current address: {}", Device.ip-current)
-                        : @tr("The router assigns the address.");
+                if !Device.ip-manual: DetailRow {
+                    label: "";
+                    value: @tr("The router assigns the address.");
                 }
                 if Device.ip-manual: Field { label: @tr("Address"); text <=> Device.ip-address; placeholder: "192.168.1.50"; }
                 if Device.ip-manual: Field { label: @tr("Subnet mask"); text <=> Device.ip-mask; placeholder: "255.255.255.0 " + @tr("or") + " 24"; }
                 if Device.ip-manual: Field { label: "Gateway"; text <=> Device.ip-gateway; placeholder: "192.168.1.1"; }
                 if Device.ip-manual: Field { label: "DNS"; text <=> Device.ip-dns; placeholder: "8.8.8.8, 1.1.1.1"; }
-                FormButtons {
-                    cancel => {
-                        Device.ip-for = "";
-                        Device.ip-message = "";
+
+                HorizontalLayout {
+                    padding-left: 20px;
+                    padding-right: 20px;
+                    padding-top: 10px;
+                    spacing: 10px;
+                    height: 48px;
+                    PillButton {
+                        text: root.confirm-forget ? @tr("Yes, forget it") : (Device.conn-kind == "wifi" ? @tr("Forget network") : @tr("Remove connection"));
+                        danger: true;
+                        clicked => {
+                            if (root.confirm-forget) {
+                                root.confirm-forget = false;
+                                Device.conn-forget(Device.ip-for);
+                            } else {
+                                root.confirm-forget = true;
+                            }
+                        }
                     }
-                    save => {
-                        Device.ip-apply(Device.ip-for, Device.ip-manual, Device.ip-address, Device.ip-mask, Device.ip-gateway, Device.ip-dns);
+                    if root.confirm-forget: Text {
+                        text: Device.conn-kind == "wifi" ? @tr("The saved password will be erased.") : @tr("Its settings will be erased.");
+                        color: Theme.text-muted;
+                        font-family: Theme.sans;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                    PillButton {
+                        text: @tr("Cancel");
+                        clicked => {
+                            root.confirm-forget = false;
+                            Device.ip-for = "";
+                            Device.ip-message = "";
+                        }
+                    }
+                    PillButton {
+                        text: @tr("Save");
+                        primary: true;
+                        clicked => {
+                            root.confirm-forget = false;
+                            Device.ip-apply(Device.ip-for, Device.ip-manual, Device.ip-address, Device.ip-mask, Device.ip-gateway, Device.ip-dns, Device.conn-autoconnect, Device.conn-metered);
+                        }
                     }
                 }
             }
