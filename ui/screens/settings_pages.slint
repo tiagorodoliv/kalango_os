@@ -10,7 +10,7 @@
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { Shell, Apps } from "../globals.slint";
-import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, BtDevice, Power, Accounts, UserAccount } from "../device.slint";
+import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, BtDevice, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice } from "../device.slint";
 import { SectionLabel, Toggle, SliderBar, Avatar } from "../components/widgets.slint";
 import { KalangoLogo, KalangoIcon } from "../brand.slint";
 import { WifiList, ForgetLink } from "../components/wifi_list.slint";
@@ -1404,6 +1404,238 @@ export component UsersPage inherits Rectangle {
             if Accounts.form == "" && (Accounts.busy || Accounts.message != ""): Text {
                 text: Accounts.busy ? @tr("Please wait...") : Accounts.message;
                 color: Accounts.message-error && !Accounts.busy ? Theme.danger : Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Impressoras
+// ---------------------------------------------------------------------------
+
+/// Uma impressora instalada; clicada, mostra as ações embaixo.
+component PrinterRow inherits Rectangle {
+    in property <Printer> printer;
+    in property <bool> divider: true;
+    in property <bool> open: false;
+    callback clicked();
+    height: 64px;
+    background: root.open ? Theme.accent-soft : touch.has-hover ? Theme.tile-hover : transparent;
+    if root.divider: Rectangle { y: 0; height: 1px; background: Theme.border; }
+    Image {
+        x: 22px;
+        width: 22px;
+        height: 22px;
+        source: Icons.printer;
+        colorize: root.printer.stopped ? Theme.danger : Theme.accent;
+    }
+    VerticalLayout {
+        x: 62px;
+        width: parent.width - self.x - 50px;
+        alignment: center;
+        spacing: 3px;
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            Text { text: root.printer.info; color: Theme.text; font-family: Theme.sans; font-size: 14.5px; font-weight: 600; overflow: elide; }
+            if root.printer.is-default: Text { text: @tr("Default"); color: Theme.accent; font-family: Theme.sans; font-size: 12.5px; font-weight: 600; vertical-alignment: center; horizontal-stretch: 0; }
+        }
+        Text {
+            text: root.printer.state
+                + (root.printer.jobs > 0 ? " · " + @tr("{} in the queue", root.printer.jobs) : "")
+                + " · " + (root.printer.network ? @tr("Network") : "USB");
+            color: root.printer.stopped ? Theme.danger : Theme.text-muted;
+            font-family: Theme.sans;
+            font-size: 13px;
+            overflow: elide;
+        }
+    }
+    Image {
+        x: parent.width - 36px;
+        width: 16px;
+        height: 16px;
+        source: root.open ? Icons.chevron-down : Icons.chevron-right;
+        colorize: Theme.text-muted;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component PrintersPage inherits Rectangle {
+    /// Impressora aberta (mostra as ações).
+    property <string> open-name;
+    property <string> address;
+
+    Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: printers-col.preferred-height + 36px;
+        printers-col := VerticalLayout {
+            x: 0;
+            y: 12px;
+            width: min(Page.max-width, parent.width);
+            alignment: start;
+            spacing: 12px;
+
+            if !Printers.available: EmptyNotice {
+                icon: Icons.printer;
+                title: @tr("Printing is not installed");
+                text: @tr("Printers work in the Kalango OS session, with CUPS installed.");
+            }
+
+            if Printers.available: SectionLabel { text: @tr("PRINTERS"); }
+            if Printers.available: Panel {
+                height: list-col.preferred-height;
+                list-col := VerticalLayout {
+                    if Printers.list.length == 0: Rectangle {
+                        height: 64px;
+                        Text {
+                            x: 20px;
+                            width: parent.width - 40px;
+                            text: @tr("No printers yet. Printers on the network usually show up here by themselves.");
+                            color: Theme.text-muted;
+                            font-family: Theme.sans;
+                            font-size: 14px;
+                            vertical-alignment: center;
+                            wrap: word-wrap;
+                        }
+                    }
+                    for p[i] in Printers.list: VerticalLayout {
+                        PrinterRow {
+                            printer: p;
+                            divider: i > 0;
+                            open: root.open-name == p.name;
+                            clicked => { root.open-name = root.open-name == p.name ? "" : p.name; }
+                        }
+                        if root.open-name == p.name: HorizontalLayout {
+                            padding-left: 62px;
+                            padding-right: 20px;
+                            padding-bottom: 14px;
+                            spacing: 10px;
+                            alignment: start;
+                            if !p.is-default: PillButton {
+                                text: @tr("Make default");
+                                enabled: !Printers.busy;
+                                clicked => { Printers.set-default(p.name); }
+                            }
+                            PillButton {
+                                text: @tr("Test page");
+                                enabled: !Printers.busy;
+                                clicked => { Printers.test-page(p.name); }
+                            }
+                            if p.jobs > 0: PillButton {
+                                text: @tr("Cancel jobs");
+                                enabled: !Printers.busy;
+                                clicked => { Printers.cancel-jobs(p.name); }
+                            }
+                            PillButton {
+                                text: @tr("Remove");
+                                danger: true;
+                                enabled: !Printers.busy;
+                                clicked => {
+                                    Printers.remove(p.name);
+                                    root.open-name = "";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if Printers.available && !Printers.adding: HorizontalLayout {
+                alignment: start;
+                spacing: 12px;
+                PillButton {
+                    text: @tr("Add printer...");
+                    clicked => {
+                        Printers.adding = true;
+                        Printers.message = "";
+                        Printers.search();
+                    }
+                }
+                PillButton {
+                    text: @tr("Advanced options");
+                    clicked => { Printers.advanced(); }
+                }
+            }
+
+            if Printers.available && Printers.adding: Panel {
+                height: add-col.preferred-height;
+                add-col := VerticalLayout {
+                    padding-top: 12px;
+                    padding-bottom: 14px;
+                    HorizontalLayout {
+                        padding-right: 20px;
+                        FormTitle { text: @tr("Add printer"); }
+                        PillButton {
+                            height: 34px;
+                            text: Printers.searching ? @tr("Searching...") : @tr("Search again");
+                            enabled: !Printers.searching;
+                            clicked => { Printers.search(); }
+                        }
+                    }
+                    if !Printers.searching && Printers.found.length == 0: Text {
+                        x: 20px;
+                        width: parent.width - 40px;
+                        height: 40px;
+                        text: @tr("No new printer found. Check that it is on and connected (cable or the same network).");
+                        color: Theme.text-muted;
+                        font-family: Theme.sans;
+                        font-size: 13.5px;
+                        vertical-alignment: center;
+                        wrap: word-wrap;
+                    }
+                    for d[i] in Printers.found: Rectangle {
+                        height: 56px;
+                        if i > 0: Rectangle { y: 0; height: 1px; background: Theme.border; }
+                        VerticalLayout {
+                            x: 20px;
+                            width: parent.width - 150px;
+                            alignment: center;
+                            spacing: 2px;
+                            Text { text: d.name; color: Theme.text; font-family: Theme.sans; font-size: 14px; font-weight: 600; overflow: elide; }
+                            Text { text: d.kind; color: Theme.text-muted; font-family: Theme.sans; font-size: 12.5px; }
+                        }
+                        PillButton {
+                            x: parent.width - self.width - 20px;
+                            height: 34px;
+                            text: @tr("Add");
+                            primary: true;
+                            enabled: !Printers.busy;
+                            clicked => { Printers.add(d.uri, d.name); }
+                        }
+                    }
+                    Rectangle { height: 8px; }
+                    Field {
+                        label: @tr("Address");
+                        placeholder: @tr("IP or name on the network, e.g. 192.168.0.50");
+                        text <=> root.address;
+                    }
+                    HorizontalLayout {
+                        padding-left: 20px;
+                        padding-right: 20px;
+                        padding-top: 6px;
+                        spacing: 10px;
+                        alignment: end;
+                        PillButton { text: @tr("Close"); clicked => { Printers.adding = false; } }
+                        PillButton {
+                            text: @tr("Add by address");
+                            primary: true;
+                            enabled: !Printers.busy && root.address != "";
+                            clicked => { Printers.add-address(root.address); }
+                        }
+                    }
+                }
+            }
+
+            if Printers.busy || Printers.message != "": Text {
+                text: Printers.busy ? @tr("Please wait...") : Printers.message;
+                color: Printers.message-error && !Printers.busy ? Theme.danger : Theme.text-muted;
                 font-family: Theme.sans;
                 font-size: 13.5px;
                 wrap: word-wrap;

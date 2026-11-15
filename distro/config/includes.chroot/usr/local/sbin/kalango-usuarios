@@ -82,10 +82,14 @@ criar)
 	! getent group "$login" >/dev/null || falha 2 "já existe um grupo com esse nome: $login"
 	# Grupos de quem usa o computador (som, vídeo, pendrives, rede, impressoras).
 	grupos=""
-	for g in users audio video plugdev netdev bluetooth lpadmin scanner cdrom dip; do
+	for g in users audio video plugdev netdev bluetooth scanner cdrom dip; do
 		getent group "$g" >/dev/null && grupos="$grupos${grupos:+,}$g"
 	done
-	[ "$4" = admin ] && grupos="$grupos${grupos:+,}sudo"
+	# Administrador: sudo e lpadmin (impressoras sem senha), como no Ubuntu.
+	if [ "$4" = admin ]; then
+		grupos="$grupos${grupos:+,}sudo"
+		getent group lpadmin >/dev/null && grupos="$grupos,lpadmin"
+	fi
 	le_senha
 	useradd --create-home --shell /bin/bash --comment "$3" ${grupos:+--groups "$grupos"} "$login" ||
 		falha 6 "não foi possível criar a conta"
@@ -105,11 +109,15 @@ tipo)
 	[ $# -eq 3 ] || falha 1 "uso: kalango-usuarios tipo LOGIN admin|padrao"
 	valida_pessoa "$login"
 	case "$3" in
-	admin) gpasswd -a "$login" sudo >/dev/null ;;
+	admin)
+		gpasswd -a "$login" sudo >/dev/null
+		getent group lpadmin >/dev/null && gpasswd -a "$login" lpadmin >/dev/null
+		;;
 	padrao)
 		[ "$login" != "$(quem_chamou)" ] || falha 5 "não dá para tirar o administrador de si mesmo"
 		admins | grep -qvx "$login" || falha 4 "seria o último administrador"
 		gpasswd -d "$login" sudo >/dev/null 2>&1 || true
+		gpasswd -d "$login" lpadmin >/dev/null 2>&1 || true
 		;;
 	*) falha 1 "tipo inválido: $3" ;;
 	esac

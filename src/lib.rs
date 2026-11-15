@@ -18,7 +18,7 @@ pub mod shell;
 
 use common::{clock, i18n, system};
 use launcher::apps;
-use settings::{appearance, bluetooth, device, displays, netconfig, power, region, sharing, terminal, users};
+use settings::{appearance, bluetooth, device, displays, netconfig, power, printers, region, sharing, terminal, users};
 #[cfg(target_os = "linux")]
 use shell::{switcher, taskbar, workspaces};
 use shell::{dock, outputs, session, usb, wallpaper};
@@ -99,6 +99,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     }
     timers.extend(power::install(&ui, mode));
     users::install(&ui, mode);
+    timers.extend(printers::install(&ui, mode));
     Ok((ui, timers))
 }
 

@@ -422,3 +422,52 @@ export global Accounts {
     /// Login válido e livre ("" = ok; senão, o motivo).
     pure callback check-login(string) -> string;
 }
+
+/// Uma impressora instalada (fila do CUPS).
+export struct Printer {
+    /// Nome da fila no CUPS.
+    name: string,
+    /// Descrição (modelo) para mostrar.
+    info: string,
+    /// Estado em texto ("Pronta", "Imprimindo", "Parada").
+    state: string,
+    stopped: bool,
+    is-default: bool,
+    /// Trabalhos na fila.
+    jobs: int,
+    /// Rede (true) ou cabo USB.
+    network: bool,
+}
+
+/// Um aparelho encontrado para adicionar (`lpinfo -v`).
+export struct PrinterDevice {
+    uri: string,
+    name: string,
+    /// "USB" ou "Rede".
+    kind: string,
+}
+
+/// Impressoras (Configurações → Impressoras, `src/settings/printers.rs`).
+export global Printers {
+    /// O CUPS está instalado e respondendo.
+    in property <bool> available: false;
+    in property <[Printer]> list;
+    /// Aparelhos encontrados que ainda não são impressoras.
+    in property <[PrinterDevice]> found;
+    in property <bool> searching: false;
+    in property <bool> busy: false;
+    in-out property <string> message: "";
+    in property <bool> message-error: false;
+    /// Painel "Adicionar impressora" aberto.
+    in-out property <bool> adding: false;
+    callback search();
+    callback add(string /* uri */, string /* nome */);
+    /// Adiciona pelo endereço (IP ou nome na rede).
+    callback add-address(string);
+    callback set-default(string);
+    callback test-page(string);
+    callback cancel-jobs(string);
+    callback remove(string);
+    /// Abre o system-config-printer (drivers e opções que a página não tem).
+    callback advanced();
+}

@@ -121,3 +121,16 @@ smbclient
 # computador aparecer na "Rede" do Windows 10/11.
 samba
 wsdd2
+
+# Impressoras (Configurações → Impressoras, src/settings/printers.rs): CUPS;
+# cups-browsed e ipp-usb fazem as impressoras de rede e as USB modernas
+# aparecerem sozinhas, sem driver (IPP Everywhere). Drivers das marcas comuns
+# para as USB antigas; system-config-printer = "Opções avançadas".
+cups
+cups-browsed
+ipp-usb
+system-config-printer
+hplip
+printer-driver-escpr
+printer-driver-brlaser
+printer-driver-gutenprint

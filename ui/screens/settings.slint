@@ -9,6 +9,7 @@ import { Shell, TerminalTheme } from "../globals.slint";
 import { SectionLabel, IconButton, Toggle, SliderBar } from "../components/widgets.slint";
 import {
     NetworkPage, BluetoothPage, DisplaysPage, SoundPage, PowerPage, UsersPage, SharingPage, RegionPage, UpdatesPage, AboutPage,
+    PrintersPage,
     TaskbarPage,
 } from "settings_pages.slint";
 
@@ -581,7 +582,11 @@ export component SettingsScreen inherits Rectangle {
         { name: @tr("Language & Region"), icon: Icons.globe },
         { name: @tr("Updates"), icon: Icons.download },
         { name: @tr("About"), icon: Icons.info },
+        { name: @tr("Printers"), icon: Icons.printer },
     ];
+    /// Ordem na barra lateral (índices de `sections`; Impressoras entrou
+    /// depois, sem renumerar as páginas, que os atalhos `settings:<n>` usam).
+    property <[int]> order: [0, 1, 2, 3, 4, 5, 6, 7, 12, 8, 9, 10, 11];
     /// Página aberta (índice em `sections`).
     in-out property <int> current: 2;
 
@@ -654,9 +659,9 @@ export component SettingsScreen inherits Rectangle {
             y: root.narrow ? 20px : 120px;
             width: parent.width - 2 * self.x;
             alignment: start;
-            for s[i] in root.sections: SidebarItem {
+            for i in root.order: SidebarItem {
                 compact: root.narrow;
-                section: s;
+                section: root.sections[i];
                 selected: root.current == i;
                 clicked => { root.current = i; }
             }
@@ -694,6 +699,7 @@ export component SettingsScreen inherits Rectangle {
         if root.current == 9: RegionPage { }
         if root.current == 10: UpdatesPage { }
         if root.current == 11: AboutPage { }
+        if root.current == 12: PrintersPage { }
     }
 
     // Fechar dentro da tela só no protótipo (lá as Configurações são uma tela

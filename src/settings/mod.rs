@@ -7,6 +7,7 @@
 //! - [`displays`]: monitores (resolução, escala, rotação, arranjo) pelo `wlr-randr`;
 //! - [`power`]: energia (modo de desempenho, apagar a tela, suspender, tampa);
 //! - [`users`]: contas de usuário (senha, criar, tipo, remover);
+//! - [`printers`]: impressoras de rede e USB (CUPS);
 //! - [`sharing`]: pastas na rede local (Samba) e computadores da rede;
 //! - [`region`]: idioma e teclado;
 //! - [`terminal`]: temas do terminal (foot).
@@ -17,6 +18,7 @@ pub mod device;
 pub mod displays;
 pub mod netconfig;
 pub mod power;
+pub mod printers;
 pub mod region;
 pub mod sharing;
 pub mod terminal;

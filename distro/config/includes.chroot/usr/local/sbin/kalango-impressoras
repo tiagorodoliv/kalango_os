@@ -1,0 +1,56 @@
+#!/bin/sh
+# Impressoras do Kalango OS (Configurações → Impressoras), como root pelo
+# pkexec (política org.kalango.impressoras). Só é usado quando a pessoa não
+# está no grupo lpadmin (quem está fala direto com o CUPS, sem senha).
+#
+#   kalango-impressoras procurar                 (lista os aparelhos: lpinfo -l -v)
+#   kalango-impressoras modelos DEVICE_ID        (drivers para um aparelho USB)
+#   kalango-impressoras adicionar NOME URI MODELO
+#   kalango-impressoras remover NOME
+#   kalango-impressoras padrao NOME
+set -eu
+
+falha() {
+	echo "kalango-impressoras: $1" >&2
+	exit 1
+}
+
+valida_nome() {
+	printf '%s' "$1" | grep -Eq '^[A-Za-z0-9_-]{1,127}$' || falha "nome inválido: $1"
+}
+
+case "${1:-}" in
+procurar)
+	exec lpinfo -l -v --timeout 8
+	;;
+modelos)
+	[ $# -eq 2 ] || falha "uso: modelos DEVICE_ID"
+	exec lpinfo -m --device-id "$2"
+	;;
+adicionar)
+	[ $# -eq 4 ] || falha "uso: adicionar NOME URI MODELO"
+	valida_nome "$2"
+	case "$3" in
+	usb://* | ipp://* | ipps://* | dnssd://* | socket://* | lpd://* | hp://* | http://* | https://*) ;;
+	*) falha "endereço inválido: $3" ;;
+	esac
+	printf '%s' "$3" | grep -q '[[:space:]"'"'"']' && falha "endereço inválido: $3"
+	printf '%s' "$4" | grep -Eq '^[A-Za-z0-9_:/.,+@=-]+$' || falha "modelo inválido: $4"
+	lpadmin -p "$2" -E -v "$3" -m "$4"
+	cupsenable "$2"
+	cupsaccept "$2"
+	;;
+remover)
+	[ $# -eq 2 ] || falha "uso: remover NOME"
+	valida_nome "$2"
+	lpadmin -x "$2"
+	;;
+padrao)
+	[ $# -eq 2 ] || falha "uso: padrao NOME"
+	valida_nome "$2"
+	lpadmin -d "$2"
+	;;
+*)
+	falha "uso: kalango-impressoras procurar|modelos|adicionar|remover|padrao ..."
+	;;
+esac

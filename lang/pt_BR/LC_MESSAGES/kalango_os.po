@@ -1145,3 +1145,58 @@ msgstr "Trocar de usuário"
 
 msgid "My image"
 msgstr "Minha imagem"
+
+# Configurações → Impressoras (src/settings/printers.rs)
+msgid "Printers"
+msgstr "Impressoras"
+
+msgid "Default"
+msgstr "Padrão"
+
+msgid "{} in the queue"
+msgstr "{} na fila"
+
+msgid "Printing is not installed"
+msgstr "A impressão não está instalada"
+
+msgid "Printers work in the Kalango OS session, with CUPS installed."
+msgstr "As impressoras funcionam na sessão do Kalango OS, com o CUPS instalado."
+
+msgid "PRINTERS"
+msgstr "IMPRESSORAS"
+
+msgid "No printers yet. Printers on the network usually show up here by themselves."
+msgstr "Nenhuma impressora ainda. As impressoras da rede costumam aparecer aqui sozinhas."
+
+msgid "Make default"
+msgstr "Tornar padrão"
+
+msgid "Test page"
+msgstr "Página de teste"
+
+msgid "Cancel jobs"
+msgstr "Cancelar trabalhos"
+
+msgid "Add printer..."
+msgstr "Adicionar impressora..."
+
+msgid "Advanced options"
+msgstr "Opções avançadas"
+
+msgid "Add printer"
+msgstr "Adicionar impressora"
+
+msgid "Search again"
+msgstr "Procurar de novo"
+
+msgid "No new printer found. Check that it is on and connected (cable or the same network)."
+msgstr "Nenhuma impressora nova encontrada. Confira se ela está ligada e conectada (cabo ou a mesma rede)."
+
+msgid "Add"
+msgstr "Adicionar"
+
+msgid "IP or name on the network, e.g. 192.168.0.50"
+msgstr "IP ou nome na rede, ex.: 192.168.0.50"
+
+msgid "Add by address"
+msgstr "Adicionar pelo endereço"

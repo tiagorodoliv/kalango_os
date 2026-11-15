@@ -174,6 +174,16 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `gtklock-powerbar-module` (não está no Debian 13), compilado pelo `build.sh` com `distro/gtklock/powerbar.sh`
   (versão + SHA-256 fixos; o texto vem de `KALANGO_TROCAR_USUARIO`). A saída do greeter vai para o VT dele
   (`/dev/vcsN` mostra). Teste por QMP: mover o ponteiro antes de clicar numa janela recém-aberta.
+- **Impressoras (2026-11-15):** Configurações → Impressoras (`src/settings/printers.rs`, global `Printers`,
+  página 12, mostrada depois de Usuários: a barra lateral segue `order` em `settings.slint`, sem renumerar as
+  páginas). CUPS + `cups-browsed` + `ipp-usb`: impressoras de rede e USB modernas aparecem sozinhas (IPP
+  Everywhere, sem driver). Lista por `lpstat` (`LC_ALL=C`), relida a cada 3 s com a página aberta; tornar padrão
+  (`lpoptions -d`, por pessoa), página de teste, cancelar fila, remover. Adicionar: `lpinfo -l -v` (IPP/dnssd →
+  `-m everywhere`; USB antiga → primeiro driver de `lpinfo -m --device-id`) ou pelo endereço
+  (`ipp://<ip>/ipp/print`). Quem está no `lpadmin` (administradores; contas padrão não ganham mais) fala direto
+  com o CUPS; os outros pelo `pkexec /usr/local/sbin/kalango-impressoras` (`org.kalango.impressoras`).
+  "Opções avançadas" = `system-config-printer`. Drivers: hplip, escpr (Epson), brlaser, gutenprint. Teste:
+  `ippeveprinter` (cups-ipp-utils) simula uma impressora IPP na rede.
 - **Energia (2026-11-14):** `src/settings/power.rs` + global `Power`: modo (`powerprofilesctl`), apagar a tela/bloquear/
   suspender na bateria e na tomada (`~/.config/kalango/energia.conf`; a área de trabalho roda o `swayidle` com
   `wlopm` e troca ao mudar a escolha ou o carregador; pidfile `kalango-swayidle.pid`), tampa e botão de ligar pelo

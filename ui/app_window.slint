@@ -34,11 +34,11 @@ import { Launcher } from "screens/launcher.slint";
 import { SwitcherView, Switcher, SwitcherItem, DockMenuView, DockMenu, DockMenuWindow } from "screens/switcher.slint";
 import { SettingsScreen } from "screens/settings.slint";
 import { QuickSettings } from "screens/quick_settings.slint";
-import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, Power, Accounts, UserAccount } from "device.slint";
+import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice } from "device.slint";
 
 // Reexportados para o Rust enxergar os globais e tipos.
 export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry, IconPreview, Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution }
-export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power, Accounts, UserAccount }
+export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice }
 
 /// Telas de nível superior.
 export enum Screen { login, desktop, settings }
