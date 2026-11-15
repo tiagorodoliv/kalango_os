@@ -134,3 +134,18 @@ hplip
 printer-driver-escpr
 printer-driver-brlaser
 printer-driver-gutenprint
+
+# Apps padrão (2026-11-15): PDF, compactados (dois cliques extrai, como no
+# macOS: /usr/share/applications/kalango-extrair.desktop) e Office.
+evince
+file-roller
+thunar-archive-plugin
+7zip
+unar
+libreoffice-writer
+libreoffice-calc
+libreoffice-impress
+libreoffice-gtk3
+libreoffice-l10n-pt-br
+fonts-crosextra-carlito
+fonts-crosextra-caladea

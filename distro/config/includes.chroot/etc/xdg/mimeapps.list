@@ -1,0 +1,36 @@
+# Apps padrão do Kalango OS (cada pessoa pode trocar: ~/.config/mimeapps.list).
+[Default Applications]
+application/zip=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-zip-compressed=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-tar=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/gzip=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-gzip=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-compressed-tar=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-bzip2=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-bzip=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-bzip-compressed-tar=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-bzip2-compressed-tar=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-xz=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-xz-compressed-tar=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-lzma=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-lzma-compressed-tar=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/zstd=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-zstd-compressed-tar=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-7z-compressed=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/vnd.rar=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-rar=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/x-rar-compressed=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
+application/pdf=org.gnome.Evince.desktop;
+application/x-pdf=org.gnome.Evince.desktop;
+application/msword=libreoffice-writer.desktop;
+application/vnd.openxmlformats-officedocument.wordprocessingml.document=libreoffice-writer.desktop;
+application/vnd.oasis.opendocument.text=libreoffice-writer.desktop;
+application/rtf=libreoffice-writer.desktop;
+text/rtf=libreoffice-writer.desktop;
+application/vnd.ms-excel=libreoffice-calc.desktop;
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet=libreoffice-calc.desktop;
+application/vnd.oasis.opendocument.spreadsheet=libreoffice-calc.desktop;
+text/csv=libreoffice-calc.desktop;
+application/vnd.ms-powerpoint=libreoffice-impress.desktop;
+application/vnd.openxmlformats-officedocument.presentationml.presentation=libreoffice-impress.desktop;
+application/vnd.oasis.opendocument.presentation=libreoffice-impress.desktop;

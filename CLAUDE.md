@@ -248,6 +248,12 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   congelava a sessão ~20 s). Nada disso desfaz o bloqueio da BIOS: se continuar bloqueado depois do deep (S3), grava
   `/etc/systemd/sleep.conf.d/50-kalango-radios.conf` (`MemorySleepMode=s2idle`). Testado: em s2idle o HP volta com
   Wi-Fi e Bluetooth. Log: `journalctl -t kalango-radios`.
+- **Apps padrão (2026-11-15):** Evince (PDF), LibreOffice Writer/Calc/Impress (pt-BR; Word/Excel/PowerPoint), File Roller
+  + thunar-archive-plugin, 7zip e unar. Dois cliques num compactado **extrai ao lado**, como no macOS:
+  `kalango-extrair.desktop` (`file-roller --extract-here`: vários arquivos → pasta com o nome; um só → o arquivo) é o
+  padrão em `/etc/xdg/mimeapps.list`. Em "Computador" do Thunar, o disco do sistema aparece como drive que não abre (as
+  partições são de sistema; o gvfs 1.57 lista todo drive e ignora `UDISKS_IGNORE` e `ID_SEAT`): o acesso é "Sistema de
+  arquivos".
 - Identidade: `/usr/lib/os-release` = "Kalango OS" (`ID=kalango`, `ID_LIKE=debian`, protegido de atualização do
   base-files pelo hook `0050`), `etc/default/grub.d/kalango.cfg` (`GRUB_DISTRIBUTOR`).
 - Próximos passos da arquitetura: layer-shell para barra/dock/menu; contraste das legendas de partição do
@@ -376,8 +382,8 @@ grade de fundo sutil (~48px).
 Ícone (barra, menu, janela, Calamares): `kalango-icon.png` = o K com o calango (R1, `assets/logo/Kalango_Icone_Noite.png`;
   o "g"-calango antigo saiu em 2026-11-15).
 Logotipo: `kalango-logo.png` (letras brancas) e `kalango-logo-claro.png` (letras azul-marinho, tema claro).
-A pílula da barra (abre o menu) mostra o logotipo inteiro (letras brancas no escuro e com o menu aberto, azul-marinho
-no tema claro) desde 2026-11-15, no lugar de ícone + texto.
+A pílula da barra (abre o menu) é o ícone do K seguido do texto "alango" (lê-se "Kalango"); **não** o logotipo do
+papel de parede (o Tiago corrigiu em 2026-11-15).
 O SVG de `assets/logo` é rastreado de bitmap e fica granulado em tamanho pequeno; só trocar para vetor se vier um desenhado à mão.
 
 1. **Tela de login:** relógio grande mono (~108px) "19:38" + "quarta-feira, 11 de novembro" no topo; card central
