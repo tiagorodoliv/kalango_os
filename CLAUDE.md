@@ -110,7 +110,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   rede) nem pelo nmcli (não edita `peers`): o shell lê o `.conf` e cria por `gdbus` → `Settings.AddConnection`,
   desligado. Pacotes: bluez, libspa-0.2-bluetooth, network-manager-openvpn, wireguard-tools, zenity, libglib2.0-bin.
 - **Máquina física do Tiago (notebook HP, 1366×768, dual boot):** atualizar o shell sem formatar por SSH
-  (`root@192.168.1.175`, chave `~/.ssh/id_tiago_desktop`): `distro/testar-vm.sh --so-preparar`, copiar
+  (endereço e chave em `CLAUDE.local.md`, fora do git): `distro/testar-vm.sh --so-preparar`, copiar
   `target/vm-dev/kalango-shell` para `/usr/local/bin/` (guardar o antigo como `.anterior`) e, se a área de trabalho
   mudou, reiniciá-la **com o ambiente dela mesma** (`/proc/<pid>/environ` do `kalango-shell` sem argumento, que o
   labwc iniciou com `DISPLAY`, `LABWC_PID` e `WAYLAND_DISPLAY`) e no mesmo cgroup (`session-N.scope`, ver
@@ -263,7 +263,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (suite trixie, main; `etc/apt/sources.list.d/kalango.sources`, chave `0B89DC19D08F8A6B` em
   `usr/share/keyrings/kalango-archive-keyring.gpg`). **A chave privada fica só na máquina do Tiago**
   (`~/.local/share/kalango-repo/gnupg`); `distro/repo/publicar.sh` monta/assina e envia por rsync
-  (`KALANGO_REPO_DESTINO`); o VPS só serve estático (`distro/repo/nginx-kalangos.conf`; VPS com aaPanel, `root@10.8.0.1` pela VPN,
+  (`KALANGO_REPO_DESTINO`); o VPS só serve estático (`distro/repo/nginx-kalangos.conf`; VPS com aaPanel, acesso em `CLAUDE.local.md`,
   arquivos em `/www/wwwroot/kalangos.easysmartcontroll.com/apt`, certbot webroot; não mexer nos outros sites).
   Publicado `0.1.0-3` em 2026-11-15 (o HP o viu pela internet). Guia: `distro/repo/LEIAME.md`.
   Testado no HP: 0.1.0-1 → 0.1.0-2 pelo apt, com aviso de reiniciar (`/run/reboot-required`). Bugs e dicas: GitHub

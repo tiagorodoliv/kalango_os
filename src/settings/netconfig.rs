@@ -881,9 +881,9 @@ mod tests {
         assert_eq!((s.address.as_str(), s.prefix.as_str()), ("192.168.1.50", "24"));
         assert_eq!(s.dns, "8.8.8.8, 1.1.1.1");
         assert_eq!(s.current, "192.168.1.50/24");
-        let auto = parse_ip_settings("ipv4.method:auto\nipv4.addresses:\nipv4.gateway:\nipv4.dns:\nIP4.ADDRESS[1]:192.168.1.175/24\n");
+        let auto = parse_ip_settings("ipv4.method:auto\nipv4.addresses:\nipv4.gateway:\nipv4.dns:\nIP4.ADDRESS[1]:192.168.1.50/24\n");
         assert!(!auto.manual);
-        assert_eq!(auto.current, "192.168.1.175/24");
+        assert_eq!(auto.current, "192.168.1.50/24");
     }
 
     const WG: &str = "[Interface]\n# casa\nPrivateKey = yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=\nAddress = 10.0.0.2/24, fd00::2/64\nDNS = 1.1.1.1, casa.lan\n\n[Peer]\nPublicKey = xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=\nEndpoint = vpn.exemplo.com:51820\nAllowedIPs = 0.0.0.0/0, ::/0\nPersistentKeepalive = 25\n";

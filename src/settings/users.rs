@@ -450,7 +450,7 @@ mod tests {
     use super::*;
 
     const PASSWD: &str = "root:x:0:0:root:/root:/bin/bash\n\
-                          tiago:x:1000:1000:Tiago Silas,,,:/home/tiago:/bin/zsh\n\
+                          ana:x:1000:1000:Ana Souza,,,:/home/ana:/bin/zsh\n\
                           nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\n\
                           maria:x:1001:1001::/home/maria:/bin/bash\n\
                           svc:x:1002:1002::/srv:/usr/sbin/nologin\n";
@@ -459,14 +459,14 @@ mod tests {
     fn contas_de_pessoas() {
         let p = people(PASSWD);
         assert_eq!(p.len(), 2);
-        assert_eq!(p[0], Person { login: "tiago".into(), name: "Tiago Silas".into(), uid: 1000 });
+        assert_eq!(p[0], Person { login: "ana".into(), name: "Ana Souza".into(), uid: 1000 });
         assert_eq!(p[1].name, "maria");
     }
 
     #[test]
     fn administradores() {
-        let a = admins("root:x:0:\nsudo:x:27:tiago,ana\nusers:x:100:\n");
-        assert!(a.contains("tiago") && a.contains("ana") && a.len() == 2);
+        let a = admins("root:x:0:\nsudo:x:27:ana,joao\nusers:x:100:\n");
+        assert!(a.contains("ana") && a.contains("joao") && a.len() == 2);
         assert!(admins("sudo:x:27:\n").is_empty());
     }
 
@@ -495,7 +495,7 @@ mod tests {
 
     #[test]
     fn perguntas_do_passwd() {
-        assert_eq!(prompt_in("Changing password for tiago.\r\nCurrent password: "), Some(Prompt::Current));
+        assert_eq!(prompt_in("Changing password for ana.\r\nCurrent password: "), Some(Prompt::Current));
         assert_eq!(prompt_in("\r\nNew password: "), Some(Prompt::New));
         assert_eq!(prompt_in("\r\nRetype new password: "), Some(Prompt::Retype));
         assert_eq!(prompt_in("passwd: password updated successfully\r\n"), None);

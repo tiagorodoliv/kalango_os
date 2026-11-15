@@ -277,7 +277,7 @@ fn main() {
             me,
             signed_in,
         };
-        a.set_me(acc("tiago", "Tiago Silas", true, true, true));
+        a.set_me(acc("ana", "Ana Souza", true, true, true));
         a.set_others(slint::ModelRc::from(Rc::new(slint::VecModel::from(vec![
             acc("maria", "Maria Silva", false, false, false),
             acc("joao", "João Souza", true, false, true),

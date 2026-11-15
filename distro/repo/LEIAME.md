@@ -12,7 +12,7 @@ publicada lá aparece em **Configurações → Atualizações** como as do Debia
    **Guarde uma cópia dessa pasta** (sem ela, os sistemas instalados não aceitam
    pacotes assinados por outra chave).
 2. DNS: registro `A` de `kalangos.easysmartcontroll.com` para o VPS (feito).
-3. No VPS (aaPanel, SSH `root@10.8.0.1` pela VPN): nginx com `distro/repo/nginx-kalangos.conf`
+3. No VPS (aaPanel, acesso por SSH): nginx com `distro/repo/nginx-kalangos.conf`
    + certificado do certbot por webroot (feito em 2026-11-15).
 
 ## A cada versão
@@ -22,8 +22,8 @@ publicada lá aparece em **Configurações → Atualizações** como as do Debia
 #    republicar a mesma versão com correções
 distro/build.sh --so-shell              # compila e gera distro/out/kalango-shell_<versão>_amd64.deb
 # 2. assina e envia
-RSYNC_RSH="ssh -i ~/.ssh/id_tiago_desktop" \
-KALANGO_REPO_DESTINO=root@10.8.0.1:/www/wwwroot/kalangos.easysmartcontroll.com/apt \
+RSYNC_RSH="ssh -i ~/.ssh/SUA_CHAVE" \
+KALANGO_REPO_DESTINO=root@SEU_VPS:/www/wwwroot/kalangos.easysmartcontroll.com/apt \
     distro/repo/publicar.sh distro/out/kalango-shell_*.deb
 ```
 

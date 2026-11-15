@@ -3,3 +3,6 @@
 
 # Python
 __pycache__/
+
+# Dados locais do Claude Code (IPs, chaves)
+CLAUDE.local.md
