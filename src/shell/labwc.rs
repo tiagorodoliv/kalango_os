@@ -219,8 +219,10 @@ pub fn set_window_theme(theme: Option<(String, String)>) -> bool {
 /// `<theme>` com o nome do tema e a ordem dos botões (`<titlebar><layout>`).
 pub fn set_theme(xml: &str, name: &str, layout: &str) -> Option<String> {
     let at = xml.find("<theme>")? + "<theme>".len();
+    // Sem nome: botões do próprio labwc, só em outra ordem.
+    let name = if name.is_empty() { String::new() } else { format!("\n    <name>{name}</name>") };
     let insert = format!(
-        "\n    <!-- Botões das janelas (Configurações → Aparência). -->\n    <name>{name}</name>\n    \
+        "\n    <!-- Botões das janelas (Configurações → Aparência). -->{name}\n    \
          <titlebar><layout>{layout}</layout></titlebar>"
     );
     Some(format!("{}{}{}", &xml[..at], insert, &xml[at..]))

@@ -8,6 +8,11 @@
 //! com o tamanho dos botões; as cores continuam no `themerc-override` do
 //! sistema) e põe o nome do tema e a ordem dos botões no `rc.xml` do usuário
 //! ([`crate::shell::labwc::set_window_theme`]). "Padrão" volta aos do labwc.
+//!
+//! Apps que desenham a própria barra de título (Chrome no modo GTK, Firefox,
+//! apps GNOME) seguem a mesma escolha pelo GTK: o lado dos botões vai para o
+//! GSettings (`org.gnome.desktop.wm.preferences button-layout`, que o GTK lê
+//! no Wayland) e o visual para o `~/.config/gtk-3.0/gtk.css` ([`gtk_css`]).
 
 use std::fs;
 use std::path::PathBuf;
@@ -20,12 +25,96 @@ pub const THEME_NAME: &str = "Kalango-Janelas";
 /// Os botões que o labwc pede (o "max_toggled" é o de restaurar).
 const BUTTONS: [&str; 4] = ["close", "iconify", "max", "max_toggled"];
 
-/// Ordem dos botões na barra de título (`<titlebar><layout>`).
-pub fn layout(style: usize) -> &'static str {
-    match style {
+/// Lados dos botões, como ficam no `aparencia.conf` (0 = esquerda).
+pub const SIDES: [&str; 2] = ["esquerda", "direita"];
+
+/// Lado de cada estilo quando a pessoa ainda não escolheu: os círculos (do
+/// macOS) à esquerda, os outros à direita.
+pub fn natural_side(style: i32) -> i32 {
+    if style == 1 { 0 } else { 1 }
+}
+
+/// Ordem dos botões na barra de título do labwc (`<titlebar><layout>`).
+pub fn layout(side: i32) -> &'static str {
+    if side == 0 {
         // Como no macOS: à esquerda, fechar primeiro.
-        1 => "close,iconify,max:",
-        _ => "icon:iconify,max,close",
+        "close,iconify,max:"
+    } else {
+        "icon:iconify,max,close"
+    }
+}
+
+/// O mesmo para o GTK (`button-layout` do GSettings).
+pub fn gtk_layout(side: i32) -> &'static str {
+    if side == 0 { "close,minimize,maximize:" } else { "appmenu:minimize,maximize,close" }
+}
+
+/// Botões das barras de título desenhadas pelo GTK 3 (Chrome no modo GTK,
+/// Firefox, apps GNOME), no mesmo estilo dos do labwc. Vazio no "Padrão".
+pub fn gtk_css(style: i32, accent: &str) -> String {
+    const SEL: &str = "headerbar button.titlebutton, .titlebar button.titlebutton";
+    let each = |class: &str, extra: &str| -> String {
+        SEL.split(", ").map(|s| format!("{s}{class}{extra}")).collect::<Vec<_>>().join(", ")
+    };
+    let reset = format!(
+        "{SEL} {{\n  padding: 0; box-shadow: none; border: none; background-image: none;\n  \
+         -gtk-icon-shadow: none; transition: background-color 150ms, color 150ms;\n}}\n"
+    );
+    match style {
+        1 => format!(
+            "{reset}{SEL} {{\n  min-width: 14px; min-height: 14px; margin: 0 3px; border-radius: 50%;\n  \
+             color: transparent; -gtk-icon-transform: scale(0.75);\n}}\n\
+             {} {{ background-color: #ff5f57; }}\n{} {{ background-color: #febc2e; }}\n\
+             {} {{ background-color: #28c840; }}\n{} {{ background-color: #4b5563; }}\n\
+             {} {{ color: rgba(59, 10, 10, 0.8); }}\n",
+            each(".close", ""),
+            each(".minimize", ""),
+            each(".maximize", ""),
+            each("", ":backdrop"),
+            each("", ":hover"),
+        ),
+        2 => format!(
+            "{reset}{SEL} {{\n  min-width: 24px; min-height: 24px; margin: 0 3px; border-radius: 50%;\n  \
+             background-color: alpha(white, 0.11); color: #e6edf3;\n}}\n\
+             {} {{ background-color: alpha(white, 0.22); }}\n{} {{ background-color: alpha(white, 0.06); color: #8b98a5; }}\n",
+            each("", ":hover"),
+            each("", ":backdrop"),
+        ),
+        3 => format!(
+            "{reset}{SEL} {{\n  min-width: 24px; min-height: 24px; margin: 0 3px; border-radius: 50%;\n  \
+             background-color: transparent; color: {accent};\n}}\n\
+             {} {{ background-color: {accent}; color: #04121a; }}\n{} {{ background-color: #f07178; }}\n\
+             {} {{ color: #8b98a5; }}\n",
+            each("", ":hover"),
+            each(".close", ":hover"),
+            each("", ":backdrop"),
+        ),
+        4 => format!(
+            "{reset}{SEL} {{\n  min-width: 40px; min-height: 28px; margin: 0; border-radius: 0;\n  \
+             background-color: transparent; color: #e6edf3;\n}}\n\
+             {} {{ background-color: alpha(white, 0.12); }}\n{} {{ background-color: #e81123; color: white; }}\n\
+             {} {{ color: #8b98a5; }}\n",
+            each("", ":hover"),
+            each(".close", ":hover"),
+            each("", ":backdrop"),
+        ),
+        _ => String::new(),
+    }
+}
+
+/// Põe o lado dos botões no GSettings (o GTK do Chrome, Firefox e apps GNOME
+/// lê na hora). Só grava se mudou.
+fn sync_gtk_layout(side: i32) {
+    const KEY: [&str; 2] = ["org.gnome.desktop.wm.preferences", "button-layout"];
+    let wanted = gtk_layout(side);
+    let current = std::process::Command::new("gsettings")
+        .arg("get")
+        .args(KEY)
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().trim_matches('\'').to_string())
+        .unwrap_or_default();
+    if current != wanted {
+        let _ = std::process::Command::new("gsettings").arg("set").args(KEY).arg(wanted).status();
     }
 }
 
@@ -150,11 +239,15 @@ fn theme_dir() -> Option<PathBuf> {
     Some(base.join("themes").join(THEME_NAME).join("openbox-3"))
 }
 
-/// Aplica o estilo (área de trabalho): grava o tema e ajusta o `rc.xml`.
-pub fn apply(style: i32, accent: &str) {
+/// Aplica o estilo e o lado (área de trabalho): grava o tema, ajusta o
+/// `rc.xml` e o lado dos botões do GTK.
+pub fn apply(style: i32, side: i32, accent: &str) {
+    sync_gtk_layout(side);
     let style = style.clamp(0, STYLES.len() as i32 - 1) as usize;
     if style == 0 {
-        crate::shell::labwc::set_window_theme(None);
+        // Botões do próprio labwc; o lado só vai para o rc.xml se não for o padrão.
+        let layout = (side != 1).then(|| (String::new(), layout(side).to_string()));
+        crate::shell::labwc::set_window_theme(layout);
         return;
     }
     let Some(dir) = theme_dir() else { return };
@@ -168,7 +261,7 @@ pub fn apply(style: i32, accent: &str) {
             return;
         }
     }
-    crate::shell::labwc::set_window_theme(Some((THEME_NAME.into(), layout(style).into())));
+    crate::shell::labwc::set_window_theme(Some((THEME_NAME.into(), layout(side).into())));
 }
 
 #[cfg(test)]
@@ -185,7 +278,22 @@ mod tests {
         let close = &f.iter().find(|(n, _)| n == "close-active.svg").unwrap().1;
         assert!(close.starts_with("<svg") && close.contains("#3dd6f5"));
         assert!(themerc(4).contains("window.button.width: 40"));
-        assert_eq!(layout(1), "close,iconify,max:");
-        assert_eq!(layout(2), "icon:iconify,max,close");
+        assert_eq!(layout(0), "close,iconify,max:");
+        assert_eq!(layout(1), "icon:iconify,max,close");
+        assert_eq!(gtk_layout(0), "close,minimize,maximize:");
+        assert_eq!((natural_side(1), natural_side(3)), (0, 1));
+    }
+
+    #[test]
+    fn botoes_no_gtk() {
+        assert!(gtk_css(0, "#3dd6f5").is_empty());
+        let c = gtk_css(1, "#3dd6f5");
+        assert!(c.contains("headerbar button.titlebutton.close, .titlebar button.titlebutton.close { background-color: #ff5f57; }"));
+        assert!(gtk_css(3, "#a78bfa").contains("color: #a78bfa;"));
+        // Chaves equilibradas (CSS válido o bastante para o GTK não descartar).
+        for st in 1..5 {
+            let c = gtk_css(st, "#3dd6f5");
+            assert_eq!(c.matches('{').count(), c.matches('}').count(), "estilo {st}");
+        }
     }
 }

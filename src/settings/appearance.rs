@@ -61,6 +61,9 @@ pub struct Prefs {
     pub icon_theme: i32,
     /// Botões das janelas ([`crate::settings::window_buttons::STYLES`]).
     pub window_buttons: i32,
+    /// Lado dos botões: 0 = esquerda, 1 = direita
+    /// ([`crate::settings::window_buttons::SIDES`]).
+    pub window_buttons_side: i32,
 }
 
 /// Nomes da borda da dock no arquivo (índice = `dock_position`).
@@ -94,13 +97,15 @@ pub fn icon_theme_name(family: i32, accent: i32) -> String {
 /// Marca do `~/.config/gtk-3.0/gtk.css` gerado pelo shell.
 const GTK_MARK: &str = "/* Gerado pelo kalango-shell (Configurações → Aparência). */";
 
-/// Texto do `gtk.css` do usuário que troca a cor de destaque do tema GTK
-/// "Kalango" (`/usr/share/themes/Kalango`, cor nomeada `@kalango_accent`).
-pub fn gtk_css(accent_index: i32) -> String {
+/// Texto do `gtk.css` do usuário: a cor de destaque do tema GTK "Kalango"
+/// (`/usr/share/themes/Kalango`, cor nomeada `@kalango_accent`) e os botões
+/// das barras de título desenhadas pelo GTK no estilo escolhido.
+pub fn gtk_css(accent_index: i32, window_buttons: i32) -> String {
     let color = ACCENTS[accent_index.clamp(0, 5) as usize];
+    let buttons = crate::settings::window_buttons::gtk_css(window_buttons, color);
     format!("{GTK_MARK}
 @define-color kalango_accent {color};
-")
+{buttons}")
 }
 
 /// Troca o tema de ícones (família e pastas na cor de destaque). Só mexe se
@@ -135,7 +140,7 @@ fn expected_icon_theme(family: i32, accent_index: i32) -> String {
 
 /// Grava a cor de destaque no `gtk.css` do usuário (apps GTK abertos depois
 /// já usam a cor nova). Um `gtk.css` feito à mão (sem a marca) fica intocado.
-fn sync_gtk_accent(accent_index: i32) {
+fn sync_gtk_css(accent_index: i32, window_buttons: i32) {
     let Some(base) = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
@@ -147,7 +152,7 @@ fn sync_gtk_accent(accent_index: i32) {
     if current.as_deref().is_some_and(|t| !t.starts_with(GTK_MARK)) {
         return;
     }
-    let wanted = gtk_css(accent_index);
+    let wanted = gtk_css(accent_index, window_buttons);
     if current.as_deref() == Some(wanted.as_str()) {
         return;
     }
@@ -167,13 +172,16 @@ fn sync_system(ui: &AppWindow, now: &Prefs, before: Option<&Prefs>) {
     if before.is_none() {
         crate::shell::labwc::sync_layouts_menu();
     }
-    if before.is_none_or(|b| b.accent_index != now.accent_index) {
-        sync_gtk_accent(now.accent_index);
-    }
-    // Botões das janelas (o estilo "destaque" segue a cor de destaque).
-    if before.is_none_or(|b| b.window_buttons != now.window_buttons || b.accent_index != now.accent_index) {
+    // Destaque e botões das janelas (o estilo "destaque" segue a cor de destaque).
+    let buttons_changed = before.is_none_or(|b| {
+        b.window_buttons != now.window_buttons
+            || b.window_buttons_side != now.window_buttons_side
+            || b.accent_index != now.accent_index
+    });
+    if buttons_changed {
+        sync_gtk_css(now.accent_index, now.window_buttons);
         let accent = ACCENTS[now.accent_index.clamp(0, ACCENTS.len() as i32 - 1) as usize];
-        crate::settings::window_buttons::apply(now.window_buttons, accent);
+        crate::settings::window_buttons::apply(now.window_buttons, now.window_buttons_side, accent);
     }
     if before.is_none_or(|b| b.accent_index != now.accent_index || b.icon_theme != now.icon_theme) {
         let theme = sync_icon_theme(now.icon_theme, now.accent_index);
@@ -233,6 +241,7 @@ impl Prefs {
             wallpaper_file: t.get_wallpaper_file().into(),
             icon_theme: t.get_icon_theme(),
             window_buttons: t.get_window_buttons(),
+            window_buttons_side: t.get_window_buttons_side(),
         }
     }
 
@@ -261,6 +270,7 @@ impl Prefs {
         t.set_wallpaper_file(self.wallpaper_file.clone().into());
         t.set_icon_theme(self.icon_theme);
         t.set_window_buttons(self.window_buttons);
+        t.set_window_buttons_side(self.window_buttons_side);
     }
 
     /// Margens que o labwc reserva para a dock na borda dela: a espessura da
@@ -298,7 +308,7 @@ impl Prefs {
              barra-data={}\nbarra-segundos={}\nbarra-cpu={}\nbarra-bateria={}\n\
              dock-tamanho={}\ndock-apps={}\ndock-posicao={}\ndock-estilo={}\ndock-transparencia={}\n\
              dock-icones={}\ndock-icones-transparencia={}\ndock-cantos={}\n\
-             papel-de-parede={}\npapel-de-parede-arquivo={}\nicones={}\nbotoes-janela={}\n",
+             papel-de-parede={}\npapel-de-parede-arquivo={}\nicones={}\nbotoes-janela={}\nbotoes-janela-lado={}\n",
             self.accent_index,
             mode,
             self.transparency,
@@ -322,6 +332,7 @@ impl Prefs {
             ICON_FAMILIES[self.icon_theme.clamp(0, 2) as usize],
             crate::settings::window_buttons::STYLES
                 [self.window_buttons.clamp(0, crate::settings::window_buttons::STYLES.len() as i32 - 1) as usize],
+            crate::settings::window_buttons::SIDES[self.window_buttons_side.clamp(0, 1) as usize],
         )
     }
 
@@ -415,6 +426,15 @@ impl Prefs {
                 "botoes-janela" => {
                     if let Some(i) = crate::settings::window_buttons::STYLES.iter().position(|s| *s == value) {
                         p.window_buttons = i as i32;
+                        // Arquivo de antes do lado: o lado natural do estilo.
+                        if !text.contains("botoes-janela-lado=") {
+                            p.window_buttons_side = crate::settings::window_buttons::natural_side(p.window_buttons);
+                        }
+                    }
+                }
+                "botoes-janela-lado" => {
+                    if let Some(i) = crate::settings::window_buttons::SIDES.iter().position(|s| *s == value) {
+                        p.window_buttons_side = i as i32;
                     }
                 }
                 "dock-apps" => {
@@ -571,6 +591,7 @@ mod tests {
             wallpaper_file: String::new(),
             icon_theme: 0,
             window_buttons: 0,
+            window_buttons_side: 1,
         }
     }
 
@@ -599,6 +620,7 @@ mod tests {
             wallpaper_file: String::new(),
             icon_theme: 2,
             window_buttons: 0,
+            window_buttons_side: 0,
         };
         assert_eq!(Prefs::parse(&p.to_text(), &padrao()), p);
     }
@@ -630,8 +652,14 @@ mod tests {
 
     #[test]
     fn destaque_do_gtk() {
-        assert!(gtk_css(1).ends_with("@define-color kalango_accent #a78bfa;\n"));
-        assert!(gtk_css(99).contains("#f28b95"));
+        assert!(gtk_css(1, 0).ends_with("@define-color kalango_accent #a78bfa;\n"));
+        assert!(gtk_css(99, 0).contains("#f28b95"));
+        // Com os círculos, os botões das barras do GTK vêm junto.
+        assert!(gtk_css(0, 1).contains("button.titlebutton.close"));
+        // Arquivo antigo (sem o lado): círculos à esquerda, os outros à direita.
+        assert_eq!(Prefs::parse("botoes-janela=circulos\n", &padrao()).window_buttons_side, 0);
+        assert_eq!(Prefs::parse("botoes-janela=destaque\n", &padrao()).window_buttons_side, 1);
+        assert_eq!(Prefs::parse("botoes-janela=circulos\nbotoes-janela-lado=direita\n", &padrao()).window_buttons_side, 1);
     }
 
     #[test]

@@ -72,6 +72,9 @@ export global Theme {
     /// Botões das janelas: 0 padrão, 1 círculos, 2 arredondados, 3 destaque,
     /// 4 retangulares (`src/settings/window_buttons.rs`).
     in-out property <int> window-buttons: 0;
+    /// Lado dos botões das janelas: 0 = esquerda (como no macOS), 1 = direita.
+    /// Vale também para o Chrome (modo GTK), o Firefox e os apps GNOME.
+    in-out property <int> window-buttons-side: 1;
     out property <[string]> wallpaper-names: [@tr("Circuits"), @tr("Black and blue"), @tr("Black"), @tr("Blue"), @tr("Green"), @tr("Purple"), @tr("Orange"), @tr("White")];
     /// Ids dos apps da dock, separados por vírgula, na ordem exibida
     /// (Configurações fica sempre no fim, depois do separador).

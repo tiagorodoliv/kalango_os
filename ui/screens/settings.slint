@@ -260,7 +260,11 @@ component TitlebarPreview inherits Rectangle {
     background: #0d1218;
     border-width: 1px;
     border-color: #1e2a33;
-    property <[string]> glyphs: ["–", "□", "✕"];
+    /// Botões à esquerda (`Theme.window-buttons-side` = 0): fechar primeiro.
+    property <bool> left: Theme.window-buttons-side == 0;
+    property <[string]> glyphs: self.left ? ["✕", "–", "□"] : ["–", "□", "✕"];
+    /// Posição do "fechar" em `glyphs`.
+    property <int> close-index: self.left ? 0 : 2;
     property <[color]> mac: [#febc2e, #28c840, #ff5f57];
     // Título.
     Rectangle {
@@ -270,12 +274,13 @@ component TitlebarPreview inherits Rectangle {
         border-radius: 2px;
         background: #e6edf3.with-alpha(0.35);
     }
-    // Círculos à esquerda (fechar primeiro, como no macOS).
+    // Círculos coloridos (como no macOS), do lado escolhido.
     if root.style == 1: HorizontalLayout {
-        x: 8px;
+        x: root.left ? 8px : parent.width - self.preferred-width - 8px;
+        width: self.preferred-width;
         spacing: 6px;
         alignment: start;
-        for c[i] in [root.mac[2], root.mac[0], root.mac[1]]: Rectangle {
+        for c[i] in root.left ? [root.mac[2], root.mac[0], root.mac[1]] : root.mac: Rectangle {
             y: 7px;
             width: 12px;
             height: 12px;
@@ -284,7 +289,7 @@ component TitlebarPreview inherits Rectangle {
         }
     }
     if root.style != 1: HorizontalLayout {
-        x: parent.width - self.preferred-width - (root.style == 4 ? 0px : 6px);
+        x: root.left ? (root.style == 4 ? 0px : 6px) : parent.width - self.preferred-width - (root.style == 4 ? 0px : 6px);
         width: self.preferred-width;
         spacing: root.style == 4 ? 0px : 2px;
         for g[i] in root.glyphs: Rectangle {
@@ -292,7 +297,7 @@ component TitlebarPreview inherits Rectangle {
             height: 26px;
             border-radius: root.style == 4 ? 0px : 10px;
             background: root.style == 2 ? #ffffff1c
-                : root.style == 4 && i == 2 ? #e81123 : transparent;
+                : root.style == 4 && i == root.close-index ? #e81123 : transparent;
             Rectangle {
                 width: 18px;
                 height: 18px;
@@ -633,7 +638,47 @@ component AppearancePage inherits Rectangle {
                     }
                     TouchArea {
                         mouse-cursor: pointer;
-                        clicked => { Theme.window-buttons = i; }
+                        clicked => {
+                            // Os círculos (do macOS) vão para a esquerda; os
+                            // outros estilos mantêm o lado escolhido.
+                            if (i == 1 && Theme.window-buttons != 1) {
+                                Theme.window-buttons-side = 0;
+                            }
+                            Theme.window-buttons = i;
+                        }
+                    }
+                }
+            }
+            Rectangle { height: 12px; }
+            // Lado dos botões (labwc e apps GTK: Chrome no modo GTK, Firefox...).
+            HorizontalLayout {
+                height: 34px;
+                spacing: 8px;
+                alignment: start;
+                Text {
+                    text: @tr("Position");
+                    color: Theme.text;
+                    font-family: Theme.sans;
+                    font-size: 14px;
+                    vertical-alignment: center;
+                }
+                Rectangle { width: 6px; }
+                for lado[i] in [@tr("Left"), @tr("Right")]: Rectangle {
+                    width: side-label.preferred-width + 32px;
+                    border-radius: 17px;
+                    background: Theme.window-buttons-side == i ? Theme.accent : (side-touch.has-hover ? Theme.tile-hover : Theme.tile);
+                    border-width: Theme.window-buttons-side == i ? 0 : 1px;
+                    border-color: Theme.border;
+                    side-label := Text {
+                        text: lado;
+                        color: Theme.window-buttons-side == i ? Theme.on-accent : Theme.text;
+                        font-family: Theme.sans;
+                        font-size: 13.5px;
+                        font-weight: 600;
+                    }
+                    side-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { Theme.window-buttons-side = i; }
                     }
                 }
             }
