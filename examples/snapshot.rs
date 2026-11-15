@@ -140,6 +140,9 @@ fn main() {
     save(&window, &out.join("config_estreita_rede.png"));
     ui.set_settings_page(3);
     save(&window, &out.join("config_estreita_barra.png"));
+    // Barra de tarefas inteira (modelos da dock e as opções novas).
+    window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (1500.0 * SCALE) as u32));
+    save(&window, &out.join("config_barra.png"));
     ui.set_settings_page(2);
     window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
 
@@ -190,6 +193,23 @@ fn main() {
         ui.set_mode(kalango_os::ShellMode::Dock);
         window.set_size(PhysicalSize::new((1366.0 * SCALE) as u32, (70.0 * SCALE) as u32));
         save(&window, &out.join("dock_janela.png"));
+        // Modelos da dock: ícones 3D, ladrilhos e cantos retos/pílula.
+        let theme = ui.global::<Theme>();
+        for (name, icons, corners, transp, icon_transp) in [
+            ("dock_3d_pilula", 1, 2, 0.4, 0.0),
+            ("dock_ladrilhos", 2, 1, 0.2, 0.0),
+            ("dock_minima", 0, 0, 0.6, 0.25),
+        ] {
+            theme.set_dock_icon_style(icons);
+            theme.set_dock_corners(corners);
+            theme.set_dock_transparency(transp);
+            theme.set_dock_icon_transparency(icon_transp);
+            save(&window, &out.join(format!("{name}.png")));
+        }
+        theme.set_dock_icon_style(0);
+        theme.set_dock_corners(1);
+        theme.set_dock_transparency(0.0);
+        theme.set_dock_icon_transparency(0.0);
         ui.set_mode(kalango_os::ShellMode::Desktop);
         window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
     }

@@ -22,21 +22,76 @@ component DockItem inherits Rectangle {
     /// Botão direito (menu do app).
     callback menu();
 
-    /// Ícone colorido do tema de ícones (sessão real): desenhado grande e sem
-    /// colorir, sem o quadradinho de fundo (só aparece ao passar o mouse).
+    /// Ícone colorido do tema de ícones (sessão real): no estilo plano,
+    /// desenhado grande e sem colorir, sem o ladrilho de fundo (só aparece ao
+    /// passar o mouse).
     property <bool> own-icon: root.app.tint == transparent;
+    /// Estilos de `Theme.dock-icon-style`.
+    property <bool> raised: Theme.dock-icon-style == 1;
+    property <bool> tiled: Theme.dock-icon-style == 2;
+    /// Cor do app (a pasta de Arquivos segue o destaque).
+    property <color> app-color: root.app.id == "files" ? Theme.accent : root.app.tint;
+    /// 3D: o ícone sobe um pouco com o mouse em cima.
+    property <length> lift: root.raised && touch.has-hover ? -3px : 0;
+    /// Ícone sem a transparência escolhida quando o mouse está em cima.
+    property <float> icon-opacity: touch.has-hover ? 1 : 1 - Theme.dock-icon-transparency;
+    /// Lado do ícone: os coloridos ficam grandes no estilo plano e menores
+    /// dentro do ladrilho (3D e ladrilho).
+    property <length> icon-size: !root.own-icon ? Theme.dock-icon
+        : root.raised || root.tiled ? Theme.dock-item * 0.66 : Theme.dock-item * 0.82;
 
     width: Theme.dock-item;
     height: Theme.dock-item;
-    border-radius: Theme.dock-item * 0.21;
-    background: touch.has-hover ? Theme.tile-hover : root.own-icon ? transparent : Theme.tile;
-    animate background { duration: Theme.anim; }
 
+    // O ladrilho é desenhado por filhos (e não pelo próprio Rectangle) para a
+    // sombra do 3D ficar atrás dele. Sem drop-shadow nem gradiente: no
+    // renderer de software os dois saem quadrados (ignoram o arredondamento).
+    if root.raised: Rectangle {
+        y: 3px;
+        border-radius: Theme.dock-item-radius;
+        background: #00000070;
+    }
+    Rectangle {
+        border-radius: Theme.dock-item-radius;
+        background: root.raised
+            ? (touch.has-hover ? Theme.tile-hover : Theme.tile).brighter(0.35)
+            : root.tiled
+                ? (root.own-icon ? (touch.has-hover ? Theme.tile-hover : Theme.tile) : root.app-color.with-alpha(touch.has-hover ? 0.3 : 0.18))
+                : touch.has-hover ? Theme.tile-hover : root.own-icon ? transparent : Theme.tile;
+        border-width: root.raised || root.tiled ? 1px : 0;
+        border-color: root.tiled && !root.own-icon ? root.app-color.with-alpha(0.45) : root.raised ? #ffffff1a : Theme.border;
+        animate background { duration: Theme.anim; }
+    }
+    // 3D: reflexo na parte de cima do ladrilho (recuado das bordas, para
+    // caber em qualquer canto: reto, arredondado ou círculo).
+    if root.raised: Rectangle {
+        x: parent.width * 0.12;
+        y: parent.height * 0.05;
+        width: parent.width * 0.76;
+        height: parent.height * 0.42;
+        border-radius: min(self.height / 2, Theme.dock-item-radius);
+        background: #ffffff10;
+    }
+
+    // 3D: sombra do próprio ícone, um pouco abaixo dele.
+    if root.raised && root.app.letter == "": Image {
+        source: root.app.icon;
+        colorize: #000000;
+        opacity: 0.4 * root.icon-opacity;
+        width: root.icon-size;
+        height: root.icon-size;
+        x: (parent.width - self.width) / 2 + 1px;
+        y: (parent.height - self.height) / 2 + 3px + root.lift / 2;
+    }
     if root.app.letter == "": Image {
         source: root.app.icon;
-        colorize: root.own-icon ? transparent : root.app.id == "files" ? Theme.accent : root.app.tint;
-        width: root.own-icon ? Theme.dock-item * 0.82 : Theme.dock-icon;
-        height: self.width;
+        colorize: root.own-icon ? transparent : root.app-color;
+        width: root.icon-size;
+        height: root.icon-size;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2 + root.lift;
+        opacity: root.icon-opacity;
+        animate y { duration: Theme.anim; }
     }
     // App sem ícone: a inicial na cor do app.
     if root.app.letter != "": Text {
@@ -45,6 +100,9 @@ component DockItem inherits Rectangle {
         font-family: Theme.sans;
         font-size: Theme.dock-item * 0.45;
         font-weight: 600;
+        y: (parent.height - self.height) / 2 + root.lift;
+        opacity: root.icon-opacity;
+        animate y { duration: Theme.anim; }
     }
 
     // Indicador: traço quando ativo, ponto quando só aberto.
@@ -80,6 +138,10 @@ export component Dock inherits Rectangle {
     /// Sem cantos arredondados (dock em janela própria: a janela não tem
     /// transparência, e os cantos ficariam pretos).
     in property <bool> square: false;
+    /// Sombra em volta da dock. Desligada na dock em janela própria: a janela
+    /// tem o tamanho exato da dock, a sombra era cortada na borda dela e só
+    /// aparecia nos cantos, fora do arredondamento (a "sobra" nos cantos).
+    in property <bool> shadow: true;
     callback launch(string);
     /// Botão direito num app: id e centro do item ao longo da dock.
     callback menu(string, length);
@@ -99,7 +161,9 @@ export component Dock inherits Rectangle {
     width: root.vertical ? Theme.dock-thickness : root.along;
     height: root.vertical ? root.along : Theme.dock-thickness;
     // Encostada na borda: só os cantos do lado de dentro são arredondados.
-    property <length> r: root.bar || root.square ? 0 : 14px;
+    // Cantos (`Theme.dock-corners`): retos, arredondados ou pílula.
+    property <length> r: root.bar || root.square || Theme.dock-corners == 0 ? 0
+        : Theme.dock-corners == 2 ? Theme.dock-thickness / 2 : 14px;
     border-top-left-radius: Theme.dock-position == 1 ? 0 : root.r;
     border-top-right-radius: Theme.dock-position == 2 ? 0 : root.r;
     border-bottom-left-radius: Theme.dock-position == 2 ? root.r : 0;
@@ -108,7 +172,7 @@ export component Dock inherits Rectangle {
     background: (root.bar ? Theme.bar : Theme.panel).with-alpha(1 - Theme.dock-transparency);
     border-width: root.bar ? 0 : 1px;
     border-color: Theme.border;
-    drop-shadow-blur: root.bar ? 0 : 24px;
+    drop-shadow-blur: root.bar || !root.shadow ? 0 : 24px;
     drop-shadow-color: #00000070;
 
     // Barra: linha na borda virada para dentro da tela.

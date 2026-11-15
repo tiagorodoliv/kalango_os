@@ -488,6 +488,7 @@ export component AppWindow inherits Window {
         // Dock em janela própria: a faixa inteira é a janela; a dock fica
         // encostada na borda da tela e centralizada.
         if root.mode == ShellMode.dock: Dock {
+            shadow: false;
             bar-length: Theme.dock-position == 0 ? root.width : root.height;
             x: Theme.dock-position == 0 ? (root.width - self.width) / 2
                 : Theme.dock-position == 1 ? 0 : root.width - self.width;

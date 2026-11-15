@@ -46,6 +46,12 @@ pub struct Prefs {
     pub dock_style: i32,
     /// Transparência do fundo da dock, 0.0 (opaca) a 0.8.
     pub dock_transparency: f32,
+    /// Ícones da dock: 0 = planos, 1 = 3D, 2 = ladrilho na cor do app.
+    pub dock_icon_style: i32,
+    /// Transparência dos ícones da dock, 0.0 (opacos) a 0.6.
+    pub dock_icon_transparency: f32,
+    /// Cantos da dock: 0 = retos, 1 = arredondados, 2 = pílula.
+    pub dock_corners: i32,
     /// 0 = circuitos; 1 em diante, os modelos de [`crate::shell::wallpaper::MODELS`];
     /// [`crate::shell::wallpaper::CUSTOM`] = imagem própria (`wallpaper_file`).
     pub wallpaper: i32,
@@ -61,6 +67,10 @@ pub struct Prefs {
 const DOCK_POSITIONS: [&str; 3] = ["embaixo", "esquerda", "direita"];
 /// Nomes do estilo da dock no arquivo (índice = `dock_style`).
 const DOCK_STYLES: [&str; 2] = ["dock", "barra"];
+/// Ícones da dock no arquivo (índice = `dock_icon_style`).
+const DOCK_ICONS: [&str; 3] = ["plano", "3d", "ladrilho"];
+/// Cantos da dock no arquivo (índice = `dock_corners`).
+const DOCK_CORNERS: [&str; 3] = ["retos", "arredondados", "pilula"];
 
 /// As 6 cores de destaque (mesma ordem de `Theme.accents` em ui/theme.slint).
 pub const ACCENTS: [&str; 6] = ["#3dd6f5", "#a78bfa", "#7ea6f7", "#5fd38d", "#e8b04b", "#f28b95"];
@@ -205,6 +215,9 @@ impl Prefs {
             mode: t.get_mode(),
             transparency: t.get_transparency(),
             dock_transparency: t.get_dock_transparency(),
+            dock_icon_style: t.get_dock_icon_style(),
+            dock_icon_transparency: t.get_dock_icon_transparency(),
+            dock_corners: t.get_dock_corners(),
             blur: t.get_blur(),
             dock_always_visible: t.get_dock_always_visible(),
             reduce_motion: t.get_reduce_motion(),
@@ -230,6 +243,9 @@ impl Prefs {
         t.set_mode(self.mode);
         t.set_transparency(self.transparency);
         t.set_dock_transparency(self.dock_transparency);
+        t.set_dock_icon_style(self.dock_icon_style);
+        t.set_dock_icon_transparency(self.dock_icon_transparency);
+        t.set_dock_corners(self.dock_corners);
         t.set_blur(self.blur);
         t.set_dock_always_visible(self.dock_always_visible);
         t.set_reduce_motion(self.reduce_motion);
@@ -281,6 +297,7 @@ impl Prefs {
              # Barra de tarefas\n\
              barra-data={}\nbarra-segundos={}\nbarra-cpu={}\nbarra-bateria={}\n\
              dock-tamanho={}\ndock-apps={}\ndock-posicao={}\ndock-estilo={}\ndock-transparencia={}\n\
+             dock-icones={}\ndock-icones-transparencia={}\ndock-cantos={}\n\
              papel-de-parede={}\npapel-de-parede-arquivo={}\nicones={}\nbotoes-janela={}\n",
             self.accent_index,
             mode,
@@ -297,6 +314,9 @@ impl Prefs {
             DOCK_POSITIONS[self.dock_position.clamp(0, 2) as usize],
             DOCK_STYLES[self.dock_style.clamp(0, 1) as usize],
             self.dock_transparency,
+            DOCK_ICONS[self.dock_icon_style.clamp(0, 2) as usize],
+            self.dock_icon_transparency,
+            DOCK_CORNERS[self.dock_corners.clamp(0, 2) as usize],
             crate::shell::wallpaper::name(self.wallpaper),
             self.wallpaper_file,
             ICON_FAMILIES[self.icon_theme.clamp(0, 2) as usize],
@@ -331,6 +351,21 @@ impl Prefs {
                 "dock-transparencia" => {
                     if let Ok(v) = value.parse::<f32>() {
                         p.dock_transparency = v.clamp(0.0, 0.8);
+                    }
+                }
+                "dock-icones-transparencia" => {
+                    if let Ok(v) = value.parse::<f32>() {
+                        p.dock_icon_transparency = v.clamp(0.0, 0.6);
+                    }
+                }
+                "dock-icones" => {
+                    if let Some(i) = DOCK_ICONS.iter().position(|s| *s == value) {
+                        p.dock_icon_style = i as i32;
+                    }
+                }
+                "dock-cantos" => {
+                    if let Some(i) = DOCK_CORNERS.iter().position(|s| *s == value) {
+                        p.dock_corners = i as i32;
                     }
                 }
                 "transparencia" => {
@@ -518,6 +553,9 @@ mod tests {
             mode: ThemeMode::Glass,
             transparency: 0.6,
             dock_transparency: 0.0,
+            dock_icon_style: 0,
+            dock_icon_transparency: 0.0,
+            dock_corners: 1,
             blur: true,
             dock_always_visible: true,
             reduce_motion: false,
@@ -543,6 +581,9 @@ mod tests {
             mode: ThemeMode::Light,
             transparency: 0.25,
             dock_transparency: 0.4,
+            dock_icon_style: 1,
+            dock_icon_transparency: 0.2,
+            dock_corners: 2,
             blur: false,
             dock_always_visible: false,
             reduce_motion: true,

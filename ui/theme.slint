@@ -51,6 +51,15 @@ export global Theme {
     in-out property <int> dock-style: 0;
     /// Transparência do fundo da dock: 0 (opaca) a 0.8.
     in-out property <float> dock-transparency: 0;
+    /// Ícones da dock: 0 = planos, 1 = 3D (ladrilho em relevo, sombra e
+    /// sobem com o mouse), 2 = ladrilho na cor de cada app.
+    in-out property <int> dock-icon-style: 0;
+    /// Transparência dos ícones da dock: 0 (opacos) a 0.6; com o mouse em
+    /// cima, o ícone fica opaco.
+    in-out property <float> dock-icon-transparency: 0;
+    /// Cantos da dock e dos ladrilhos: 0 = retos, 1 = arredondados (padrão),
+    /// 2 = pílula (dock com pontas redondas e ladrilhos circulares).
+    in-out property <int> dock-corners: 1;
     /// Tema de ícones: 0 = Flat Remix, 1 = Colloid, 2 = Fluent (as pastas
     /// seguem a cor de destaque nos três).
     in-out property <int> icon-theme: 0;
@@ -129,6 +138,8 @@ export global Theme {
     /// Lado do ícone dentro do botão da dock.
     /// (Proporção dos tamanhos antigos: 44 → 20, 52 → 24, 60 → 28.)
     out property <length> dock-icon: max(12px, round(clamp(dock-size, 16, 72) * 6 / 13) * 1px);
+    /// Raio do ladrilho de cada app da dock (`dock-corners`).
+    out property <length> dock-item-radius: dock-corners == 0 ? 4px : dock-corners == 2 ? dock-item / 2 : dock-item * 0.21;
 
     /// Duração padrão das transições; zero quando "Reduzir animações" está ligado.
     out property <duration> anim: reduce-motion ? 0ms : 180ms;

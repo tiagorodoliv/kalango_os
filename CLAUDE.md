@@ -142,7 +142,12 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `kalango-dock` do rc.xml tem `ResizeTo` + `MoveTo`, que o shell troca no `~/.config/labwc/rc.xml`
   (`labwc::set_dock_geometry`, junto com as margens) antes de abrir; mudou tamanho/apps/borda → abre outra. A janela
   é transparente (cantos arredondados mostram o que está atrás) e `no-frame` (AppWindow no modo dock: fundo
-  transparente, tamanho da faixa). Transparência do fundo da dock: `Theme.dock-transparency` (`dock-transparencia`). Sem placa de vídeo ou com a
+  transparente, tamanho da faixa). Transparência do fundo da dock: `Theme.dock-transparency` (`dock-transparencia`). **Modelos da dock (2026-11-15):** ícones
+  `Theme.dock-icon-style` (plano/3d/ladrilho, `dock-icones`), `dock-icon-transparency` (`dock-icones-transparencia`,
+  opaco com o mouse em cima), cantos `dock-corners` (retos/arredondados/pilula, `dock-cantos`) e 5 modelos prontos na
+  Barra de tarefas (`DockModelCard`). **No renderer de software, `drop-shadow` e gradiente ignoram o `border-radius`**
+  (saem quadrados): o 3D usa sombra/reflexo como retângulos sólidos. A dock em janela própria fica sem sombra
+  (`Dock.shadow: false`): a janela tem o tamanho exato e a sombra cortada aparecia nos cantos ("sobra"). Sem placa de vídeo ou com a
   dock escondida, ela continua desenhada na área de trabalho (atrás das janelas). Com placa de vídeo, todo o shell
   usa OpenGL (`renderer_for`: a Aparência travava no renderer de software).
 - **Apps abertos na dock e Alt+Tab (2026-11-14):** `src/shell/toplevels.rs` (wlr-foreign-toplevel, conexão própria numa

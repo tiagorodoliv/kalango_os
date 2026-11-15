@@ -184,6 +184,97 @@ component Dropdown inherits Rectangle {
 }
 
 /// Seletor de uma opção entre poucas, lado a lado (ex.: tamanho da dock).
+/// Modelo pronto da dock (Barra de tarefas → MODELO): miniatura e nome.
+/// Escolher um modelo troca estilo, ícones, cantos e transparências de uma
+/// vez; depois cada opção continua ajustável sozinha.
+component DockModelCard inherits Rectangle {
+    in property <int> model;
+    in property <string> label;
+    callback chosen();
+
+    // Valores de cada modelo: Kalango, Vidro 3D, Ladrilhos, Barra, Mínima.
+    property <int> m-style: [0, 0, 0, 1, 0][root.model];
+    property <int> m-icons: [0, 1, 2, 0, 0][root.model];
+    property <int> m-corners: [1, 2, 1, 0, 0][root.model];
+    property <float> m-transparency: [0, 0.4, 0.2, 0.1, 0.6][root.model];
+    property <float> m-icon-transparency: [0, 0, 0, 0, 0.25][root.model];
+    out property <bool> selected: Theme.dock-style == root.m-style && Theme.dock-icon-style == root.m-icons
+        && Theme.dock-corners == root.m-corners && abs(Theme.dock-transparency - root.m-transparency) < 0.01
+        && abs(Theme.dock-icon-transparency - root.m-icon-transparency) < 0.01;
+
+    height: 104px;
+    border-radius: Theme.radius-small;
+    background: card-touch.has-hover ? Theme.tile-hover : Theme.tile;
+    border-width: root.selected ? 2px : 1px;
+    border-color: root.selected ? Theme.accent : Theme.border;
+
+    // "Tela" com a dock embaixo.
+    screen := Rectangle {
+        x: 8px;
+        y: 8px;
+        width: parent.width - 16px;
+        height: 64px;
+        border-radius: 6px;
+        clip: true;
+        background: Theme.accent.darker(0.7).with-alpha(0.35);
+
+        property <length> t: 20px;
+        property <length> r: root.m-style == 1 || root.m-corners == 0 ? 0 : root.m-corners == 2 ? self.t / 2 : 5px;
+        Rectangle {
+            width: root.m-style == 1 ? parent.width : 5 * 15px + 6px;
+            height: parent.t;
+            x: (parent.width - self.width) / 2;
+            y: parent.height - self.height;
+            border-top-left-radius: parent.r;
+            border-top-right-radius: parent.r;
+            background: Theme.panel-solid.with-alpha(1 - root.m-transparency);
+            border-width: root.m-style == 1 ? 0 : 1px;
+            border-color: Theme.border;
+
+            for c[i] in [Theme.accent, #f28b95, #7ea6f7, #5fd38d, #e8b04b]: Rectangle {
+                property <length> side: 12px;
+                x: (parent.width - 5 * 15px) / 2 + i * 15px + 1px;
+                y: (parent.height - self.side) / 2;
+                width: self.side;
+                height: self.side;
+                border-radius: root.m-corners == 0 ? 1px : root.m-corners == 2 ? self.side / 2 : 3px;
+                background: root.m-icons == 1 ? Theme.tile.brighter(0.5)
+                    : root.m-icons == 2 ? c.with-alpha(0.25) : transparent;
+                border-width: root.m-icons == 0 ? 0 : 1px;
+                border-color: root.m-icons == 2 ? c.with-alpha(0.6) : Theme.border;
+                Rectangle {
+                    width: root.m-icons == 0 ? 9px : 6px;
+                    height: self.width;
+                    border-radius: root.m-corners == 2 ? self.width / 2 : 2px;
+                    background: c;
+                    opacity: 1 - root.m-icon-transparency;
+                }
+            }
+        }
+    }
+    Text {
+        y: screen.y + screen.height + 6px;
+        width: parent.width;
+        horizontal-alignment: center;
+        text: root.label;
+        color: root.selected ? Theme.text : Theme.text-muted;
+        font-family: Theme.sans;
+        font-size: 12.5px;
+        font-weight: root.selected ? 600 : 400;
+    }
+    card-touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            Theme.dock-style = root.m-style;
+            Theme.dock-icon-style = root.m-icons;
+            Theme.dock-corners = root.m-corners;
+            Theme.dock-transparency = root.m-transparency;
+            Theme.dock-icon-transparency = root.m-icon-transparency;
+            root.chosen();
+        }
+    }
+}
+
 component Segmented inherits Rectangle {
     in property <[string]> options;
     in property <int> selected;
@@ -2587,9 +2678,19 @@ export component TaskbarPage inherits Rectangle {
                 }
             }
 
+            SectionLabel { text: @tr("DOCK MODEL"); }
+            HorizontalLayout {
+                spacing: 10px;
+                DockModelCard { model: 0; label: "Kalango"; }
+                DockModelCard { model: 1; label: @tr("3D glass"); }
+                DockModelCard { model: 2; label: @tr("Tiles"); }
+                DockModelCard { model: 3; label: @tr("Bar"); }
+                DockModelCard { model: 4; label: @tr("Minimal"); }
+            }
+
             SectionLabel { text: "DOCK"; }
             Panel {
-                height: 5 * 67px;
+                height: 8 * 67px;
                 VerticalLayout {
                     Row {
                         title: @tr("Position");
@@ -2612,6 +2713,27 @@ export component TaskbarPage inherits Rectangle {
                         }
                     }
                     Row {
+                        title: @tr("Icons");
+                        subtitle: Theme.dock-icon-style == 1 ? @tr("Raised tile with shadow; rises under the mouse")
+                            : Theme.dock-icon-style == 2 ? @tr("Tile in each app's color") : @tr("Just the icon");
+                        Segmented {
+                            x: parent.width - self.width - 20px;
+                            options: [@tr("Flat"), "3D", @tr("Tiles")];
+                            selected: Theme.dock-icon-style;
+                            chosen(i) => { Theme.dock-icon-style = i; }
+                        }
+                    }
+                    Row {
+                        title: @tr("Corners");
+                        subtitle: @tr("Of the dock and of the icon tiles");
+                        Segmented {
+                            x: parent.width - self.width - 20px;
+                            options: [@tr("Square"), @tr("Rounded"), @tr("Pill")];
+                            selected: Theme.dock-corners;
+                            chosen(i) => { Theme.dock-corners = i; }
+                        }
+                    }
+                    Row {
                         title: @tr("Always visible");
                         subtitle: @tr("Off: appears when the mouse reaches the screen edge");
                         Toggle { x: parent.width - self.width - 20px; checked <=> Theme.dock-always-visible; }
@@ -2630,6 +2752,27 @@ export component TaskbarPage inherits Rectangle {
                             x: parent.width - self.width - 20px;
                             width: 52px;
                             text: round(Theme.dock-transparency * 100) + "%";
+                            color: Theme.text;
+                            font-family: Theme.mono;
+                            font-size: 13px;
+                            horizontal-alignment: right;
+                            vertical-alignment: center;
+                        }
+                    }
+                    Row {
+                        title: @tr("Icon transparency");
+                        subtitle: @tr("The icons become solid under the mouse");
+                        SliderBar {
+                            x: parent.width - self.width - 82px;
+                            width: clamp(parent.width * 0.3, 100px, 240px);
+                            // 0–60 %.
+                            value: Theme.dock-icon-transparency / 0.6;
+                            changed(v) => { Theme.dock-icon-transparency = round(v * 12) * 0.05; }
+                        }
+                        Text {
+                            x: parent.width - self.width - 20px;
+                            width: 52px;
+                            text: round(Theme.dock-icon-transparency * 100) + "%";
                             color: Theme.text;
                             font-family: Theme.mono;
                             font-size: 13px;

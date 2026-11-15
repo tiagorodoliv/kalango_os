@@ -1248,3 +1248,48 @@ msgstr "Destaque"
 
 msgid "Rectangular"
 msgstr "Retangulares"
+
+msgid "DOCK MODEL"
+msgstr "MODELO DA DOCK"
+
+msgid "3D glass"
+msgstr "Vidro 3D"
+
+msgid "Tiles"
+msgstr "Ladrilhos"
+
+msgid "Minimal"
+msgstr "Mínima"
+
+msgid "Icons"
+msgstr "Ícones"
+
+msgid "Raised tile with shadow; rises under the mouse"
+msgstr "Ladrilho em relevo com sombra; sobe com o mouse"
+
+msgid "Tile in each app's color"
+msgstr "Ladrilho na cor de cada app"
+
+msgid "Just the icon"
+msgstr "Só o ícone"
+
+msgid "Flat"
+msgstr "Plano"
+
+msgid "Corners"
+msgstr "Cantos"
+
+msgid "Of the dock and of the icon tiles"
+msgstr "Da dock e dos ladrilhos dos ícones"
+
+msgid "Square"
+msgstr "Retos"
+
+msgid "Pill"
+msgstr "Pílula"
+
+msgid "Icon transparency"
+msgstr "Transparência dos ícones"
+
+msgid "The icons become solid under the mouse"
+msgstr "Com o mouse em cima, o ícone fica opaco"
