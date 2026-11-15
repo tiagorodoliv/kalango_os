@@ -127,11 +127,9 @@ if [ -f /etc/zsh_command_not_found ]; then
     . /etc/zsh_command_not_found
 fi
 
-# --- Ficha do sistema ao abrir o terminal (kalango-ficha: ícone + fastfetch) ---
-# Só na janela nova do terminal (não em shells dentro de shells nem pela SSH).
-# Para não aparecer mais: touch ~/.config/kalango/sem-fastfetch
-if [[ -o interactive && -z $KALANGO_FASTFETCH && -z $SSH_CONNECTION ]] \
-    && [[ ! -e ~/.config/kalango/sem-fastfetch ]] && (( $+commands[kalango-ficha] )); then
-    export KALANGO_FASTFETCH=1
-    kalango-ficha
+# --- Ficha do sistema (kalango-ficha: ícone + fastfetch) ---
+# Só no primeiro terminal de cada sessão (ao entrar no sistema e em cada
+# conexão SSH). Para nunca aparecer: touch ~/.config/kalango/sem-fastfetch
+if [[ -o interactive ]] && (( $+commands[kalango-ficha] )); then
+    kalango-ficha --uma-vez
 fi

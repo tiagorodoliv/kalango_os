@@ -2,16 +2,32 @@
 # Ficha do sistema do KalangOS: o ícone ao lado das informações (fastfetch).
 #
 # O ícone é desenhado pelo chafa: no foot sai como imagem de verdade (sixel),
-# no tamanho certo para a fonte; pela SSH ou no console, em símbolos. O
-# fastfetch escreve as informações ao lado, com um logotipo "vazio" da mesma
-# largura. Sem o chafa (ou fora de um terminal), o logotipo em blocos do
-# config.jsonc (/usr/share/kalango/fastfetch/logo.txt).
+# no tamanho certo para a fonte; pela SSH, em símbolos coloridos (ou imagem,
+# se o terminal de quem conecta souber). O fastfetch escreve as informações ao
+# lado, com um logotipo "vazio" da mesma largura. Sem o chafa (ou fora de um
+# terminal), o logotipo em blocos do config.jsonc.
 #
-# O ~/.zshrc roda isto ao abrir o terminal; dá para chamar a qualquer hora.
+# Uso:
+#   kalango-ficha            mostra a ficha
+#   kalango-ficha --uma-vez  só no primeiro terminal de cada sessão (entrar no
+#                            sistema, cada conexão SSH); é o que o ~/.zshrc usa
+# Para nunca aparecer ao abrir o terminal: touch ~/.config/kalango/sem-fastfetch
 
 ICONE=/usr/share/kalango/fastfetch/kalango.png
-COLUNAS=28  # largura do ícone em caracteres
-LINHAS=13   # altura máxima do ícone em linhas
+COLUNAS=20  # largura do ícone em caracteres
+LINHAS=10   # altura máxima do ícone em linhas
+
+if [ "$1" = --uma-vez ]; then
+	shift
+	[ -e "$HOME/.config/kalango/sem-fastfetch" ] && exit 0
+	# Marca por sessão do logind (a gráfica e cada SSH têm a sua); a pasta
+	# do XDG_RUNTIME_DIR some ao sair. Sem sessão, vale por boot.
+	sessao=${XDG_SESSION_ID:-$(cat /proc/sys/kernel/random/boot_id 2>/dev/null)}
+	pasta=${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}
+	marca="$pasta/kalango-ficha.$sessao"
+	[ -e "$marca" ] && exit 0
+	mkdir -p "$pasta" 2>/dev/null && : >"$marca" 2>/dev/null
+fi
 
 command -v fastfetch >/dev/null 2>&1 || exit 0
 if ! command -v chafa >/dev/null 2>&1 || [ ! -r "$ICONE" ] || [ ! -t 1 ]; then
