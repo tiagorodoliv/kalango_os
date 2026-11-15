@@ -2,10 +2,11 @@
 # Ficha do sistema do KalangOS: o ícone ao lado das informações (fastfetch).
 #
 # O ícone é desenhado pelo chafa: no foot sai como imagem de verdade (sixel),
-# no tamanho certo para a fonte; pela SSH, em símbolos coloridos (ou imagem,
-# se o terminal de quem conecta souber). O fastfetch escreve as informações ao
-# lado, com um logotipo "vazio" da mesma largura. Sem o chafa (ou fora de um
-# terminal), o logotipo em blocos do config.jsonc.
+# no tamanho certo para a fonte; pela SSH, imagem se o terminal de quem
+# conecta mostrar sixel (pergunta a ele), senão símbolos coloridos. O
+# fastfetch escreve as informações ao lado, com um logotipo "vazio" da mesma
+# largura. Sem o chafa (ou fora de um terminal), o logotipo em blocos do
+# config.jsonc.
 #
 # Uso:
 #   kalango-ficha            mostra a ficha
@@ -34,13 +35,33 @@ if ! command -v chafa >/dev/null 2>&1 || [ ! -r "$ICONE" ] || [ ! -t 1 ]; then
 	exec fastfetch "$@"
 fi
 
+# Pela SSH o TERM chega como "xterm-256color" e o chafa não sabe se o terminal
+# de quem conecta mostra imagens: pergunta a ele (Primary Device Attributes,
+# ESC [ c; o "4" na resposta é sixel), esperando no máximo 0,3 s.
+formato=
+terminal_tem_sixel() {
+	[ -t 0 ] || return 1
+	antes=$(stty -g 2>/dev/null) || return 1
+	stty raw -echo min 0 time 3 2>/dev/null
+	printf '\033[c'
+	resposta=$(dd bs=128 count=1 2>/dev/null)
+	stty "$antes" 2>/dev/null
+	# "ESC [ ? 62 ; 4 ; 22 c" → ";62;4;22;"
+	params=";$(printf '%s' "$resposta" | sed -n 's/.*\[?\([0-9;]*\)c.*/\1/p');"
+	case "$params" in *";4;"*) return 0 ;; esac
+	return 1
+}
+if [ -n "$SSH_CONNECTION" ] && terminal_tem_sixel; then
+	formato=--format=sixels
+fi
+
 # Abre espaço antes (se a tela precisar rolar, rola agora) e volta para o
 # começo dele: assim o cursor guardado é o canto de cima do ícone.
 i=0
 while [ "$i" -le "$LINHAS" ]; do printf '\n'; i=$((i + 1)); done
 printf '\033[%dA' "$LINHAS"
 printf '\0337'
-chafa --size="${COLUNAS}x${LINHAS}" --animate=off --polite=on "$ICONE" 2>/dev/null
+chafa $formato --size="${COLUNAS}x${LINHAS}" --animate=off --polite=on "$ICONE" 2>/dev/null
 printf '\0338'
 # Logotipo "vazio" de COLUNAS espaços: o fastfetch mede a largura pelo
 # conteúdo (o --logo-width não vale para data-raw).
