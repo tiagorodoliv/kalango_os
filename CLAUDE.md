@@ -376,6 +376,8 @@ grade de fundo sutil (~48px).
 Ícone (barra, menu, janela, Calamares): `kalango-icon.png` = o K com o calango (R1, `assets/logo/Kalango_Icone_Noite.png`;
   o "g"-calango antigo saiu em 2026-11-15).
 Logotipo: `kalango-logo.png` (letras brancas) e `kalango-logo-claro.png` (letras azul-marinho, tema claro).
+A pílula da barra (abre o menu) mostra o logotipo inteiro (letras brancas no escuro e com o menu aberto, azul-marinho
+no tema claro) desde 2026-11-15, no lugar de ícone + texto.
 O SVG de `assets/logo` é rastreado de bitmap e fica granulado em tamanho pequeno; só trocar para vetor se vier um desenhado à mão.
 
 1. **Tela de login:** relógio grande mono (~108px) "19:38" + "quarta-feira, 11 de novembro" no topo; card central

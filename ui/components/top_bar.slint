@@ -1,10 +1,10 @@
-// Barra superior da área de trabalho: pílula "Kalango" (abre o launcher),
+// Barra superior da área de trabalho: pílula com o logotipo (abre o launcher),
 // indicador de workspaces, data/hora central e indicadores de sistema.
 
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { Shell } from "../globals.slint";
-import { KalangoIcon } from "../brand.slint";
+import { Brand } from "../brand.slint";
 
 /// Ícone de status centralizado verticalmente na barra.
 component BarIcon inherits Rectangle {
@@ -53,7 +53,7 @@ export component TopBar inherits Rectangle {
     pill := Rectangle {
         x: 12px;
         y: 3px;
-        width: pill-row.preferred-width + 22px;
+        width: pill-row.preferred-width;
         height: parent.height - 7px;
         border-radius: 7px;
         background: root.launcher-open ? Theme.accent : pill-touch.has-hover ? Theme.tile-hover : Theme.tile;
@@ -66,17 +66,13 @@ export component TopBar inherits Rectangle {
             padding-right: 11px;
             spacing: 7px;
             alignment: center;
-            Rectangle {
-                width: 18px;
-                KalangoIcon { width: 18px; height: 18px; }
-            }
-            Text {
-                text: "Kalango";
-                vertical-alignment: center;
-                color: root.launcher-open ? Theme.on-accent : Theme.text;
-                font-family: Theme.sans;
-                font-size: 13px;
-                font-weight: 600;
+            // O logotipo no lugar de ícone + texto. Com o menu aberto a
+            // pílula fica na cor de destaque: letras brancas em qualquer tema.
+            Image {
+                source: root.launcher-open || !Theme.is-light ? Brand.logo-dark : Brand.logo-light;
+                image-fit: contain;
+                height: 20px;
+                width: 60px;
             }
         }
 
