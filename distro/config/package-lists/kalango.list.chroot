@@ -151,5 +151,6 @@ libreoffice-gtk3
 libreoffice-l10n-pt-br
 fonts-crosextra-carlito
 fonts-crosextra-caladea
-# Ficha do sistema ao abrir o terminal (/etc/xdg/fastfetch, ~/.zshrc)
+# Ficha do sistema ao abrir o terminal (kalango-ficha: ícone pelo chafa + fastfetch)
 fastfetch
+chafa

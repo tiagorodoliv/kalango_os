@@ -1,0 +1,32 @@
+#!/bin/sh
+# Ficha do sistema do KalangOS: o ícone ao lado das informações (fastfetch).
+#
+# O ícone é desenhado pelo chafa: no foot sai como imagem de verdade (sixel),
+# no tamanho certo para a fonte; pela SSH ou no console, em símbolos. O
+# fastfetch escreve as informações ao lado, com um logotipo "vazio" da mesma
+# largura. Sem o chafa (ou fora de um terminal), o logotipo em blocos do
+# config.jsonc (/usr/share/kalango/fastfetch/logo.txt).
+#
+# O ~/.zshrc roda isto ao abrir o terminal; dá para chamar a qualquer hora.
+
+ICONE=/usr/share/kalango/fastfetch/kalango.png
+COLUNAS=28  # largura do ícone em caracteres
+LINHAS=13   # altura máxima do ícone em linhas
+
+command -v fastfetch >/dev/null 2>&1 || exit 0
+if ! command -v chafa >/dev/null 2>&1 || [ ! -r "$ICONE" ] || [ ! -t 1 ]; then
+	exec fastfetch "$@"
+fi
+
+# Abre espaço antes (se a tela precisar rolar, rola agora) e volta para o
+# começo dele: assim o cursor guardado é o canto de cima do ícone.
+i=0
+while [ "$i" -le "$LINHAS" ]; do printf '\n'; i=$((i + 1)); done
+printf '\033[%dA' "$LINHAS"
+printf '\0337'
+chafa --size="${COLUNAS}x${LINHAS}" --animate=off --polite=on "$ICONE" 2>/dev/null
+printf '\0338'
+# Logotipo "vazio" de COLUNAS espaços: o fastfetch mede a largura pelo
+# conteúdo (o --logo-width não vale para data-raw).
+exec fastfetch --logo-type data-raw --logo "$(printf "%${COLUNAS}s" '')" \
+	--logo-padding-top 0 --logo-padding-left 0 "$@"
