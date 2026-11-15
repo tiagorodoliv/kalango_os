@@ -260,7 +260,9 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (suite trixie, main; `etc/apt/sources.list.d/kalango.sources`, chave `0B89DC19D08F8A6B` em
   `usr/share/keyrings/kalango-archive-keyring.gpg`). **A chave privada fica só na máquina do Tiago**
   (`~/.local/share/kalango-repo/gnupg`); `distro/repo/publicar.sh` monta/assina e envia por rsync
-  (`KALANGO_REPO_DESTINO`); o VPS só serve estático (`distro/repo/nginx-kalangos.conf`). Guia: `distro/repo/LEIAME.md`.
+  (`KALANGO_REPO_DESTINO`); o VPS só serve estático (`distro/repo/nginx-kalangos.conf`; VPS com aaPanel, `root@10.8.0.1` pela VPN,
+  arquivos em `/www/wwwroot/kalangos.easysmartcontroll.com/apt`, certbot webroot; não mexer nos outros sites).
+  Publicado `0.1.0-3` em 2026-11-15 (o HP o viu pela internet). Guia: `distro/repo/LEIAME.md`.
   Testado no HP: 0.1.0-1 → 0.1.0-2 pelo apt, com aviso de reiniciar (`/run/reboot-required`). Bugs e dicas: GitHub
   Issues (modelos em `.github/ISSUE_TEMPLATE`) + Discussions (ligar nas configurações do repositório).
 - Identidade: `/usr/lib/os-release` = "Kalango OS" (`ID=kalango`, `ID_LIKE=debian`, protegido de atualização do
