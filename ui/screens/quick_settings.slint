@@ -298,6 +298,16 @@ export component QuickSettings inherits Rectangle {
                         height: 9px;
                         Rectangle { height: 1px; background: Theme.border; }
                     }
+                    // Bloqueia esta sessão e abre a tela de login (sem fechar
+                    // os apps): kalango-trocar-usuario.
+                    if Shell.native: PowerItem {
+                        icon: Icons.user;
+                        text: @tr("Switch user");
+                        clicked => {
+                            Shell.open-app("switch-user");
+                            root.close();
+                        }
+                    }
                     PowerItem {
                         icon: Icons.log-out;
                         text: @tr("Log out");

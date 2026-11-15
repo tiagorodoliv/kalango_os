@@ -140,6 +140,8 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
         // de bloqueio do Wayland (ext-session-lock): nenhuma janela aparece por
         // cima dele.
         "lock" => vec!["kalango-bloquear".into()],
+        // Bloqueia e abre a tela de login extra (sem fechar a sessão).
+        "switch-user" => vec!["kalango-trocar-usuario".into()],
         // Encerra o labwc; o greetd volta para a tela de login.
         "logout" => vec!["labwc".into(), "--exit".into()],
         "updates" => vec![

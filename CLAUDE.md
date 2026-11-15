@@ -158,6 +158,15 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   pela entrada padrão): conta nova com pasta 700 e grupos de desktop (+`sudo` se administrador); recusa remover/
   rebaixar a si mesmo, o último administrador e quem está com sessão aberta. A tela de login mostra todas as contas
   (`Shell.login-users`). Testar o pkexec com as Configurações abertas pela sessão gráfica (pela SSH não há agente).
+- **Trocar de usuário sem fechar a sessão (2026-11-14), como no Ubuntu:** `kalango-trocar-usuario` (tela de
+  bloqueio, painel rápido) bloqueia e abre `kalango-trocar@N.service` (greetd extra, `/etc/greetd/trocar.toml`,
+  `--vt N`, N = 8 a 12; reusa um VT com tela de login sem ninguém). Polkit `50-kalango-trocar.rules`: sessão local
+  ativa inicia essas unidades sem senha; `_greetd` pode `lock-session` e `activate`. A tela de login marca quem tem
+  sessão aberta (`loginctl show-session`, `Service=greetd`: o tipo vem `tty`) e troca a senha por "Voltar à
+  sessão" (bloqueia e ativa; a senha é pedida na tela de bloqueio dela). Botão na tela de bloqueio: módulo
+  `gtklock-powerbar-module` (não está no Debian 13), compilado pelo `build.sh` com `distro/gtklock/powerbar.sh`
+  (versão + SHA-256 fixos; o texto vem de `KALANGO_TROCAR_USUARIO`). A saída do greeter vai para o VT dele
+  (`/dev/vcsN` mostra). Teste por QMP: mover o ponteiro antes de clicar numa janela recém-aberta.
 - **Energia (2026-11-14):** `src/settings/power.rs` + global `Power`: modo (`powerprofilesctl`), apagar a tela/bloquear/
   suspender na bateria e na tomada (`~/.config/kalango/energia.conf`; a área de trabalho roda o `swayidle` com
   `wlopm` e troca ao mudar a escolha ou o carregador; pidfile `kalango-swayidle.pid`), tampa e botão de ligar pelo

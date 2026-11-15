@@ -26,6 +26,8 @@ if [ -d "$PONTO/raiz" ]; then
 	cp -r --no-preserve=ownership "$PONTO/raiz/." /
 	rm -f /usr/local/bin/.gitkeep
 	glib-compile-schemas /usr/share/glib-2.0/schemas
+	# Unidades do systemd novas ou mudadas (ex.: kalango-trocar@.service).
+	systemctl daemon-reload
 fi
 if [ -d "$PONTO/raiz/usr/share/icons" ]; then
 	for tema in "$PONTO"/raiz/usr/share/icons/*/; do

@@ -1,0 +1,18 @@
+// Trocar de usuário no Kalango OS, sem pedir senha:
+// - quem está na frente do computador (sessão local e ativa) pode abrir a
+//   tela de login extra (kalango-trocar@8..12.service);
+// - a tela de login (usuário _greetd) pode bloquear uma sessão aberta e
+//   voltar para ela (ela continua bloqueada: a senha é pedida lá).
+polkit.addRule(function (action, subject) {
+	if (action.id == "org.freedesktop.systemd1.manage-units" &&
+	    /^kalango-trocar@([89]|1[0-2])\.service$/.test(action.lookup("unit")) &&
+	    (action.lookup("verb") == "start" || action.lookup("verb") == "restart") &&
+	    subject.local && subject.active) {
+		return polkit.Result.YES;
+	}
+	if (subject.user == "_greetd" &&
+	    (action.id == "org.freedesktop.login1.chvt" ||
+	     action.id == "org.freedesktop.login1.lock-sessions")) {
+		return polkit.Result.YES;
+	}
+});

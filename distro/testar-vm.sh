@@ -57,7 +57,10 @@ bwrap --ro-bind "$BUILDER" / --dev /dev --proc /proc --tmpfs /tmp \
 
 # --- 2. Pasta compartilhada com a VM.
 echo ">> Preparando $DEV"
-rm -rf "$DEV"
+# Esvazia sem apagar a pasta: a VM ligada continua com ela montada (9p), e
+# uma pasta nova (outro inode) apareceria vazia lá dentro.
+mkdir -p "$DEV"
+find "$DEV" -mindepth 1 -delete
 mkdir -p "$DEV/raiz"
 cp "$ALVO/vm/kalango_os" "$DEV/kalango-shell"
 cp -r "$DISTRO/config/includes.chroot/." "$DEV/raiz/"

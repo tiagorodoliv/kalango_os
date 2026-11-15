@@ -1,0 +1,29 @@
+#!/bin/sh
+# Trocar de usuário sem fechar a sessão (tela de bloqueio, menu e painel).
+#
+# Bloqueia esta sessão e mostra uma tela de login extra num VT livre (8 a 12),
+# pelo kalango-trocar@N.service (greetd com /etc/greetd/trocar.toml). Se já
+# existe uma tela extra sem ninguém usando, volta para ela em vez de abrir
+# outra. A regra do polkit 50-kalango-trocar.rules deixa sem senha.
+set -u
+
+# Bloqueia antes de sair daqui (na tela de bloqueio já está: ele sai na hora).
+kalango-bloquear >/dev/null 2>&1 &
+sleep 0.4
+
+# VT com uma sessão de pessoa (classe "user") aberta?
+ocupado() {
+	loginctl list-sessions --no-legend 2>/dev/null |
+		awk -v t="tty$1" '$6 == "user" && $7 == t { achou = 1 } END { exit !achou }'
+}
+
+for n in 8 9 10 11 12; do
+	if systemctl is-active --quiet "kalango-trocar@$n.service"; then
+		# Tela extra sem ninguém: reinicia (o greetd volta para o VT dela).
+		ocupado "$n" || exec systemctl restart "kalango-trocar@$n.service"
+	else
+		ocupado "$n" || exec systemctl start "kalango-trocar@$n.service"
+	fi
+done
+echo "kalango-trocar-usuario: nenhum VT livre (8 a 12)" >&2
+exit 1

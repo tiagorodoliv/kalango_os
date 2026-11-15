@@ -22,7 +22,7 @@ use std::path::Path;
 
 use std::rc::Rc;
 
-use slint::{ComponentHandle, ModelRc, VecModel};
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
 
 use crate::{AppWindow, LoginUser, Shell};
 
@@ -248,14 +248,38 @@ pub fn install(ui: &AppWindow) {
     shell.set_login_user(user.into());
     shell.set_user_initial(initial(&name).into());
     shell.set_user_name(name.into());
-    // Com mais de uma conta, a tela mostra todas para escolher.
-    let people: Vec<LoginUser> = std::fs::read_to_string("/etc/passwd")
-        .map(|p| crate::settings::users::people(&p))
-        .unwrap_or_default()
-        .into_iter()
-        .map(|p| LoginUser { initial: initial(&p.name).into(), login: p.login.into(), name: p.name.into() })
-        .collect();
-    shell.set_login_users(ModelRc::from(Rc::new(VecModel::from(people))));
+    // Com mais de uma conta, a tela mostra todas para escolher; quem já tem
+    // sessão aberta (trocar de usuário) volta para ela.
+    refresh_sessions(ui);
+    let weak = ui.as_weak();
+    let timer = slint::Timer::default();
+    timer.start(slint::TimerMode::Repeated, std::time::Duration::from_secs(2), move || {
+        if let Some(ui) = weak.upgrade() {
+            refresh_sessions(&ui);
+        }
+    });
+    SESSIONS_TIMER.with(|t| *t.borrow_mut() = Some(timer));
+
+    let weak = ui.as_weak();
+    shell.on_return_to_session(move || {
+        let Some(ui) = weak.upgrade() else { return };
+        let shell = ui.global::<Shell>();
+        let id = shell.get_login_session().to_string();
+        if id.is_empty() {
+            return;
+        }
+        shell.set_login_error("".into());
+        let weak = ui.as_weak();
+        std::thread::spawn(move || {
+            let ok = return_to(&id);
+            let _ = slint::invoke_from_event_loop(move || {
+                if let (false, Some(ui)) = (ok, weak.upgrade()) {
+                    ui.global::<Shell>()
+                        .set_login_error(tr("Could not switch to the session", "Não foi possível voltar à sessão").into());
+                }
+            });
+        });
+    });
 
     let weak = ui.as_weak();
     shell.on_start_login(move |user, password| {
@@ -300,13 +324,105 @@ pub fn install(ui: &AppWindow) {
         shell.set_login_user(user);
         shell.set_user_initial(initial(&name).into());
         shell.set_user_name(name.into());
+        refresh_sessions(&ui);
     });
+}
+
+thread_local! {
+    /// Timer que relê as sessões abertas (precisa ficar vivo).
+    static SESSIONS_TIMER: std::cell::RefCell<Option<slint::Timer>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Sessões gráficas abertas (login → id da sessão), da saída de
+/// `loginctl show-session <ids...> -p Id -p Name -p Class -p Service`
+/// (blocos separados por linha vazia). Gráfica = de pessoa e aberta pelo
+/// greetd (o login do console vem do "login" e o SSH do "sshd").
+pub fn open_sessions(text: &str) -> HashMap<String, String> {
+    text.split("\n\n")
+        .filter_map(|block| {
+            let get = |key: &str| block.lines().find_map(|l| l.strip_prefix(key)?.strip_prefix('=')).map(str::trim);
+            let (id, name) = (get("Id")?, get("Name")?);
+            (get("Class") == Some("user") && get("Service") == Some("greetd")).then(|| (name.to_string(), id.to_string()))
+        })
+        .collect()
+}
+
+/// Lê as sessões gráficas abertas pelo `loginctl`.
+fn read_sessions() -> HashMap<String, String> {
+    let run = |args: &[&str]| {
+        std::process::Command::new("loginctl")
+            .args(args)
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+    };
+    let Some(list) = run(&["list-sessions", "--no-legend"]) else { return HashMap::new() };
+    let ids: Vec<&str> = list.lines().filter_map(|l| l.split_whitespace().next()).collect();
+    if ids.is_empty() {
+        return HashMap::new();
+    }
+    let mut args = vec!["show-session"];
+    args.extend(&ids);
+    args.extend(["-p", "Id", "-p", "Name", "-p", "Class", "-p", "Service"]);
+    run(&args).map(|t| open_sessions(&t)).unwrap_or_default()
+}
+
+/// Relê as contas e as sessões abertas (a lista e a sessão da conta escolhida).
+fn refresh_sessions(ui: &AppWindow) {
+    let sessions = read_sessions();
+    let people: Vec<LoginUser> = std::fs::read_to_string("/etc/passwd")
+        .map(|p| crate::settings::users::people(&p))
+        .unwrap_or_default()
+        .into_iter()
+        .map(|p| LoginUser {
+            initial: initial(&p.name).into(),
+            session: sessions.get(&p.login).cloned().unwrap_or_default().into(),
+            login: p.login.into(),
+            name: p.name.into(),
+        })
+        .collect();
+    let shell = ui.global::<Shell>();
+    let current = shell.get_login_user().to_string();
+    let session = sessions.get(&current).cloned().unwrap_or_default();
+    if shell.get_login_session().as_str() != session {
+        shell.set_login_session(session.into());
+    }
+    // Só troca o modelo se mudou (não piscar a lista a cada 2 s).
+    let old = shell.get_login_users();
+    let changed = old.row_count() != people.len() || people.iter().enumerate().any(|(i, p)| old.row_data(i).as_ref() != Some(p));
+    if changed {
+        shell.set_login_users(ModelRc::from(Rc::new(VecModel::from(people))));
+    }
+}
+
+/// Volta para uma sessão aberta: bloqueia (se já não estava) e muda para o VT
+/// dela. A senha é pedida pela tela de bloqueio da própria sessão.
+fn return_to(id: &str) -> bool {
+    let run = |args: &[&str]| std::process::Command::new("loginctl").args(args).status().is_ok_and(|s| s.success());
+    let _ = run(&["lock-session", id]);
+    // O bloqueio (swayidle → kalango-bloquear) leva um instante para aparecer.
+    std::thread::sleep(std::time::Duration::from_millis(400));
+    run(&["activate", id])
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::os::unix::net::UnixListener;
+
+    #[test]
+    fn sessoes_abertas() {
+        let text = "Id=1\nName=user\nClass=user\nService=login\n\n\
+                    Id=11\nName=user\nClass=user\nService=greetd\n\n\
+                    Id=12\nName=_greetd\nClass=greeter\nService=greetd\n\n\
+                    Id=14\nName=user\nClass=user\nService=sshd\n\n\
+                    Id=70\nName=silas\nClass=user\nService=greetd\n";
+        let s = open_sessions(text);
+        assert_eq!(s.get("user").map(String::as_str), Some("11"));
+        assert_eq!(s.get("silas").map(String::as_str), Some("70"));
+        assert_eq!(s.len(), 2);
+    }
 
     #[test]
     fn json_escapa_e_le_de_volta() {

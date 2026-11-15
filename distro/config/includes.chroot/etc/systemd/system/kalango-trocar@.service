@@ -1,0 +1,16 @@
+# Tela de login extra no VT %i, para trocar de usuário sem fechar a sessão de
+# quem estava usando (como no Ubuntu). Iniciada pelo kalango-trocar-usuario
+# (regra do polkit em /etc/polkit-1/rules.d/50-kalango-trocar.rules).
+# Mesmas opções do greetd.service do Debian, sem reiniciar sozinha.
+[Unit]
+Description=Tela de login do Kalango OS no VT %i (trocar de usuário)
+After=systemd-user-sessions.service getty@tty%i.service
+Conflicts=getty@tty%i.service
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/greetd --config /etc/greetd/trocar.toml --vt %i
+IgnoreSIGPIPE=no
+SendSIGHUP=yes
+TimeoutStopSec=30s
+KeyringMode=shared

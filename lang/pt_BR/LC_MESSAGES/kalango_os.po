@@ -1132,3 +1132,13 @@ msgstr "ex.: Maria Silva"
 
 msgid "Home folder: /home/{}, private to this user"
 msgstr "Pasta pessoal: /home/{}, só desse usuário"
+
+# Tela de login: trocar de usuário (src/shell/greeter.rs)
+msgid "Session open and locked"
+msgstr "Sessão aberta e bloqueada"
+
+msgid "Return to session"
+msgstr "Voltar à sessão"
+
+msgid "Switch user"
+msgstr "Trocar de usuário"

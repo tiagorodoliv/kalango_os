@@ -22,11 +22,13 @@ case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in
 pt*)
 	SENHA="Senha"
 	DESBLOQUEAR="Desbloquear"
+	TROCAR="Trocar de usuário"
 	DATA="%A, %d de %B"
 	;;
 *)
 	SENHA="Password"
 	DESBLOQUEAR="Unlock"
+	TROCAR="Switch user"
 	DATA="%A, %B %d"
 	;;
 esac
@@ -39,8 +41,12 @@ FUNDO=/usr/share/backgrounds/kalango/Kalango_${NOME}_1920x1080.png
 
 set -- -c "$DIR/config.ini" -x "$RUN/kalango-bloqueio.ui" -D "$DATA"
 [ -f "$FUNDO" ] && set -- "$@" -b "$FUNDO"
-MODULO=/usr/lib/x86_64-linux-gnu/gtklock/userinfo-module.so
-[ -f "$MODULO" ] && set -- "$@" -m "$MODULO"
+MODULOS=/usr/lib/x86_64-linux-gnu/gtklock
+[ -f "$MODULOS/userinfo-module.so" ] && set -- "$@" -m "$MODULOS/userinfo-module.so"
+# "Trocar de usuário" (o texto do botão vem desta variável; ver
+# distro/gtklock/powerbar.sh).
+export KALANGO_TROCAR_USUARIO="$TROCAR"
+[ -f "$MODULOS/powerbar-module.so" ] && set -- "$@" -m "$MODULOS/powerbar-module.so"
 
 # Sem -d (daemonize): o script espera o desbloqueio. Se o gtklock cair (sai
 # com erro), a sessão fica bloqueada e sem nada na tela (o protocolo é

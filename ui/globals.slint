@@ -99,6 +99,8 @@ export struct LoginUser {
     login: string,
     name: string,
     initial: string,
+    /// Sessão aberta dessa conta ("" = nenhuma): escolher volta para ela.
+    session: string,
 }
 
 export global Shell {
@@ -162,6 +164,9 @@ export global Shell {
     in property <string> login-user: "user";
     /// Contas de pessoas (com mais de uma, a tela de login mostra todas).
     in property <[LoginUser]> login-users: [];
+    /// Sessão aberta da conta escolhida ("" = nenhuma): a tela mostra
+    /// "Voltar à sessão" no lugar da senha (trocar de usuário).
+    in property <string> login-session: "";
     /// Conferindo a senha (o PAM leva ~2 s para recusar).
     in property <bool> login-busy: false;
     /// Erro da última tentativa ("Senha incorreta"); a UI limpa ao digitar.
@@ -217,4 +222,7 @@ export global Shell {
     callback start-login(string /* usuário */, string /* senha */);
     /// Greeter: troca o usuário ("Outro usuário").
     callback choose-user(string);
+    /// Greeter: volta para a sessão aberta da conta escolhida (`login-session`),
+    /// que continua bloqueada.
+    callback return-to-session();
 }

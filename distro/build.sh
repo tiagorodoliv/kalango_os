@@ -132,6 +132,12 @@ cp "$ROOT"/assets/wallpapers/16x9/*.png "$BUILDER/work/iso/config/includes.chroo
 sh "$DISTRO/icones/flat-remix.sh" "$BUILDER/work/iso/config/includes.chroot/usr/share/icons" "$DISTRO/.cache"
 # Temas extras da Aparência (Colloid e Fluent), também com cache.
 sh "$DISTRO/icones/temas-extras.sh" "$BUILDER/work/iso/config/includes.chroot/usr/share/icons" "$DISTRO/.cache"
+# Botão "Trocar de usuário" da tela de bloqueio (gtklock-powerbar-module, que não
+# está no Debian 13): baixado uma vez para o cache e compilado no builder.
+POWERBAR=$(sh "$DISTRO/gtklock/powerbar.sh" baixar "$DISTRO/.cache")
+cp "$POWERBAR" "$BUILDER/work/powerbar.tar.gz"
+cp "$DISTRO/gtklock/powerbar.sh" "$BUILDER/work/powerbar.sh"
+no_builder "sh /work/powerbar.sh compilar /work/powerbar.tar.gz /work/iso/config/includes.chroot/usr/lib/x86_64-linux-gnu/gtklock"
 no_builder "cd /work/iso && lb config"
 # O live-build às vezes falha ao desmontar o /proc do chroot ("target is busy"): um processo
 # do apt ainda está saindo. Ele retoma de onde parou, então basta rodar de novo. As

@@ -18,6 +18,9 @@ export component LoginScreen inherits Rectangle {
     property <string> shown-error: root.error != "" ? root.error : Shell.login-error;
     /// "Outro usuário": o nome vira um campo para digitar o login.
     property <bool> editing-user: false;
+    /// A conta escolhida já tem sessão aberta (trocar de usuário): no lugar
+    /// da senha, o botão de voltar para ela.
+    property <bool> returning: Shell.greeter && Shell.login-session != "" && !root.editing-user;
 
     /// Foca o campo de senha (chamado ao exibir a tela).
     public function focus-password() {
@@ -25,6 +28,11 @@ export component LoginScreen inherits Rectangle {
     }
 
     function submit() {
+        // Conta com sessão aberta: volta para ela (a senha é pedida lá).
+        if (Shell.greeter && Shell.login-session != "") {
+            Shell.return-to-session();
+            return;
+        }
         if (Shell.greeter) {
             // Greeter: o greetd confere a senha no PAM (resposta assíncrona).
             if (Shell.login-busy) {
@@ -135,16 +143,19 @@ export component LoginScreen inherits Rectangle {
         Text {
             x: 32px;
             y: 186px;
+            opacity: root.returning ? 0 : 1;
             text: @tr("Password");
             color: Theme.text;
             font-family: Theme.sans;
             font-size: 13px;
         }
 
-        // Campo de senha
+        // Campo de senha (some com opacidade, e não com `visible`, para não
+        // perder o foco do teclado).
         Rectangle {
             x: 32px;
             y: 207px;
+            opacity: root.returning ? 0 : 1;
             width: 259px;
             height: 46px;
             border-radius: Theme.radius-small;
@@ -177,6 +188,7 @@ export component LoginScreen inherits Rectangle {
         Rectangle {
             x: 299px;
             y: 207px;
+            opacity: root.returning ? 0 : 1;
             width: 46px;
             height: 46px;
             border-radius: Theme.radius-small;
@@ -185,6 +197,42 @@ export component LoginScreen inherits Rectangle {
             go := TouchArea {
                 mouse-cursor: pointer;
                 clicked => { root.submit(); }
+            }
+        }
+
+        // Conta com sessão aberta (trocar de usuário): no lugar da senha, o
+        // botão de voltar. O campo continua por baixo (não perde o foco).
+        if root.returning: Rectangle {
+            x: 20px;
+            y: 178px;
+            width: parent.width - 40px;
+            height: 84px;
+            TouchArea { }
+            Text {
+                y: 4px;
+                text: @tr("Session open and locked");
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13px;
+                horizontal-alignment: center;
+            }
+            Rectangle {
+                y: 30px;
+                width: back-label.preferred-width + 40px;
+                height: 44px;
+                border-radius: Theme.radius-small;
+                background: back-touch.has-hover ? Theme.accent.brighter(0.15) : Theme.accent;
+                back-label := Text {
+                    text: @tr("Return to session");
+                    color: Theme.on-accent;
+                    font-family: Theme.sans;
+                    font-size: 15px;
+                    font-weight: 700;
+                }
+                back-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { Shell.return-to-session(); }
+                }
             }
         }
 
@@ -248,6 +296,14 @@ export component LoginScreen inherits Rectangle {
                     font-family: Theme.sans;
                     font-size: 13.5px;
                     vertical-alignment: center;
+                }
+                // Sessão aberta: ponto de destaque.
+                if u.session != "": Rectangle {
+                    width: 8px;
+                    height: 8px;
+                    y: (44px - 8px) / 2;
+                    border-radius: 4px;
+                    background: Theme.accent;
                 }
             }
             chip-touch := TouchArea {

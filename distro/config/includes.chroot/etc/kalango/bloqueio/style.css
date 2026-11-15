@@ -83,3 +83,24 @@ window {
 	color: #e8b04b;
 	font-family: Inter, sans-serif;
 }
+
+/* Módulo powerbar: "Trocar de usuário" no rodapé. */
+#powerbar-revealer {
+	margin-bottom: 36px;
+}
+#userswitch-button {
+	min-height: 40px;
+	padding: 0 18px;
+	border-radius: 20px;
+	border: 1px solid alpha(#ffffff, 0.14);
+	background-image: none;
+	background-color: alpha(#0d1218, 0.72);
+	box-shadow: none;
+	color: #e6edf3;
+	font-family: Inter, sans-serif;
+	font-weight: 600;
+}
+#userswitch-button:hover {
+	border-color: @kb_accent;
+	background-color: alpha(#131920, 0.9);
+}

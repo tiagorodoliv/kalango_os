@@ -1,0 +1,17 @@
+# greetd extra do Kalango OS: a tela de login de "Trocar de usuário".
+#
+# Roda como kalango-trocar@N.service (N = VT 8 a 12, passado com --vt) enquanto
+# a sessão de quem trocou continua aberta e bloqueada no VT dela. Quem entra
+# aqui ganha uma sessão nova neste VT; escolher uma conta que já tem sessão
+# aberta volta para ela (src/shell/greeter.rs). Sem login automático.
+
+[terminal]
+vt = 8
+switch = true
+
+[general]
+runfile = "/run/greetd-trocar.run"
+
+[default_session]
+command = "kalango-greeter"
+user = "_greetd"
