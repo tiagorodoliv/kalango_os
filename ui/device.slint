@@ -471,3 +471,31 @@ export global Printers {
     /// Abre o system-config-printer (drivers e opções que a página não tem).
     callback advanced();
 }
+
+/// Uma atualização disponível.
+export struct UpdateItem {
+    name: string,
+    /// "1.2 → 1.3".
+    version: string,
+    /// Sistema (apt) ou app (Flatpak).
+    app: bool,
+}
+
+/// Atualizações (Configurações → Atualizações, `src/settings/updates.rs`).
+export global Updates {
+    in property <[UpdateItem]> list;
+    /// "idle", "checking", "installing", "done" ou "error".
+    in property <string> state: "idle";
+    /// 0 a 1 enquanto instala.
+    in property <float> progress: 0;
+    /// O que está fazendo agora ("Baixando firefox-esr...").
+    in property <string> status;
+    in property <string> message;
+    /// Quando a lista foi atualizada pela última vez ("hoje às 08:12").
+    in property <string> last-check;
+    /// Alguma atualização pede reiniciar (kernel, systemd, glibc).
+    in property <bool> reboot-needed: false;
+    callback check();
+    callback install();
+    callback reboot();
+}

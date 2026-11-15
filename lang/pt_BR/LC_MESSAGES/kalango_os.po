@@ -1207,3 +1207,28 @@ msgstr "Hoje"
 
 msgid "Open Calendar"
 msgstr "Abrir Agenda"
+
+# Configurações → Atualizações (src/settings/updates.rs)
+msgid "Checking for updates..."
+msgstr "Procurando atualizações..."
+
+msgid "Installing updates..."
+msgstr "Instalando atualizações..."
+
+msgid "Everything is up to date"
+msgstr "Tudo atualizado"
+
+msgid "1 update available"
+msgstr "1 atualização disponível"
+
+msgid "{} updates available"
+msgstr "{} atualizações disponíveis"
+
+msgid "Install"
+msgstr "Instalar"
+
+msgid "Restart now"
+msgstr "Reiniciar agora"
+
+msgid "AVAILABLE"
+msgstr "DISPONÍVEIS"

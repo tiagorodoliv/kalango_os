@@ -1,0 +1,29 @@
+#!/bin/sh
+# Atualizações do Kalango OS (Configurações → Atualizações), como root pelo
+# pkexec (política org.kalango.atualizar).
+#
+#   kalango-atualizar procurar   (apt-get update: baixa a lista de versões novas)
+#   kalango-atualizar instalar   (apt-get full-upgrade, sem perguntas)
+#
+# "instalar" escreve o progresso do apt na saída padrão (APT::Status-Fd=1:
+# linhas "dlstatus:..." e "pmstatus:..."), que o shell transforma na barra.
+# Arquivos de configuração mudados à mão ficam como estão (--force-confold).
+set -eu
+
+export DEBIAN_FRONTEND=noninteractive
+case "${1:-}" in
+procurar)
+	exec apt-get update -q
+	;;
+instalar)
+	exec apt-get -y -q \
+		-o APT::Status-Fd=1 \
+		-o Dpkg::Options::=--force-confdef \
+		-o Dpkg::Options::=--force-confold \
+		full-upgrade
+	;;
+*)
+	echo "uso: kalango-atualizar procurar|instalar" >&2
+	exit 1
+	;;
+esac

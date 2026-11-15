@@ -4,6 +4,7 @@
 // global `Device` (rede, som, energia...).
 
 import { Theme, ThemeMode } from "../theme.slint";
+import { Updates } from "../device.slint";
 import { Icons } from "../icons.slint";
 import { Shell, TerminalTheme } from "../globals.slint";
 import { SectionLabel, IconButton, Toggle, SliderBar } from "../components/widgets.slint";
@@ -580,7 +581,7 @@ export component SettingsScreen inherits Rectangle {
         { name: @tr("Users"), icon: Icons.user },
         { name: @tr("Sharing"), icon: Icons.folder },
         { name: @tr("Language & Region"), icon: Icons.globe },
-        { name: @tr("Updates"), icon: Icons.download },
+        { name: @tr("Updates"), icon: Icons.download, badge: Updates.list.length },
         { name: @tr("About"), icon: Icons.info },
         { name: @tr("Printers"), icon: Icons.printer },
     ];

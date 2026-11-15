@@ -103,6 +103,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     }
     users::install(&ui, mode);
     shell::calendar::install(&ui, mode);
+    settings::updates::install_page(&ui, mode);
     timers.extend(printers::install(&ui, mode));
     Ok((ui, timers))
 }

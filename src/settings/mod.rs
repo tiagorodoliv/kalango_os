@@ -8,6 +8,7 @@
 //! - [`power`]: energia (modo de desempenho, apagar a tela, suspender, tampa);
 //! - [`users`]: contas de usuário (senha, criar, tipo, remover);
 //! - [`printers`]: impressoras de rede e USB (CUPS);
+//! - [`updates`]: atualizações do sistema e dos apps, sem terminal;
 //! - [`sharing`]: pastas na rede local (Samba) e computadores da rede;
 //! - [`region`]: idioma e teclado;
 //! - [`terminal`]: temas do terminal (foot).
@@ -22,4 +23,5 @@ pub mod printers;
 pub mod region;
 pub mod sharing;
 pub mod terminal;
+pub mod updates;
 pub mod users;

@@ -10,7 +10,7 @@
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { Shell, Apps } from "../globals.slint";
-import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, BtDevice, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice } from "../device.slint";
+import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, BtDevice, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice, Updates, UpdateItem } from "../device.slint";
 import { SectionLabel, Toggle, SliderBar, Avatar } from "../components/widgets.slint";
 import { KalangoLogo, KalangoIcon } from "../brand.slint";
 import { WifiList, ForgetLink } from "../components/wifi_list.slint";
@@ -1937,32 +1937,134 @@ export component RegionPage inherits Rectangle {
 // ---------------------------------------------------------------------------
 
 export component UpdatesPage inherits Rectangle {
-    VerticalLayout {
-        x: 0;
-        y: Page.top;
-        width: min(Page.max-width, parent.width);
-        alignment: start;
-        spacing: 16px;
+    property <bool> busy: Updates.state == "checking" || Updates.state == "installing";
 
-        Panel {
-            height: 67px;
-            Row {
-                title: @tr("System updates");
-                subtitle: @tr("Downloads and installs new versions of Kalango OS and your apps");
-                divider: false;
-                PillButton {
-                    x: parent.width - self.width - 20px;
-                    text: @tr("Check now");
-                    primary: true;
-                    clicked => { Shell.open-app("updates"); }
+    Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: up-col.preferred-height + 36px;
+        up-col := VerticalLayout {
+            x: 0;
+            y: 12px;
+            width: min(Page.max-width, parent.width);
+            alignment: start;
+            spacing: 12px;
+
+            Panel {
+                height: 67px;
+                Row {
+                    title: Updates.state == "checking" ? @tr("Checking for updates...")
+                        : Updates.state == "installing" ? @tr("Installing updates...")
+                        : Updates.list.length == 0 ? @tr("Everything is up to date")
+                        : Updates.list.length == 1 ? @tr("1 update available")
+                        : @tr("{} updates available", Updates.list.length);
+                    subtitle: Updates.last-check;
+                    divider: false;
+                    HorizontalLayout {
+                        x: parent.width - self.preferred-width - 20px;
+                        width: self.preferred-width;
+                        spacing: 10px;
+                        alignment: end;
+                        PillButton {
+                            y: (67px - self.height) / 2;
+                            text: @tr("Check now");
+                            enabled: !root.busy;
+                            clicked => { Updates.check(); }
+                        }
+                        if Updates.list.length > 0: PillButton {
+                            y: (67px - self.height) / 2;
+                            text: @tr("Install");
+                            primary: true;
+                            enabled: !root.busy;
+                            clicked => { Updates.install(); }
+                        }
+                    }
                 }
             }
-        }
-        Text {
-            text: @tr("The update runs in a terminal and asks for your password.");
-            color: Theme.text-muted;
-            font-family: Theme.sans;
-            font-size: 13.5px;
+
+            // Barra de progresso e o que está fazendo.
+            if Updates.state == "installing": Panel {
+                height: 74px;
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 10px;
+                    Rectangle {
+                        height: 8px;
+                        border-radius: 4px;
+                        background: Theme.sunken;
+                        Rectangle {
+                            x: 0;
+                            width: parent.width * max(0.02, Updates.progress);
+                            border-radius: 4px;
+                            background: Theme.accent;
+                            animate width { duration: 300ms; }
+                        }
+                    }
+                    Text {
+                        text: Updates.status;
+                        color: Theme.text-muted;
+                        font-family: Theme.sans;
+                        font-size: 13px;
+                        overflow: elide;
+                    }
+                }
+            }
+
+            if Updates.message != "": Text {
+                text: Updates.message;
+                color: Updates.state == "error" ? Theme.danger : Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+                wrap: word-wrap;
+            }
+            if Updates.reboot-needed && Updates.state != "installing": HorizontalLayout {
+                alignment: start;
+                PillButton {
+                    text: @tr("Restart now");
+                    primary: true;
+                    clicked => { Updates.reboot(); }
+                }
+            }
+
+            if Updates.list.length > 0: SectionLabel { text: @tr("AVAILABLE"); }
+            if Updates.list.length > 0: Panel {
+                height: list-col.preferred-height;
+                list-col := VerticalLayout {
+                    for u[i] in Updates.list: Rectangle {
+                        height: 50px;
+                        if i > 0: Rectangle { y: 0; height: 1px; background: Theme.border; }
+                        Image {
+                            x: 20px;
+                            width: 18px;
+                            height: 18px;
+                            source: u.app ? Icons.bag : Icons.download;
+                            colorize: Theme.text-muted;
+                        }
+                        Text {
+                            x: 52px;
+                            width: parent.width * 0.45;
+                            text: u.name;
+                            color: Theme.text;
+                            font-family: Theme.sans;
+                            font-size: 14px;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+                        Text {
+                            x: parent.width * 0.5;
+                            width: parent.width * 0.5 - 20px;
+                            text: u.version;
+                            color: Theme.text-muted;
+                            font-family: Theme.mono;
+                            font-size: 12px;
+                            horizontal-alignment: right;
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+                    }
+                }
+            }
         }
     }
 }

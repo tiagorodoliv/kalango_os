@@ -195,7 +195,7 @@ pub fn parse_user_dir(content: &str, key: &str, home: &str) -> Option<String> {
 }
 
 /// Procura um programa no `PATH` (como o `which`).
-fn find_in_path(program: &str) -> Option<PathBuf> {
+pub(crate) fn find_in_path(program: &str) -> Option<PathBuf> {
     let path = std::env::var_os("PATH")?;
     std::env::split_paths(&path)
         .map(|dir| dir.join(program))
