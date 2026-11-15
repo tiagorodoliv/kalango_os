@@ -1,0 +1,40 @@
+// fastfetch do KalangOS: a ficha do sistema que aparece ao abrir o terminal.
+// Logotipo em blocos coloridos (assets/logo/gerar_logo_terminal.py), cores do
+// destaque do tema (ciano). Para mudar só para você, copie este arquivo para
+// ~/.config/fastfetch/config.jsonc. Para não aparecer ao abrir o terminal:
+//   touch ~/.config/kalango/sem-fastfetch
+{
+    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    "logo": {
+        "type": "file-raw",
+        "source": "/usr/share/kalango/fastfetch/logo.txt",
+        "width": 28,
+        "height": 14,
+        "padding": { "top": 1, "left": 2, "right": 4 }
+    },
+    "display": {
+        "separator": ": ",
+        "color": {
+            "keys": "36",
+            "title": "1;36"
+        },
+        "key": { "width": 11 }
+    },
+    "modules": [
+        "title",
+        "separator",
+        { "type": "os", "key": "OS", "format": "{pretty-name}" },
+        { "type": "command", "key": "Base", "text": "printf 'Debian %s' \"$(cat /etc/debian_version)\"" },
+        { "type": "kernel", "key": "Kernel", "format": "Linux {release}" },
+        { "type": "command", "key": "Desktop", "text": "echo 'Kalango Shell (labwc, Wayland)'" },
+        { "type": "uptime", "key": "Uptime" },
+        { "type": "packages", "key": "Packages" },
+        { "type": "shell", "key": "Shell" },
+        { "type": "terminal", "key": "Terminal" },
+        { "type": "cpu", "key": "CPU", "format": "{name} ({cores-logical})" },
+        { "type": "memory", "key": "Memory" },
+        { "type": "disk", "key": "Disk", "folders": "/" },
+        "break",
+        { "type": "colors", "symbol": "block" }
+    ]
+}
