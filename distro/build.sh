@@ -8,7 +8,7 @@
 #      (o live-build do Ubuntu é a versão 3.0 de 2012 e não conhece o trixie).
 #
 # Uso:  distro/build.sh             (pede sudo; a primeira vez baixa ~1 GB)
-#       distro/build.sh --so-shell  (só compila o kalango-shell)
+#       distro/build.sh --so-shell  (só compila o kalango-shell e monta o .deb)
 # Saída: distro/out/kalango-os-<versão>.iso (versão lida do Cargo.toml)
 #
 # Variável opcional: KALANGO_MIRROR (espelho Debian, ex.: http://ftp.br.debian.org/debian/)
@@ -110,8 +110,11 @@ no_builder "cd /work/shell && cargo build --release --locked"
 if [ "$SO_SHELL" -eq 1 ]; then
 	mkdir -p "$OUT"
 	cp "$BUILDER/work/shell/target/release/kalango_os" "$OUT/kalango-shell"
-	chown "$OWNER" "$OUT" "$OUT/kalango-shell"
-	echo ">> Pronto: $OUT/kalango-shell"
+	# Pacote para atualizar sem ISO nova: distro/repo/publicar.sh distro/out/kalango-shell_*.deb
+	rm -f "$OUT"/kalango-shell_*.deb
+	sh "$DISTRO/pacotes/gerar-deb.sh" "$OUT/kalango-shell" "$OUT"
+	chown "$OWNER" "$OUT" "$OUT/kalango-shell" "$OUT"/kalango-shell_*.deb
+	echo ">> Pronto: $OUT/kalango-shell e o pacote .deb"
 	exit 0
 fi
 
@@ -122,8 +125,15 @@ desmontar_iso
 no_builder "cd /work/iso && { [ -x auto/clean ] && lb clean || true; }"
 rsync -a --delete "$DISTRO/auto/" "$BUILDER/work/iso/auto/"
 rsync -a --delete "$DISTRO/config/" "$BUILDER/work/iso/config/"
-install -D -m 0755 "$BUILDER/work/shell/target/release/kalango_os" \
-	"$BUILDER/work/iso/config/includes.chroot/usr/local/bin/kalango-shell"
+# O shell vai como pacote (kalango-shell, distro/pacotes/gerar-deb.sh): o dpkg fica
+# dono dos arquivos e as versões novas chegam pelo repositório apt (OTA). Uma
+# cópia do .deb fica em distro/out para publicar com distro/repo/publicar.sh.
+mkdir -p "$BUILDER/work/iso/config/packages.chroot" "$OUT"
+rm -f "$BUILDER/work/iso/config/packages.chroot"/kalango-shell_*.deb "$OUT"/kalango-shell_*.deb
+sh "$DISTRO/pacotes/gerar-deb.sh" "$BUILDER/work/shell/target/release/kalango_os" \
+	"$BUILDER/work/iso/config/packages.chroot"
+cp "$BUILDER/work/iso/config/packages.chroot"/kalango-shell_*.deb "$OUT/"
+chown "$OWNER" "$OUT"/kalango-shell_*.deb
 rm -f "$BUILDER/work/iso/config/includes.chroot/usr/local/bin/.gitkeep"
 # Papéis de parede (assets/wallpapers/16x9, gerados por gerar.py): src/shell/wallpaper.rs.
 install -d "$BUILDER/work/iso/config/includes.chroot/usr/share/backgrounds/kalango"

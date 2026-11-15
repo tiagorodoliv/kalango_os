@@ -254,6 +254,15 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   padrão em `/etc/xdg/mimeapps.list`. Em "Computador" do Thunar, o disco do sistema aparece como drive que não abre (as
   partições são de sistema; o gvfs 1.57 lista todo drive e ignora `UDISKS_IGNORE` e `ID_SEAT`): o acesso é "Sistema de
   arquivos".
+- **Atualizações OTA (2026-11-15):** o shell e os scripts de `/usr/local/{bin,sbin,lib/kalango}` + `kalango-radios` vão no
+  pacote **`kalango-shell`** (`distro/pacotes/gerar-deb.sh`, versão `<Cargo.toml>-<KALANGO_REVISAO>`), instalado na ISO por
+  `config/packages.chroot` (cópia em `distro/out/`). Repositório apt assinado em `https://kalangos.easysmartcontroll.com/apt`
+  (suite trixie, main; `etc/apt/sources.list.d/kalango.sources`, chave `0B89DC19D08F8A6B` em
+  `usr/share/keyrings/kalango-archive-keyring.gpg`). **A chave privada fica só na máquina do Tiago**
+  (`~/.local/share/kalango-repo/gnupg`); `distro/repo/publicar.sh` monta/assina e envia por rsync
+  (`KALANGO_REPO_DESTINO`); o VPS só serve estático (`distro/repo/nginx-kalangos.conf`). Guia: `distro/repo/LEIAME.md`.
+  Testado no HP: 0.1.0-1 → 0.1.0-2 pelo apt, com aviso de reiniciar (`/run/reboot-required`). Bugs e dicas: GitHub
+  Issues (modelos em `.github/ISSUE_TEMPLATE`) + Discussions (ligar nas configurações do repositório).
 - Identidade: `/usr/lib/os-release` = "Kalango OS" (`ID=kalango`, `ID_LIKE=debian`, protegido de atualização do
   base-files pelo hook `0050`), `etc/default/grub.d/kalango.cfg` (`GRUB_DISTRIBUTOR`).
 - Próximos passos da arquitetura: layer-shell para barra/dock/menu; contraste das legendas de partição do

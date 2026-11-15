@@ -1,0 +1,8 @@
+# Pacotes do Kalango OS (kalango-shell e o que mais vier): atualizações pela
+# página Atualizações, como as do Debian. Assinado pela chave do projeto
+# (distro/repo/criar-chave.sh); publicado com distro/repo/publicar.sh.
+Types: deb
+URIs: https://kalangos.easysmartcontroll.com/apt
+Suites: trixie
+Components: main
+Signed-By: /usr/share/keyrings/kalango-archive-keyring.gpg

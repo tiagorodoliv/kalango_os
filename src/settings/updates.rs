@@ -71,10 +71,11 @@ pub fn parse_status(line: &str) -> Option<(f32, String)> {
     }
 }
 
-/// Atualizar estes pacotes pede reiniciar o computador.
+/// Atualizar estes pacotes pede reiniciar o computador (o kalango-shell só
+/// troca de versão numa sessão nova).
 pub fn needs_reboot(packages: &[Package]) -> bool {
     packages.iter().any(|p| {
-        p.name.starts_with("linux-image") || matches!(p.name.as_str(), "libc6" | "systemd" | "dbus" | "dbus-daemon")
+        p.name.starts_with("linux-image") || matches!(p.name.as_str(), "libc6" | "systemd" | "dbus" | "dbus-daemon" | "kalango-shell")
     })
 }
 

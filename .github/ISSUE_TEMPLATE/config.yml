@@ -3,3 +3,6 @@ contact_links:
   - name: Relatar falha de segurança
     url: https://github.com/tiagorodoliv/kalango_os/security/advisories/new
     about: Falhas de segurança vão em particular, não em issue pública.
+  - name: Dicas, ideias e perguntas
+    url: https://github.com/tiagorodoliv/kalango_os/discussions
+    about: Conversas sobre o uso do sistema, dicas e sugestões ainda sem forma de pedido.
