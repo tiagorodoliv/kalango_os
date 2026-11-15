@@ -46,8 +46,11 @@ pub struct Prefs {
     pub dock_style: i32,
     /// Transparência do fundo da dock, 0.0 (opaca) a 0.8.
     pub dock_transparency: f32,
-    /// 0 = circuitos; 1 em diante, os modelos de [`crate::shell::wallpaper::MODELS`].
+    /// 0 = circuitos; 1 em diante, os modelos de [`crate::shell::wallpaper::MODELS`];
+    /// [`crate::shell::wallpaper::CUSTOM`] = imagem própria (`wallpaper_file`).
     pub wallpaper: i32,
+    /// Imagem própria (cópia reduzida em `~/.local/share/backgrounds`).
+    pub wallpaper_file: String,
     /// Família de ícones: 0 = Flat Remix, 1 = Colloid, 2 = Fluent.
     pub icon_theme: i32,
 }
@@ -109,6 +112,15 @@ fn sync_icon_theme(family: i32, accent_index: i32) -> String {
     wanted
 }
 
+/// Tema de ícones que a área de trabalho põe para essas escolhas (o mesmo
+/// critério de `sync_icon_theme`, sem gravar nada): para a dock em janela
+/// própria trocar os ícones junto, sem esperar o GSettings.
+fn expected_icon_theme(family: i32, accent_index: i32) -> String {
+    let wanted = icon_theme_name(family, accent_index);
+    let current = crate::launcher::desktop::read_icon_theme();
+    if current.is_empty() || current.starts_with("Kalango-") || current == "hicolor" { wanted } else { current }
+}
+
 /// Grava a cor de destaque no `gtk.css` do usuário (apps GTK abertos depois
 /// já usam a cor nova). Um `gtk.css` feito à mão (sem a marca) fica intocado.
 fn sync_gtk_accent(accent_index: i32) {
@@ -150,7 +162,7 @@ fn sync_system(ui: &AppWindow, now: &Prefs, before: Option<&Prefs>) {
         let theme = sync_icon_theme(now.icon_theme, now.accent_index);
         // Dock e menu desta janela com os ícones do tema novo.
         if before.is_some() {
-            crate::launcher::apps::use_themed_icons(ui, &theme);
+            crate::launcher::apps::reload_icons(ui, &theme);
         }
     }
 }
@@ -198,6 +210,7 @@ impl Prefs {
             dock_position: t.get_dock_position(),
             dock_style: t.get_dock_style(),
             wallpaper: t.get_wallpaper(),
+            wallpaper_file: t.get_wallpaper_file().into(),
             icon_theme: t.get_icon_theme(),
         }
     }
@@ -221,6 +234,7 @@ impl Prefs {
         t.set_dock_position(self.dock_position);
         t.set_dock_style(self.dock_style);
         t.set_wallpaper(self.wallpaper);
+        t.set_wallpaper_file(self.wallpaper_file.clone().into());
         t.set_icon_theme(self.icon_theme);
     }
 
@@ -258,7 +272,7 @@ impl Prefs {
              # Barra de tarefas\n\
              barra-data={}\nbarra-segundos={}\nbarra-cpu={}\nbarra-bateria={}\n\
              dock-tamanho={}\ndock-apps={}\ndock-posicao={}\ndock-estilo={}\ndock-transparencia={}\n\
-             papel-de-parede={}\nicones={}\n",
+             papel-de-parede={}\npapel-de-parede-arquivo={}\nicones={}\n",
             self.accent_index,
             mode,
             self.transparency,
@@ -275,6 +289,7 @@ impl Prefs {
             DOCK_STYLES[self.dock_style.clamp(0, 1) as usize],
             self.dock_transparency,
             crate::shell::wallpaper::name(self.wallpaper),
+            self.wallpaper_file,
             ICON_FAMILIES[self.icon_theme.clamp(0, 2) as usize],
         )
     }
@@ -350,6 +365,7 @@ impl Prefs {
                         p.wallpaper = i;
                     }
                 }
+                "papel-de-parede-arquivo" => p.wallpaper_file = value.to_string(),
                 "dock-apps" => {
                     let ids = crate::launcher::apps::dock_ids(value);
                     if !ids.is_empty() {
@@ -361,6 +377,27 @@ impl Prefs {
         }
         p
     }
+}
+
+/// Troca chaves do `aparencia.conf` sem mexer no resto (quem escolhe o papel
+/// de parede fora das Configurações, como o "Abrir com" do Thunar). Os
+/// processos abertos aplicam sozinhos ao ver o arquivo mudar.
+pub fn set_keys(keys: &[(&str, &str)]) -> std::io::Result<()> {
+    let path = config_path().ok_or_else(|| std::io::Error::other("sem pasta pessoal"))?;
+    let text = fs::read_to_string(&path).unwrap_or_default();
+    let mut lines: Vec<String> = text
+        .lines()
+        .filter(|l| !keys.iter().any(|(k, _)| l.split_once('=').is_some_and(|(lk, _)| lk.trim() == *k)))
+        .map(str::to_string)
+        .collect();
+    if lines.is_empty() {
+        lines.push("# Aparência do Kalango OS (gravado pelas Configurações).".into());
+    }
+    lines.extend(keys.iter().map(|(k, v)| format!("{k}={v}")));
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir)?;
+    }
+    fs::write(&path, lines.join("\n") + "\n")
 }
 
 /// Caminho do arquivo: `$XDG_CONFIG_HOME/kalango/aparencia.conf`
@@ -410,6 +447,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     let mut last = Prefs::from_ui(ui);
     // Só a área de trabalho (um processo por sessão) mexe no labwc.
     let desktop = mode == Mode::Desktop;
+    let shows_dock = matches!(mode, Mode::Dock | Mode::Launcher);
     if desktop {
         sync_system(ui, &last, None);
     }
@@ -441,6 +479,11 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
                 p.apply(&ui);
                 if desktop {
                     sync_system(&ui, &p, Some(&last));
+                } else if shows_dock && (p.icon_theme != last.icon_theme || p.accent_index != last.accent_index) {
+                    // A dock em janela própria e o menu de apps também trocam
+                    // os ícones (antes só a área de trabalho trocava).
+                    let theme = expected_icon_theme(p.icon_theme, p.accent_index);
+                    crate::launcher::apps::reload_icons(&ui, &theme);
                 }
                 last = p;
             }
@@ -471,6 +514,7 @@ mod tests {
             dock_position: 0,
             dock_style: 0,
             wallpaper: 1,
+            wallpaper_file: String::new(),
             icon_theme: 0,
         }
     }
@@ -494,6 +538,7 @@ mod tests {
             dock_position: 1,
             dock_style: 1,
             wallpaper: 0,
+            wallpaper_file: String::new(),
             icon_theme: 2,
         };
         assert_eq!(Prefs::parse(&p.to_text(), &padrao()), p);

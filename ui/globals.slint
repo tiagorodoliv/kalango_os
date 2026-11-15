@@ -122,6 +122,13 @@ export global Shell {
     /// Miniaturas dos papéis de parede (ordem de `Theme.wallpaper-names`;
     /// a 1ª, dos circuitos, fica vazia).
     in property <[image]> wallpaper-thumbs;
+    /// Miniatura da imagem própria (vazia sem imagem escolhida).
+    in property <image> wallpaper-custom-thumb;
+    /// Escolhendo/preparando a imagem própria, ou o erro dela.
+    in property <bool> wallpaper-busy: false;
+    in property <string> wallpaper-message: "";
+    /// Abre a janela de escolher imagem e a usa como papel de parede.
+    callback pick-wallpaper();
     /// Amostras dos temas de ícones (ordem de `Theme.icon-theme-names`).
     in property <[IconPreview]> icon-previews;
     /// Uso de CPU, "12%" ou "--" fora do Linux.

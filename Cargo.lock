@@ -2213,6 +2213,7 @@ name = "kalango_os"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "image",
  "png",
  "slint",
  "slint-build",

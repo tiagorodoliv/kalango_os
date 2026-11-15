@@ -1142,3 +1142,6 @@ msgstr "Voltar à sessão"
 
 msgid "Switch user"
 msgstr "Trocar de usuário"
+
+msgid "My image"
+msgstr "Minha imagem"

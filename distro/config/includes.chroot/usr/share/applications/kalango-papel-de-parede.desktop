@@ -1,0 +1,13 @@
+[Desktop Entry]
+# "Abrir com → Definir como papel de parede" nas imagens (Thunar e outros
+# gerenciadores de arquivos). Não aparece no menu de apps (NoDisplay).
+Type=Application
+Name=Set as wallpaper
+Name[pt_BR]=Definir como papel de parede
+Comment=Use this image as the desktop background
+Comment[pt_BR]=Usar esta imagem como fundo da área de trabalho
+Icon=preferences-desktop-wallpaper
+Exec=kalango-shell --papel-de-parede %f
+MimeType=image/jpeg;image/png;
+NoDisplay=true
+Terminal=false

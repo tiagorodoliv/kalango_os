@@ -58,6 +58,8 @@ export global Theme {
     /// Papel de parede: 0 = circuitos (desenho do próprio shell); 1 em diante,
     /// as imagens de `wallpaper-names` (arquivos em src/shell/wallpaper.rs).
     in-out property <int> wallpaper: 1;
+    /// Imagem própria (`wallpaper` = 8): a cópia reduzida que o Rust gravou.
+    in-out property <string> wallpaper-file: "";
     out property <[string]> wallpaper-names: [@tr("Circuits"), @tr("Black and blue"), @tr("Black"), @tr("Blue"), @tr("Green"), @tr("Purple"), @tr("Orange"), @tr("White")];
     /// Ids dos apps da dock, separados por vírgula, na ordem exibida
     /// (Configurações fica sempre no fim, depois do separador).

@@ -312,33 +312,50 @@ fn icon_roots(dirs: &[PathBuf]) -> Vec<PathBuf> {
     roots
 }
 
+/// Tema de ícones guardado (lido uma vez; trocado por [`set_current_icon_theme`]).
+static ICON_THEME: std::sync::RwLock<Option<String>> = std::sync::RwLock::new(None);
+
 /// Tema de ícones atual: o do GSettings (o mesmo que os apps GTK usam) ou,
-/// sem ele, o do `settings.ini` do GTK 3. Lido uma vez por processo.
+/// sem ele, o do `settings.ini` do GTK 3. Lido uma vez por processo; quando a
+/// Aparência troca o tema, [`set_current_icon_theme`] atualiza.
 pub fn current_icon_theme() -> String {
-    static THEME: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    THEME
-        .get_or_init(|| {
-            let from_gsettings = std::process::Command::new("gsettings")
-                .args(["get", "org.gnome.desktop.interface", "icon-theme"])
-                .output()
-                .ok()
-                .map(|o| String::from_utf8_lossy(&o.stdout).trim().trim_matches('\'').to_string())
-                .filter(|t| !t.is_empty());
-            from_gsettings
-                .or_else(|| {
-                    let home = std::env::var("HOME").unwrap_or_default();
-                    [format!("{home}/.config/gtk-3.0/settings.ini"), "/etc/gtk-3.0/settings.ini".into()]
-                        .iter()
-                        .filter_map(|p| fs::read_to_string(p).ok())
-                        .find_map(|t| {
-                            t.lines().find_map(|l| {
-                                l.trim().strip_prefix("gtk-icon-theme-name=").map(|v| v.trim().to_string())
-                            })
-                        })
+    if let Some(t) = ICON_THEME.read().ok().and_then(|t| t.clone()) {
+        return t;
+    }
+    let theme = read_icon_theme();
+    if let Ok(mut t) = ICON_THEME.write() {
+        *t = Some(theme.clone());
+    }
+    theme
+}
+
+/// Troca o tema de ícones guardado (a Aparência mudou o tema).
+pub fn set_current_icon_theme(theme: &str) {
+    if let Ok(mut t) = ICON_THEME.write() {
+        *t = Some(theme.to_string());
+    }
+}
+
+/// Lê o tema de ícones do sistema (GSettings ou `settings.ini`).
+pub fn read_icon_theme() -> String {
+    let from_gsettings = std::process::Command::new("gsettings")
+        .args(["get", "org.gnome.desktop.interface", "icon-theme"])
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().trim_matches('\'').to_string())
+        .filter(|t| !t.is_empty());
+    from_gsettings
+        .or_else(|| {
+            let home = std::env::var("HOME").unwrap_or_default();
+            [format!("{home}/.config/gtk-3.0/settings.ini"), "/etc/gtk-3.0/settings.ini".into()]
+                .iter()
+                .filter_map(|p| fs::read_to_string(p).ok())
+                .find_map(|t| {
+                    t.lines()
+                        .find_map(|l| l.trim().strip_prefix("gtk-icon-theme-name=").map(|v| v.trim().to_string()))
                 })
-                .unwrap_or_else(|| "hicolor".into())
         })
-        .clone()
+        .unwrap_or_else(|| "hicolor".into())
 }
 
 /// Procura um ícone no tema `theme` e nos que ele herda (em largura, como o

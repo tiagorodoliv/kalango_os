@@ -254,7 +254,7 @@ pub fn install(ui: &AppWindow) {
     let weak = ui.as_weak();
     let timer = slint::Timer::default();
     timer.start(slint::TimerMode::Repeated, std::time::Duration::from_secs(2), move || {
-        if let Some(ui) = weak.upgrade() {
+        if let Some(ui) = weak.upgrade().filter(|_| greeter_active()) {
             refresh_sessions(&ui);
         }
     });
@@ -333,39 +333,55 @@ thread_local! {
     static SESSIONS_TIMER: std::cell::RefCell<Option<slint::Timer>> = const { std::cell::RefCell::new(None) };
 }
 
-/// Sessões gráficas abertas (login → id da sessão), da saída de
-/// `loginctl show-session <ids...> -p Id -p Name -p Class -p Service`
-/// (blocos separados por linha vazia). Gráfica = de pessoa e aberta pelo
-/// greetd (o login do console vem do "login" e o SSH do "sshd").
-pub fn open_sessions(text: &str) -> HashMap<String, String> {
-    text.split("\n\n")
-        .filter_map(|block| {
-            let get = |key: &str| block.lines().find_map(|l| l.strip_prefix(key)?.strip_prefix('=')).map(str::trim);
-            let (id, name) = (get("Id")?, get("Name")?);
-            (get("Class") == Some("user") && get("Service") == Some("greetd")).then(|| (name.to_string(), id.to_string()))
+/// Pasta onde o logind descreve cada sessão (um arquivo `chave=valor` por id).
+const SESSIONS_DIR: &str = "/run/systemd/sessions";
+
+/// Valor de uma chave num arquivo de sessão do logind.
+fn session_field<'a>(text: &'a str, key: &str) -> Option<&'a str> {
+    text.lines().find_map(|l| l.strip_prefix(key)?.strip_prefix('=')).map(str::trim)
+}
+
+/// Sessões gráficas abertas (login → id da sessão), a partir dos arquivos
+/// de `/run/systemd/sessions` (`(id, conteúdo)`). Gráfica = de pessoa, aberta
+/// pelo greetd e não encerrando (o console vem do "login" e o SSH do "sshd").
+/// Ler os arquivos não custa nada; o `loginctl` abria duas conexões no D-Bus
+/// a cada 2 s.
+pub fn open_sessions<'a>(files: impl IntoIterator<Item = (String, &'a str)>) -> HashMap<String, String> {
+    files
+        .into_iter()
+        .filter_map(|(id, text)| {
+            let user = session_field(text, "USER")?;
+            let ok = session_field(text, "CLASS") == Some("user")
+                && session_field(text, "SERVICE") == Some("greetd")
+                && session_field(text, "STATE") != Some("closing");
+            ok.then(|| (user.to_string(), id))
         })
         .collect()
 }
 
-/// Lê as sessões gráficas abertas pelo `loginctl`.
+/// Lê as sessões gráficas abertas.
 fn read_sessions() -> HashMap<String, String> {
-    let run = |args: &[&str]| {
-        std::process::Command::new("loginctl")
-            .args(args)
-            .output()
-            .ok()
-            .filter(|o| o.status.success())
-            .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
-    };
-    let Some(list) = run(&["list-sessions", "--no-legend"]) else { return HashMap::new() };
-    let ids: Vec<&str> = list.lines().filter_map(|l| l.split_whitespace().next()).collect();
-    if ids.is_empty() {
-        return HashMap::new();
-    }
-    let mut args = vec!["show-session"];
-    args.extend(&ids);
-    args.extend(["-p", "Id", "-p", "Name", "-p", "Class", "-p", "Service"]);
-    run(&args).map(|t| open_sessions(&t)).unwrap_or_default()
+    let Ok(dir) = std::fs::read_dir(SESSIONS_DIR) else { return HashMap::new() };
+    let files: Vec<(String, String)> = dir
+        .flatten()
+        .filter_map(|e| {
+            let id = e.file_name().to_string_lossy().into_owned();
+            if id.contains('.') {
+                return None; // os ".ref" são pipes
+            }
+            std::fs::read_to_string(e.path()).ok().map(|t| (id, t))
+        })
+        .collect();
+    open_sessions(files.iter().map(|(id, t)| (id.clone(), t.as_str())))
+}
+
+/// A tela de login está na frente (a sessão dela é a ativa do seat)? Uma tela
+/// de login extra parada num VT de fundo não precisa reler nada.
+fn greeter_active() -> bool {
+    let Ok(id) = std::env::var("XDG_SESSION_ID") else { return true };
+    std::fs::read_to_string(format!("{SESSIONS_DIR}/{id}"))
+        .map(|t| session_field(&t, "ACTIVE") != Some("0"))
+        .unwrap_or(true)
 }
 
 /// Relê as contas e as sessões abertas (a lista e a sessão da conta escolhida).
@@ -413,12 +429,15 @@ mod tests {
 
     #[test]
     fn sessoes_abertas() {
-        let text = "Id=1\nName=user\nClass=user\nService=login\n\n\
-                    Id=11\nName=user\nClass=user\nService=greetd\n\n\
-                    Id=12\nName=_greetd\nClass=greeter\nService=greetd\n\n\
-                    Id=14\nName=user\nClass=user\nService=sshd\n\n\
-                    Id=70\nName=silas\nClass=user\nService=greetd\n";
-        let s = open_sessions(text);
+        let files = [
+            ("1", "USER=user\nCLASS=user\nSERVICE=login\nSTATE=online\n"),
+            ("11", "USER=user\nACTIVE=1\nCLASS=user\nSERVICE=greetd\nSTATE=active\nVTNR=7\n"),
+            ("12", "USER=_greetd\nCLASS=greeter\nSERVICE=greetd\n"),
+            ("14", "USER=user\nCLASS=user\nSERVICE=sshd\n"),
+            ("70", "USER=silas\nCLASS=user\nSERVICE=greetd\nSTATE=online\n"),
+            ("71", "USER=ana\nCLASS=user\nSERVICE=greetd\nSTATE=closing\n"),
+        ];
+        let s = open_sessions(files.iter().map(|(id, t)| (id.to_string(), *t)));
         assert_eq!(s.get("user").map(String::as_str), Some("11"));
         assert_eq!(s.get("silas").map(String::as_str), Some("70"));
         assert_eq!(s.len(), 2);

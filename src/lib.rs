@@ -160,6 +160,14 @@ pub(crate) fn select_renderer(mode: Mode) {
 
 /// Abre a janela do modo pedido nos argumentos e roda até ela ser fechada.
 pub fn run() -> Result<(), slint::PlatformError> {
+    // "Definir como papel de parede" (Abrir com, no Thunar): sem janela.
+    if let Some(file) = wallpaper::file_from_args(std::env::args()) {
+        if let Err(err) = wallpaper::run_cli(&file) {
+            eprintln!("kalango-shell: papel de parede {file}: {err}");
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
     let mode = Mode::from_args(std::env::args());
     // Alt+Tab: o atalho só manda o pedido ao processo aberto (rápido, sem
     // abrir janela); ver src/shell/switcher.rs.

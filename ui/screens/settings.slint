@@ -393,8 +393,13 @@ component AppearancePage inherits Rectangle {
             Rectangle { height: 10px; }
             wallpapers := Rectangle {
                 // Miniaturas de 80×45 em grade: quantas couberem por linha.
+                // Depois dos modelos: a imagem própria (se houver) e o "+".
                 property <int> cols: max(1, floor((col.w + 10px) / 90px));
-                height: ceil(Theme.wallpaper-names.length / self.cols) * 55px - 10px;
+                property <bool> has-custom: Theme.wallpaper-file != "";
+                property <int> custom-at: Theme.wallpaper-names.length;
+                property <int> plus-at: self.custom-at + (self.has-custom ? 1 : 0);
+                property <int> custom-index: Theme.wallpaper-names.length;
+                height: ceil((self.plus-at + 1) / self.cols) * 55px - 10px;
                 for nome[i] in Theme.wallpaper-names: Rectangle {
                     x: Math.mod(i, wallpapers.cols) * (80px + 10px);
                     y: floor(i / wallpapers.cols) * 55px;
@@ -428,11 +433,60 @@ component AppearancePage inherits Rectangle {
                         clicked => { Theme.wallpaper = i; }
                     }
                 }
+                // Imagem própria já escolhida.
+                if self.has-custom: Rectangle {
+                    x: Math.mod(wallpapers.custom-at, wallpapers.cols) * (80px + 10px);
+                    y: floor(wallpapers.custom-at / wallpapers.cols) * 55px;
+                    width: 80px;
+                    height: 45px;
+                    border-radius: 6px;
+                    clip: true;
+                    background: Theme.background;
+                    Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: Shell.wallpaper-custom-thumb;
+                        image-fit: cover;
+                    }
+                    Rectangle {
+                        border-radius: 6px;
+                        border-width: Theme.wallpaper == wallpapers.custom-index ? 2px : 1px;
+                        border-color: Theme.wallpaper == wallpapers.custom-index ? Theme.accent : Theme.border;
+                    }
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { Theme.wallpaper = wallpapers.custom-index; }
+                    }
+                }
+                // Escolher uma imagem do computador.
+                Rectangle {
+                    x: Math.mod(wallpapers.plus-at, wallpapers.cols) * (80px + 10px);
+                    y: floor(wallpapers.plus-at / wallpapers.cols) * 55px;
+                    width: 80px;
+                    height: 45px;
+                    border-radius: 6px;
+                    background: plus-touch.has-hover ? Theme.tile-hover : Theme.tile;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    Text {
+                        text: Shell.wallpaper-busy ? "…" : "+";
+                        color: Theme.text-muted;
+                        font-family: Theme.sans;
+                        font-size: 24px;
+                    }
+                    plus-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { Shell.pick-wallpaper(); }
+                    }
+                }
             }
             Rectangle { height: 8px; }
             Text {
-                text: Theme.wallpaper-names[Theme.wallpaper];
-                color: Theme.text-muted;
+                color: Shell.wallpaper-message != "" ? Theme.danger : Theme.text-muted;
+                text: Shell.wallpaper-message != "" ? Shell.wallpaper-message
+                    : Theme.wallpaper == wallpapers.custom-index ? @tr("My image")
+                    : Theme.wallpaper < Theme.wallpaper-names.length ? Theme.wallpaper-names[Theme.wallpaper]
+                    : "";
                 font-family: Theme.sans;
                 font-size: 13px;
             }

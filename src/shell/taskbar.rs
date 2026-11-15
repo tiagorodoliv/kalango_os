@@ -195,6 +195,12 @@ fn refresh(ui: &AppWindow) {
     }
 }
 
+/// O tema de ícones mudou: refaz os apps abertos não fixados (com o ícone novo).
+pub fn reload_icons(ui: &AppWindow) {
+    ui.global::<Shell>().set_running_extra(ModelRc::default());
+    refresh(ui);
+}
+
 /// Janelas de um app (mais recente primeiro).
 fn windows_of(id: &str) -> Vec<Window> {
     STATE.with_borrow(|s| s.windows.iter().filter(|(_, i)| i == id).map(|(w, _)| w.clone()).collect())

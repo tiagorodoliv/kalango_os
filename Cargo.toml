@@ -20,6 +20,10 @@ slint = { version = "1.8", default-features = false, features = [
     "unstable-winit-030",
 ] }
 
+# Papel de parede com imagem própria: reduzir e gravar (src/shell/wallpaper.rs).
+# A mesma versão e os mesmos formatos que o Slint já usa: não entra código novo.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+
 # Data/hora local (fuso do sistema) para o relógio da barra e do login.
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 

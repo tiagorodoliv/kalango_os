@@ -107,6 +107,16 @@ pub fn themed_icon_names(id: &str) -> &'static [&'static str] {
     }
 }
 
+/// O tema de ícones mudou: ícones novos nos apps do catálogo, nos apps do
+/// sistema fixados e nos abertos (a dock e o menu desta janela).
+pub fn reload_icons(ui: &AppWindow, theme: &str) {
+    desktop::set_current_icon_theme(theme);
+    ENTRIES.with_borrow_mut(|m| m.clear());
+    use_themed_icons(ui, theme);
+    #[cfg(target_os = "linux")]
+    crate::shell::taskbar::reload_icons(ui);
+}
+
 /// Troca os ícones dos apps fixados pelos do tema de ícones `theme` (com
 /// `tint` transparente, que a dock e o menu desenham sem colorir).
 pub fn use_themed_icons(ui: &AppWindow, theme: &str) {
