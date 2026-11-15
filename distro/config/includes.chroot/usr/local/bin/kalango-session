@@ -9,6 +9,12 @@ if systemd-detect-virt -q; then
 	export WLR_RENDERER=pixman
 	export WLR_NO_HARDWARE_CURSORS=1
 fi
+# Assento (vídeo, teclado, mouse) sempre pelo logind. O seatd também vem
+# instalado, e a libseat usa ele para quem está no grupo video: aí a tela de
+# login (logind) e as sessões das pessoas (seatd) brigavam pelo vídeo, e a
+# sessão aberta por "Trocar de usuário" caía na hora. Só o logind sabe ter
+# várias sessões abertas no mesmo computador.
+export LIBSEAT_BACKEND=logind
 # O labwc só procura a pasta de configuração do usuário ao iniciar: sem ela,
 # o rc.xml que o shell grava depois (margens da dock, src/shell/labwc.rs) nunca é
 # lido, nem com `labwc --reconfigure`. Vazia, não muda nada: cada arquivo que
@@ -38,4 +44,6 @@ kalango_regiao
 # Os serviços da sessão iniciados pelo D-Bus/systemd --user (gvfs do Arquivos,
 # portais...) herdam o idioma do login, não o daqui: atualiza os dois.
 dbus-update-activation-environment --systemd LANG LANGUAGE 2>/dev/null || true
-exec labwc
+# Erros do labwc no journal (`journalctl -t labwc`): sem isso iam para o VT,
+# e uma sessão que não abre não deixava rastro.
+exec systemd-cat -t labwc labwc
