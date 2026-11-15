@@ -1,6 +1,9 @@
-# Kalango OS — interface (shell) em Rust + Slint
+# KalangOS — interface (shell) em Rust + Slint
 
-Projeto da interface gráfica do **Kalango OS**, distro Linux baseada no Debian.
+Projeto da interface gráfica do **KalangOS**, distro Linux baseada no Debian.
+**Nome: KalangOS** (decidido em 2026-11-15; antes "Kalango OS"; busca no INPI sem conflito nas classes 9/42, só
+"Calango" de óculos na 9). Só o nome visível mudou: `ID=kalango`, `kalango-shell`, `org.kalango.*`, `kalango_os`, pastas e o
+nome do arquivo da ISO continuam. Com `GRUB_DISTRIBUTOR="KalangOS"` a classe do GRUB é `kalangos` (ícone próprio no tema).
 **Open source (GPL-3.0-or-later), decidido em 2026-11-12**; o repositório fica privado até a versão estável.
 Nome e logo são marca protegida (`TRADEMARKS.md`). Contribuições por PR revisado pelo Tiago (`CONTRIBUTING.md`,
 DCO com `git commit -s`); CI em `.github/workflows/ci.yml` e ISO publicada por tag `v*` (`release.yml`, Release
@@ -88,7 +91,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   instalador do Debian), id `desktop:<caminho>`; a busca procura neles depois dos fixados, sem repetir os
   programas dos fixados. Lidos numa thread depois de o menu aparecer (~40 ms com 60 apps em release).
   RECENTES do menu = `~/.local/share/recently-used.xbel` (`src/launcher/recent.rs`), abertos com `xdg-open`; na ISO live
-  (`/run/live/medium` existe) o 1º item é "Instalar Kalango OS" (app `installer`).
+  (`/run/live/medium` existe) o 1º item é "Instalar KalangOS" (app `installer`).
   Sem a variável (dev no host, `examples/snapshot.rs`) continua o protótipo com as janelas de demonstração.
 - **Rede local e compartilhamento (2026-11-13):** Configurações → **Sharing** (`src/settings/sharing.rs`, `SharingPage`).
   Compartilhar = Samba + `wsdd2` (aparece na Rede do Windows), **desligado por padrão** (hook `0120` desliga
@@ -265,7 +268,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   Publicado `0.1.0-3` em 2026-11-15 (o HP o viu pela internet). Guia: `distro/repo/LEIAME.md`.
   Testado no HP: 0.1.0-1 → 0.1.0-2 pelo apt, com aviso de reiniciar (`/run/reboot-required`). Bugs e dicas: GitHub
   Issues (modelos em `.github/ISSUE_TEMPLATE`) + Discussions (ligar nas configurações do repositório).
-- Identidade: `/usr/lib/os-release` = "Kalango OS" (`ID=kalango`, `ID_LIKE=debian`, protegido de atualização do
+- Identidade: `/usr/lib/os-release` = "KalangOS" (`ID=kalango`, `ID_LIKE=debian`, protegido de atualização do
   base-files pelo hook `0050`), `etc/default/grub.d/kalango.cfg` (`GRUB_DISTRIBUTOR`).
 - Próximos passos da arquitetura: layer-shell para barra/dock/menu; contraste das legendas de partição do
   Calamares no tema escuro (desenhadas pela paleta Qt, não pelo qss).
@@ -399,7 +402,7 @@ O SVG de `assets/logo` é rastreado de bitmap e fica granulado em tamanho pequen
 
 1. **Tela de login:** relógio grande mono (~108px) "19:38" + "quarta-feira, 11 de novembro" no topo; card central
    ~380×320 (avatar círculo com "U" e borda destaque, "Usuário", campo "Senha" com botão seta em destaque,
-   link "Outro usuário", rótulo "wayland"); hexágono e linhas de circuito no fundo; rodapé: marca + "Kalango OS"
+   link "Outro usuário", rótulo "wayland"); hexágono e linhas de circuito no fundo; rodapé: marca + "KalangOS"
    à esquerda, botões PT-BR / acessibilidade / power (vermelho) à direita.
 2. **Área de trabalho:** barra superior ~35px (pílula "Kalango" com marca; indicador de workspaces: barra destaque + 2 pontos;
    data/hora central mono "qua 11 nov 19:38"; à direita CPU %, wifi, volume, bateria %, power). Janela Arquivos

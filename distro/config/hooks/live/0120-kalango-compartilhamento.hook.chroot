@@ -15,7 +15,7 @@ touch /etc/samba/kalango.conf
 if ! grep -q '^include = /etc/samba/kalango.conf' /etc/samba/smb.conf; then
 	awk '/^\[/ { pula = ($0 == "[homes]" || $0 == "[printers]" || $0 == "[print$]") } !pula' \
 		/etc/samba/smb.conf >/etc/samba/smb.conf.kalango
-	printf '\n# Pastas compartilhadas pelo Kalango OS (Configurações → Compartilhamento).\ninclude = /etc/samba/kalango.conf\n' \
+	printf '\n# Pastas compartilhadas pelo KalangOS (Configurações → Compartilhamento).\ninclude = /etc/samba/kalango.conf\n' \
 		>>/etc/samba/smb.conf.kalango
 	mv /etc/samba/smb.conf.kalango /etc/samba/smb.conf
 fi

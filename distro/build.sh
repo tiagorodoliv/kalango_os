@@ -1,5 +1,5 @@
 #!/bin/sh
-# Gera a ISO do Kalango OS.
+# Gera a ISO do KalangOS.
 #
 # Tudo roda dentro de um chroot Debian trixie ("builder", em distro/.cache/):
 #   1. o kalango-shell é compilado lá, contra a glibc do trixie

@@ -4,7 +4,7 @@
 <!-- Configurações → Usuários: criar, remover e mudar contas de outras pessoas
      (/usr/local/sbin/kalango-usuarios). Senha do administrador, lembrada por alguns minutos. -->
 <policyconfig>
-  <vendor>Kalango OS</vendor>
+  <vendor>KalangOS</vendor>
   <action id="org.kalango.usuarios">
     <description>Manage user accounts</description>
     <description xml:lang="pt_BR">Gerenciar contas de usuário</description>

@@ -4,7 +4,7 @@
 <!-- Configurações → Energia: o que a tampa e o botão de ligar fazem
      (systemd-logind, vale para todos). Senha do administrador, lembrada por alguns minutos. -->
 <policyconfig>
-  <vendor>Kalango OS</vendor>
+  <vendor>KalangOS</vendor>
   <action id="org.kalango.energia">
     <description>Change what the lid and the power button do</description>
     <description xml:lang="pt_BR">Mudar o que a tampa e o botão de ligar fazem</description>

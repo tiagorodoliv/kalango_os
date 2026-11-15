@@ -1,4 +1,4 @@
-# Repositório apt do Kalango OS (atualizações OTA)
+# Repositório apt do KalangOS (atualizações OTA)
 
 O sistema instalado procura pacotes do projeto em
 `https://kalangos.easysmartcontroll.com/apt` (`/etc/apt/sources.list.d/kalango.sources`,

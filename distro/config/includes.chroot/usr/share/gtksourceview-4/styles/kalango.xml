@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Esquema de cores do Kalango OS para editores GtkSourceView (Mousepad).
+  Esquema de cores do KalangOS para editores GtkSourceView (Mousepad).
   Fundo, seleção e números de linha do tema do sistema (ui/theme.slint); cores
   de sintaxe do tema Dark Modern do VS Code. Mesma paleta do Geany
   (/usr/share/geany/colorschemes/kalango-dark-modern.conf).
 -->
 <style-scheme id="kalango" name="Kalango" version="1.0">
-  <author>Kalango OS</author>
-  <description>Escuro do Kalango OS com as cores de sintaxe do VS Code Dark Modern</description>
+  <author>KalangOS</author>
+  <description>Escuro do KalangOS com as cores de sintaxe do VS Code Dark Modern</description>
 
   <color name="fundo" value="#0a0f14"/>
   <color name="fundo_linha" value="#131920"/>

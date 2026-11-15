@@ -1,4 +1,4 @@
-/* Tela de bloqueio do Kalango OS (gtklock): cores de ui/theme.slint; o
+/* Tela de bloqueio do KalangOS (gtklock): cores de ui/theme.slint; o
    destaque segue o escolhido nas Configurações (@kalango_accent, definido
    pelo tema GTK Kalango e pelo ~/.config/gtk-3.0/gtk.css). */
 @define-color kb_accent @kalango_accent;

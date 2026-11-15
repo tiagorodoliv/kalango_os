@@ -4,7 +4,7 @@ Adaptado do [Contributor Covenant 2.1](https://www.contributor-covenant.org/pt-b
 
 ## Nosso compromisso
 
-Nós, pessoas que contribuem e mantêm o Kalango OS, nos comprometemos a fazer da participação no projeto uma
+Nós, pessoas que contribuem e mantêm o KalangOS, nos comprometemos a fazer da participação no projeto uma
 experiência livre de assédio para todas as pessoas, independentemente de idade, corpo, deficiência visível
 ou invisível, etnia, características sexuais, identidade ou expressão de gênero, nível de experiência,
 escolaridade, condição socioeconômica, nacionalidade, aparência, raça, religião ou orientação sexual.

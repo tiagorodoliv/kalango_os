@@ -4,7 +4,7 @@
 <!-- Configurações → Atualizações (/usr/local/sbin/kalango-atualizar).
      Senha do administrador, lembrada por alguns minutos. -->
 <policyconfig>
-  <vendor>Kalango OS</vendor>
+  <vendor>KalangOS</vendor>
   <action id="org.kalango.atualizar">
     <description>Install system updates</description>
     <description xml:lang="pt_BR">Instalar atualizações do sistema</description>

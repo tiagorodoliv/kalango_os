@@ -1,5 +1,5 @@
 #!/bin/sh
-# Bloqueia a tela do Kalango OS (Super+L, cadeado do menu e do painel).
+# Bloqueia a tela do KalangOS (Super+L, cadeado do menu e do painel).
 #
 # Usa o gtklock (protocolo ext-session-lock: seguro, o labwc não mostra nada
 # por baixo) com o layout e o CSS de /etc/kalango/bloqueio: relógio, data,

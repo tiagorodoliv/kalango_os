@@ -1,4 +1,4 @@
-# Tradução do Kalango OS (shell) para o português do Brasil.
+# Tradução do KalangOS (shell) para o português do Brasil.
 # Os textos originais (msgid) são os @tr("...") dos arquivos ui/*.slint.
 # Gerado por um script e revisado à mão; para um texto novo, acrescente msgid/msgstr.
 msgid ""
@@ -78,8 +78,8 @@ msgid "Version"
 msgstr "Versão"
 
 #: ui/device.slint:72
-msgid "Kalango OS 0.1 (prototype)"
-msgstr "Kalango OS 0.1 (protótipo)"
+msgid "KalangOS 0.1 (prototype)"
+msgstr "KalangOS 0.1 (protótipo)"
 
 #: ui/device.slint:74
 msgid "Session"
@@ -562,8 +562,8 @@ msgid "File sharing is not installed"
 msgstr "Compartilhamento de arquivos não instalado"
 
 #: ui/screens/settings_pages.slint:631
-msgid "Sharing folders works in the Kalango OS session, with Samba installed."
-msgstr "Compartilhar pastas funciona na sessão do Kalango OS, com o Samba instalado."
+msgid "Sharing folders works in the KalangOS session, with Samba installed."
+msgstr "Compartilhar pastas funciona na sessão do KalangOS, com o Samba instalado."
 
 #: ui/screens/settings_pages.slint:634
 msgid "FILE SHARING"
@@ -654,8 +654,8 @@ msgid "System updates"
 msgstr "Atualizações do sistema"
 
 #: ui/screens/settings_pages.slint:908
-msgid "Downloads and installs new versions of Kalango OS and your apps"
-msgstr "Baixa e instala as versões novas do Kalango OS e dos apps"
+msgid "Downloads and installs new versions of KalangOS and your apps"
+msgstr "Baixa e instala as versões novas do KalangOS e dos apps"
 
 #: ui/screens/settings_pages.slint:912
 msgid "Check now"
@@ -674,8 +674,8 @@ msgid "No Bluetooth adapter"
 msgstr "Nenhum adaptador Bluetooth"
 
 #: ui/screens/settings_pages.slint:938
-msgid "Device pairing is coming in a future version of Kalango OS."
-msgstr "O pareamento de dispositivos chega numa próxima versão do Kalango OS."
+msgid "Device pairing is coming in a future version of KalangOS."
+msgstr "O pareamento de dispositivos chega numa próxima versão do KalangOS."
 
 #: ui/screens/settings_pages.slint:939
 msgid "This computer has no Bluetooth, or it is turned off."
@@ -686,8 +686,8 @@ msgid "Could not read the displays (wlr-randr did not respond)."
 msgstr "Não foi possível ler os monitores (o wlr-randr não respondeu)."
 
 #: ui/screens/settings_pages.slint:993
-msgid "Resolution, scale and rotation can be changed in the Kalango OS session."
-msgstr "Ajustar resolução, escala e rotação funciona na sessão do Kalango OS."
+msgid "Resolution, scale and rotation can be changed in the KalangOS session."
+msgstr "Ajustar resolução, escala e rotação funciona na sessão do KalangOS."
 
 #: ui/theme.slint:58
 msgid "Circuits"
@@ -1159,8 +1159,8 @@ msgstr "{} na fila"
 msgid "Printing is not installed"
 msgstr "A impressão não está instalada"
 
-msgid "Printers work in the Kalango OS session, with CUPS installed."
-msgstr "As impressoras funcionam na sessão do Kalango OS, com o CUPS instalado."
+msgid "Printers work in the KalangOS session, with CUPS installed."
+msgstr "As impressoras funcionam na sessão do KalangOS, com o CUPS instalado."
 
 msgid "PRINTERS"
 msgstr "IMPRESSORAS"

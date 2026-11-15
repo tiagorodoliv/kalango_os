@@ -1,4 +1,4 @@
-# Pacotes da imagem do Kalango OS (Debian trixie).
+# Pacotes da imagem do KalangOS (Debian trixie).
 
 # Live: boot pela ISO e criação do usuário "user" no boot
 live-boot

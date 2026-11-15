@@ -4,7 +4,7 @@
 <!-- Configurações → Impressoras, para quem não está no grupo lpadmin
      (/usr/local/sbin/kalango-impressoras). Senha do administrador, lembrada por alguns minutos. -->
 <policyconfig>
-  <vendor>Kalango OS</vendor>
+  <vendor>KalangOS</vendor>
   <action id="org.kalango.impressoras">
     <description>Manage printers</description>
     <description xml:lang="pt_BR">Gerenciar impressoras</description>

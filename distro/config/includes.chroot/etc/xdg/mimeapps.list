@@ -1,4 +1,4 @@
-# Apps padrão do Kalango OS (cada pessoa pode trocar: ~/.config/mimeapps.list).
+# Apps padrão do KalangOS (cada pessoa pode trocar: ~/.config/mimeapps.list).
 [Default Applications]
 application/zip=kalango-extrair.desktop;org.gnome.FileRoller.desktop;
 application/x-zip-compressed=kalango-extrair.desktop;org.gnome.FileRoller.desktop;

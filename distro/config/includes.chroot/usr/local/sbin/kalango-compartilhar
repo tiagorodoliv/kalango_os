@@ -1,5 +1,5 @@
 #!/bin/sh
-# Compartilhamento de pastas do Kalango OS (Configurações → Compartilhamento).
+# Compartilhamento de pastas do KalangOS (Configurações → Compartilhamento).
 # Roda como root pelo pkexec (política org.kalango.compartilhar): o shell
 # nunca mexe no Samba diretamente.
 #

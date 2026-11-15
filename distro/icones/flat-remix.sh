@@ -1,5 +1,5 @@
 #!/bin/sh
-# Instala os ícones do Kalango OS: o tema Flat Remix (GPL-3.0,
+# Instala os ícones do KalangOS: o tema Flat Remix (GPL-3.0,
 # https://github.com/daniruiz/flat-remix) e um tema pequeno por cor de
 # destaque, Kalango-<Cor>, só com as pastas na cor certa.
 #
@@ -91,7 +91,7 @@ for par in $CORES; do
 	cat > "$tema/index.theme" <<-EOF
 	[Icon Theme]
 	Name=Kalango $cor
-	Comment=Ícones do Kalango OS (Flat Remix) com as pastas na cor de destaque $cor
+	Comment=Ícones do KalangOS (Flat Remix) com as pastas na cor de destaque $cor
 	Inherits=$BASE,Adwaita,hicolor
 	Example=folder
 	Directories=places/scalable

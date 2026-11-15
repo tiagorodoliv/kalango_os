@@ -3,7 +3,7 @@
 # (regra do polkit em /etc/polkit-1/rules.d/50-kalango-trocar.rules).
 # Mesmas opções do greetd.service do Debian, sem reiniciar sozinha.
 [Unit]
-Description=Tela de login do Kalango OS no VT %i (trocar de usuário)
+Description=Tela de login do KalangOS no VT %i (trocar de usuário)
 After=systemd-user-sessions.service getty@tty%i.service
 Conflicts=getty@tty%i.service
 

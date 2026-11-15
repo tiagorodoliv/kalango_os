@@ -1,4 +1,4 @@
-# Bloqueio de tela de reserva do Kalango OS (swaylock): o normal é o gtklock
+# Bloqueio de tela de reserva do KalangOS (swaylock): o normal é o gtklock
 # (kalango-bloquear); este só abre se o gtklock cair 3 vezes.
 # Cores de ui/theme.slint: fundo #07090d, painel #0d1218, borda #1e2a33,
 # texto #e6edf3, destaque ciano #3dd6f5, perigo #f07178, âmbar #e8b04b.

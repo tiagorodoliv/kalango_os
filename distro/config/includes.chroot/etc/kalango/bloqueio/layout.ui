@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Tela de bloqueio do Kalango OS (gtklock): relógio, data, usuário (módulo
+  Tela de bloqueio do KalangOS (gtklock): relógio, data, usuário (módulo
   userinfo) e senha. Os ids e os sinais são os do layout original do gtklock
   4; os textos @SENHA@ e @DESBLOQUEAR@ são trocados pelo kalango-bloquear no
   idioma da sessão.

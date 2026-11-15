@@ -1,5 +1,5 @@
 #!/bin/sh
-# Publica pacotes no repositório apt do Kalango OS (atualizações OTA).
+# Publica pacotes no repositório apt do KalangOS (atualizações OTA).
 #
 # Monta o repositório em ~/.local/share/kalango-repo/www/apt (pool/ + dists/),
 # assina com a chave de criar-chave.sh (InRelease e Release.gpg) e, com
@@ -40,14 +40,17 @@ xz -9kf "$DIST/main/binary-amd64/Packages"
 
 cd "$DIST"
 {
-	echo "Origin: Kalango OS"
-	echo "Label: Kalango OS"
+	# NUNCA mude Origin/Label: o apt dos sistemas instalados recusa atualizar
+	# quando eles mudam ("changed its 'Origin' value"). Era "Kalango OS" até
+	# 2026-11-15; só o notebook de teste viu o valor antigo.
+	echo "Origin: KalangOS"
+	echo "Label: KalangOS"
 	echo "Suite: $SUITE"
 	echo "Codename: $SUITE"
 	echo "Date: $(LC_ALL=C date -Ru)"
 	echo "Architectures: amd64"
 	echo "Components: main"
-	echo "Description: Pacotes do Kalango OS"
+	echo "Description: Pacotes do KalangOS"
 	echo "SHA256:"
 	for f in main/binary-amd64/Packages main/binary-amd64/Packages.gz main/binary-amd64/Packages.xz; do
 		printf ' %s %s %s\n' "$(sha256sum "$f" | cut -d' ' -f1)" "$(stat -c %s "$f")" "$f"

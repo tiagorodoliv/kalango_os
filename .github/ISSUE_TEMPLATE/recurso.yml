@@ -1,5 +1,5 @@
 name: Sugerir um recurso
-description: Uma ideia para o Kalango OS.
+description: Uma ideia para o KalangOS.
 labels: ["recurso"]
 body:
   - type: textarea

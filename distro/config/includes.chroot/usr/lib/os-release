@@ -1,10 +1,10 @@
-PRETTY_NAME="Kalango OS 0.1"
-NAME="Kalango OS"
+PRETTY_NAME="KalangOS 0.1"
+NAME="KalangOS"
 VERSION_ID="0.1"
 VERSION="0.1 (base Debian 13 trixie)"
 VERSION_CODENAME=trixie
 ID=kalango
 ID_LIKE=debian
-HOME_URL="https://www.debian.org/"
-SUPPORT_URL="https://www.debian.org/support"
-BUG_REPORT_URL="https://bugs.debian.org/"
+HOME_URL="https://kalangos.easysmartcontroll.com/"
+SUPPORT_URL="https://github.com/tiagorodoliv/kalango_os/discussions"
+BUG_REPORT_URL="https://github.com/tiagorodoliv/kalango_os/issues"

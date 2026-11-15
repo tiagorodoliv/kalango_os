@@ -1,4 +1,4 @@
-# Kalango OS: pendrives e HDs USB guardam no máximo 16 MB na memória antes de
+# KalangOS: pendrives e HDs USB guardam no máximo 16 MB na memória antes de
 # gravar de verdade.
 #
 # Sem isto, o Linux aceita centenas de MB na memória (até 20% da RAM) e a janela

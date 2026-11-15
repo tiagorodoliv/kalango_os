@@ -3,7 +3,7 @@
 //! Os apps GTK (Thunar, Mousepad, Ristretto...) registram os arquivos abertos
 //! em `~/.local/share/recently-used.xbel` (formato XBEL). Aqui lemos os mais
 //! recentes que ainda existem. Na ISO live, o primeiro item é o atalho
-//! "Instalar Kalango OS".
+//! "Instalar KalangOS".
 
 use crate::common::i18n::tr;
 use std::path::{Path, PathBuf};
@@ -129,7 +129,7 @@ pub fn install(ui: &AppWindow) {
     let mut items: Vec<RecentEntry> = Vec::new();
     if is_live() {
         items.push(RecentEntry {
-            name: tr("Install Kalango OS", "Instalar Kalango OS").into(),
+            name: tr("Install KalangOS", "Instalar KalangOS").into(),
             path: tr("Copy the system to the disk", "Copiar o sistema para o disco").into(),
             kind: "install".into(),
             target: "".into(),

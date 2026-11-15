@@ -1,4 +1,4 @@
-// Janela raiz do protótipo do Kalango OS.
+// Janela raiz do protótipo do KalangOS.
 //
 // Fluxo navegável: login → área de trabalho (janelas Arquivos/Terminal,
 // dock, barra) → menu de apps (overlay) → Configurações → Aparência.
@@ -70,7 +70,7 @@ export enum ShellMode {
 }
 
 export component AppWindow inherits Window {
-    title: root.mode == ShellMode.settings ? @tr("Settings") : "Kalango OS";
+    title: root.mode == ShellMode.settings ? @tr("Settings") : "KalangOS";
     icon: @image-url("brand/kalango-icon.png");
     // Referência do layout em px lógicos; no dispositivo (feature kms)
     // a janela ocupa a tela inteira automaticamente.

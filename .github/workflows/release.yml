@@ -48,7 +48,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" distro/out/*.iso distro/out/SHA256SUMS \
-            --draft --generate-notes --title "Kalango OS ${GITHUB_REF_NAME#v}"
+            --draft --generate-notes --title "KalangOS ${GITHUB_REF_NAME#v}"
 
       # Rodado à mão (workflow_dispatch): só guarda a ISO como artefato.
       - name: Guardar a ISO

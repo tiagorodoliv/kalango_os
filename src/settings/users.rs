@@ -397,7 +397,7 @@ pub fn install(ui: &AppWindow, mode: Mode) {
             if native {
                 change_own_password(&current, &new)
             } else {
-                Err("protótipo: o passwd só roda na sessão do Kalango OS".into())
+                Err("protótipo: o passwd só roda na sessão do KalangOS".into())
             }
         });
     });

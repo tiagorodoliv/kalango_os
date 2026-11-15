@@ -1,5 +1,5 @@
 #!/bin/sh
-# Kalango OS: esconde o "Set as wallpaper" do próprio Thunar.
+# KalangOS: esconde o "Set as wallpaper" do próprio Thunar.
 #
 # O plugin thunar-wallpaper-plugin só sabe trocar o papel de parede do Xfce,
 # do GNOME e de poucos outros; no labwc o item aparece no botão direito e não

@@ -9,7 +9,7 @@
 //!
 //! Os comandos rodam numa thread à parte (o `nmcli` pode levar segundos) e o
 //! resultado volta para a UI com `slint::invoke_from_event_loop`. Fora do
-//! Kalango OS (desenvolvimento), comando que não existe só deixa a página no
+//! KalangOS (desenvolvimento), comando que não existe só deixa a página no
 //! estado "indisponível".
 
 use crate::common::i18n::tr;
@@ -186,6 +186,19 @@ pub fn os_release_value(text: &str, key: &str) -> Option<String> {
         let v = l.strip_prefix(key)?.strip_prefix('=')?;
         Some(v.trim_matches('"').to_string())
     })
+}
+
+/// Sistema base para o "Sobre": "Debian 13.2 (trixie)" a partir do
+/// `/etc/debian_version` e do codinome no os-release. Sem `debian_version`
+/// (outro sistema), o `PRETTY_NAME`.
+pub fn base_name(debian_version: Option<&str>, os_release: &str) -> Option<String> {
+    match debian_version.map(str::trim).filter(|v| !v.is_empty()) {
+        Some(v) => Some(match os_release_value(os_release, "VERSION_CODENAME") {
+            Some(c) if !c.is_empty() => format!("Debian {v} ({c})"),
+            _ => format!("Debian {v}"),
+        }),
+        None => os_release_value(os_release, "PRETTY_NAME"),
+    }
 }
 
 /// Nome do processador em `/proc/cpuinfo`, sem "(R)"/"(TM)" e espaços extras.
@@ -387,11 +400,13 @@ fn now_ms() -> u64 {
 
 /// Ficha do sistema (lida uma vez, ao abrir).
 fn about_items() -> Vec<(String, String)> {
-    let mut items = vec![(tr("Version", "Versão").to_string(), format!("Kalango OS {}", env!("CARGO_PKG_VERSION")))];
+    let mut items = vec![(tr("Version", "Versão").to_string(), format!("KalangOS {}", env!("CARGO_PKG_VERSION")))];
     let read = |p: &str| fs::read_to_string(p).ok();
 
-    if let Some(name) = read("/etc/os-release").and_then(|t| os_release_value(&t, "PRETTY_NAME")) {
-        items.push(("Base".into(), name));
+    // O os-release é o do KalangOS; a base vem do /etc/debian_version.
+    let os = read("/etc/os-release").unwrap_or_default();
+    if let Some(base) = base_name(read("/etc/debian_version").as_deref(), &os) {
+        items.push(("Base".into(), base));
     }
     if let Some(k) = read("/proc/sys/kernel/osrelease") {
         items.push(("Kernel".into(), format!("Linux {}", k.trim())));
@@ -849,6 +864,9 @@ mod tests {
     fn le_ficha_do_sistema() {
         let os = "NAME=\"Debian GNU/Linux\"\nPRETTY_NAME=\"Debian GNU/Linux 13 (trixie)\"\n";
         assert_eq!(os_release_value(os, "PRETTY_NAME").as_deref(), Some("Debian GNU/Linux 13 (trixie)"));
+        let kos = "PRETTY_NAME=\"KalangOS 0.1\"\nVERSION_CODENAME=trixie\n";
+        assert_eq!(base_name(Some("13.2\n"), kos).as_deref(), Some("Debian 13.2 (trixie)"));
+        assert_eq!(base_name(None, os).as_deref(), Some("Debian GNU/Linux 13 (trixie)"));
         let cpu = "processor : 0\nmodel name\t: Intel(R) Core(TM)  i5-8250U CPU @ 1.60GHz\n";
         assert_eq!(cpu_model(cpu).as_deref(), Some("Intel Core i5-8250U CPU @ 1.60GHz"));
         assert_eq!(mem_total("MemTotal:        4000000 kB\n"), Some(4_096_000_000));

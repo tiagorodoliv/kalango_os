@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera o tema gráfico do GRUB do Kalango OS.
+"""Gera o tema gráfico do GRUB do KalangOS.
 
 Fundo do papel de parede Preto e azul (sem o logotipo no meio, onde fica o
 menu), o logotipo pequeno no alto, menu centralizado com um ícone por tipo
@@ -152,7 +152,7 @@ def fontes(destino):
         )
 
 
-TEMA = """# Tema do GRUB do Kalango OS (gerado por distro/grub/gerar-tema.py).
+TEMA = """# Tema do GRUB do KalangOS (gerado por distro/grub/gerar-tema.py).
 # Ícones por classe da entrada em icons/ (kalango = o próprio sistema).
 title-text: ""
 desktop-image: "background.png"
@@ -226,6 +226,8 @@ def main():
     logotipo().save(SAIDA / "logo.png", optimize=True)
     icones = {
         "kalango": icone_kalango(),
+        # O 10_linux usa a 1ª palavra do GRUB_DISTRIBUTOR ("KalangOS") como classe.
+        "kalangos": icone_kalango(),
         "windows": icone_windows(),
         "gnu-linux": icone_terminal(),
         "os": icone_terminal(),

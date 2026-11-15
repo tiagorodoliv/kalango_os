@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera o ícone do Kalango OS: o K do logotipo como tronco, o lagarto do
+"""Gera o ícone do KalangOS: o K do logotipo como tronco, o lagarto do
 logotipo subindo nele e um rabo desenhado para o ícone (fino, passando por baixo
 do K e terminando em fita, como as fitas de luz dos papéis de parede).
 

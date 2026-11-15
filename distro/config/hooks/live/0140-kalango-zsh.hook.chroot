@@ -1,5 +1,5 @@
 #!/bin/sh
-# Kalango OS: zsh com o prompt no estilo do Kali (/etc/skel/.zshrc) é o shell
+# KalangOS: zsh com o prompt no estilo do Kali (/etc/skel/.zshrc) é o shell
 # padrão de quem for criado depois: o usuário da ISO live (live-config usa o
 # adduser), o do instalador (Calamares, módulo users) e o useradd.
 set -e

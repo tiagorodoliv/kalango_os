@@ -324,7 +324,7 @@ fn main() {
             item(&vscode, "main.rs — kalango_os — Visual Studio Code"),
             item(&pinned[1], "tiago@hp: ~/git/kalango_os"),
             item(&pinned[0], "Projetos — Arquivos"),
-            item(&pinned[2], "Kalango OS — Mozilla Firefox"),
+            item(&pinned[2], "KalangOS — Mozilla Firefox"),
         ];
         let sw = ui.global::<kalango_os::Switcher>();
         sw.set_items(slint::ModelRc::new(slint::VecModel::from(items)));

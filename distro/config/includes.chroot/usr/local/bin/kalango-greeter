@@ -1,5 +1,5 @@
 #!/bin/sh
-# Tela de login do Kalango OS (greeter do greetd, roda como _greetd).
+# Tela de login do KalangOS (greeter do greetd, roda como _greetd).
 #
 # Um labwc só com o kalango-shell --greeter, configurado por
 # /etc/kalango/greeter (sem atalhos nem moldura). Quando a senha confere, o

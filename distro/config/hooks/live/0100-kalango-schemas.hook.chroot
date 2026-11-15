@@ -1,5 +1,5 @@
 #!/bin/sh
-# Recompila os schemas do GSettings para valer o override do Kalango OS
+# Recompila os schemas do GSettings para valer o override do KalangOS
 # (usr/share/glib-2.0/schemas/90_kalango.gschema.override) e gera o índice dos
 # temas de ícones: o live-build copia os includes depois de instalar os
 # pacotes, sem recompilar.

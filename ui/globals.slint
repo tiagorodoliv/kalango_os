@@ -26,7 +26,7 @@ export struct AppEntry {
 
 /// Um item da seção RECENTES do launcher (arquivo ou atalho de app).
 export struct RecentEntry {
-    /// Nome do arquivo (ou do atalho, ex.: "Instalar Kalango OS").
+    /// Nome do arquivo (ou do atalho, ex.: "Instalar KalangOS").
     name: string,
     /// Linha secundária: pasta do arquivo, abreviada com "~".
     path: string,
@@ -178,7 +178,7 @@ export global Shell {
     in property <bool> login-busy: false;
     /// Erro da última tentativa ("Senha incorreta"); a UI limpa ao digitar.
     in-out property <string> login-error: "";
-    /// Sessão real do Kalango OS (labwc, variável `KALANGO_SESSION=1`):
+    /// Sessão real do KalangOS (labwc, variável `KALANGO_SESSION=1`):
     /// os apps abrem de verdade e as janelas de demonstração somem.
     /// Desligado no desenvolvimento e nas capturas (protótipo navegável).
     in property <bool> native: false;

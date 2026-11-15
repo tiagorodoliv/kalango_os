@@ -1,4 +1,4 @@
-# Como contribuir com o Kalango OS
+# Como contribuir com o KalangOS
 
 Obrigado por querer ajudar! Toda contribuição passa por revisão do mantenedor antes de entrar no `main`,
 e as versões (ISOs) são publicadas por ele.
@@ -52,12 +52,12 @@ gera a ISO (precisa de Linux, `sudo`, `debootstrap` e `debian-archive-keyring`).
 
 ## Licença das contribuições
 
-O Kalango OS é licenciado sob a [GPL-3.0](LICENSE). Ao mandar uma contribuição, você concorda que ela seja
+O KalangOS é licenciado sob a [GPL-3.0](LICENSE). Ao mandar uma contribuição, você concorda que ela seja
 distribuída sob essa mesma licença e declara que tem o direito de enviá-la (o código é seu ou compatível
 com a GPL-3.0). Para registrar isso, assine os commits com `git commit -s`, que acrescenta a linha
 `Signed-off-by` ([Developer Certificate of Origin](https://developercertificate.org/)).
 
-O nome e o logo do Kalango OS seguem regras próprias: veja [TRADEMARKS.md](TRADEMARKS.md).
+O nome e o logo do KalangOS seguem regras próprias: veja [TRADEMARKS.md](TRADEMARKS.md).
 
 ## Convivência
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Tampa e botão de ligar do Kalango OS (Configurações → Energia).
+# Tampa e botão de ligar do KalangOS (Configurações → Energia).
 # Roda como root pelo pkexec (política org.kalango.energia).
 #
 #   kalango-energia TAMPA TAMPA_NA_TOMADA BOTAO

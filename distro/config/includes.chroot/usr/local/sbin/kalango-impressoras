@@ -1,5 +1,5 @@
 #!/bin/sh
-# Impressoras do Kalango OS (Configurações → Impressoras), como root pelo
+# Impressoras do KalangOS (Configurações → Impressoras), como root pelo
 # pkexec (política org.kalango.impressoras). Só é usado quando a pessoa não
 # está no grupo lpadmin (quem está fala direto com o CUPS, sem senha).
 #

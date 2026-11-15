@@ -1,5 +1,5 @@
 #!/bin/sh
-# Modo de desenvolvimento do Kalango OS (usado por distro/testar-vm.sh).
+# Modo de desenvolvimento do KalangOS (usado por distro/testar-vm.sh).
 #
 # Na ISO live rodando no QEMU com a pasta compartilhada "kalango-dev" (9p),
 # aplica o que o computador de desenvolvimento preparou nela:

@@ -1,4 +1,4 @@
-# Barras de título e menus do labwc nas cores do Kalango OS (tema escuro).
+# Barras de título e menus do labwc nas cores do KalangOS (tema escuro).
 # Mesmas cores de ui/theme.slint: painel #0d1218, fundo #07090d, borda #1e2a33,
 # texto #e6edf3, texto secundário #8b98a5, destaque ciano #3dd6f5.
 border.width: 1

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera os papéis de parede 16:9 do Kalango OS.
+"""Gera os papéis de parede 16:9 do KalangOS.
 
 Sete modelos (preto, branco, azul, verde, roxo, laranja e preto com azul),
 cada um com fundo escuro (ou claro) em gradiente, fitas de luz translúcidas

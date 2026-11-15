@@ -1,4 +1,4 @@
-//! Shell gráfico do Kalango OS (protótipo navegável em Rust + Slint).
+//! Shell gráfico do KalangOS (protótipo navegável em Rust + Slint).
 //!
 //! A UI declarativa fica em `ui/*.slint` (compilada pelo `build.rs`); este
 //! crate liga a UI aos serviços do sistema, em quatro pastas:

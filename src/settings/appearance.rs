@@ -291,7 +291,7 @@ impl Prefs {
             _ => "vidro",
         };
         format!(
-            "# Aparência do Kalango OS (gravado pelas Configurações).\n\
+            "# Aparência do KalangOS (gravado pelas Configurações).\n\
              destaque={}\ntema={}\ntransparencia={}\ndesfoque={}\n\
              dock-sempre-visivel={}\nreduzir-animacoes={}\n\
              # Barra de tarefas\n\
@@ -442,7 +442,7 @@ pub fn set_keys(keys: &[(&str, &str)]) -> std::io::Result<()> {
         .map(str::to_string)
         .collect();
     if lines.is_empty() {
-        lines.push("# Aparência do Kalango OS (gravado pelas Configurações).".into());
+        lines.push("# Aparência do KalangOS (gravado pelas Configurações).".into());
     }
     lines.extend(keys.iter().map(|(k, v)| format!("{k}={v}")));
     if let Some(dir) = path.parent() {

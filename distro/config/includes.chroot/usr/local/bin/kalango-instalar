@@ -1,5 +1,5 @@
 #!/bin/sh
-# Abre o instalador do Kalango OS (Calamares) na ISO live.
+# Abre o instalador do KalangOS (Calamares) na ISO live.
 #
 # O Calamares precisa de root. O wrapper do Debian usa pkexec, mas a sessão
 # labwc não tem agente do polkit; na live o usuário tem sudo sem senha, então

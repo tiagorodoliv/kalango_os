@@ -4,7 +4,7 @@
 <!-- Configurações → Compartilhamento: liga o Samba e escolhe as pastas
      compartilhadas. Senha do administrador, lembrada por alguns minutos. -->
 <policyconfig>
-  <vendor>Kalango OS</vendor>
+  <vendor>KalangOS</vendor>
   <action id="org.kalango.compartilhar">
     <description>Share folders on the local network</description>
     <description xml:lang="pt_BR">Compartilhar pastas na rede local</description>

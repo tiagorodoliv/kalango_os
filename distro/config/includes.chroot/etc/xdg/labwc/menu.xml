@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-  Menu de layouts das janelas do Kalango OS (botão direito no maximizar ou
+  Menu de layouts das janelas do KalangOS (botão direito no maximizar ou
   Super+Z). A sessão grava uma cópia traduzida em ~/.config/labwc/menu.xml
   (src/shell/labwc.rs); este é o padrão, em inglês. As regiões estão no rc.xml.
 -->

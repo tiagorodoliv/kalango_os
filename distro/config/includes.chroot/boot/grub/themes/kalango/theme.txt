@@ -1,4 +1,4 @@
-# Tema do GRUB do Kalango OS (gerado por distro/grub/gerar-tema.py).
+# Tema do GRUB do KalangOS (gerado por distro/grub/gerar-tema.py).
 # Ícones por classe da entrada em icons/ (kalango = o próprio sistema).
 title-text: ""
 desktop-image: "background.png"

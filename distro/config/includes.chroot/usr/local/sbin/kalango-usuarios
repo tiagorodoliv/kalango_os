@@ -1,5 +1,5 @@
 #!/bin/sh
-# Contas de usuário do Kalango OS (Configurações → Usuários).
+# Contas de usuário do KalangOS (Configurações → Usuários).
 # Roda como root pelo pkexec (política org.kalango.usuarios).
 #
 #   kalango-usuarios criar LOGIN NOME admin|padrao   (senha na entrada padrão)

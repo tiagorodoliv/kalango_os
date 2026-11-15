@@ -1,5 +1,5 @@
 #!/bin/sh
-# Mantém o /usr/lib/os-release do Kalango OS (vindo dos includes) quando o
+# Mantém o /usr/lib/os-release do KalangOS (vindo dos includes) quando o
 # pacote base-files for atualizado: o arquivo do Debian vai para o desvio.
 set -e
 dpkg-divert --local --divert /usr/lib/os-release.debian --add /usr/lib/os-release

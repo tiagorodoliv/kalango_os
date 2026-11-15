@@ -1,5 +1,5 @@
 name: Relatar um problema
-description: Algo não funciona como deveria no Kalango OS.
+description: Algo não funciona como deveria no KalangOS.
 labels: ["bug"]
 body:
   - type: textarea

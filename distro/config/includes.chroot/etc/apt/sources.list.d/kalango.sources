@@ -1,4 +1,4 @@
-# Pacotes do Kalango OS (kalango-shell e o que mais vier): atualizações pela
+# Pacotes do KalangOS (kalango-shell e o que mais vier): atualizações pela
 # página Atualizações, como as do Debian. Assinado pela chave do projeto
 # (distro/repo/criar-chave.sh); publicado com distro/repo/publicar.sh.
 Types: deb

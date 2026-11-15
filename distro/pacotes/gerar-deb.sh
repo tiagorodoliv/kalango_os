@@ -43,14 +43,14 @@ cat >"$P/DEBIAN/control" <<CTRL
 Package: kalango-shell
 Version: $VERSAO
 Architecture: amd64
-Maintainer: Kalango OS <repo@kalangos.easysmartcontroll.com>
+Maintainer: KalangOS <repo@kalangos.easysmartcontroll.com>
 Section: x11
 Priority: optional
 Depends: labwc, libc6
 Installed-Size: $(du -sk "$P/usr" | cut -f1)
 Homepage: https://github.com/tiagorodoliv/kalango_os
-Description: Interface do Kalango OS (barra, dock, menu e Configurações)
- Shell gráfico do Kalango OS em Rust + Slint, com os scripts do sistema que
+Description: Interface do KalangOS (barra, dock, menu e Configurações)
+ Shell gráfico do KalangOS em Rust + Slint, com os scripts do sistema que
  acompanham cada versão (sessão, tela de login, bloqueio, energia, usuários,
  impressoras, atualizações e o conserto do Wi-Fi/Bluetooth ao acordar).
 CTRL
@@ -59,7 +59,7 @@ cat >"$P/DEBIAN/postinst" <<'POST'
 #!/bin/sh
 set -e
 if [ "$1" = configure ] && [ -n "${2:-}" ]; then
-	echo "*** Kalango OS atualizado: reinicie (ou saia e entre) para usar a versão nova ***" >/run/reboot-required
+	echo "*** KalangOS atualizado: reinicie (ou saia e entre) para usar a versão nova ***" >/run/reboot-required
 fi
 exit 0
 POST

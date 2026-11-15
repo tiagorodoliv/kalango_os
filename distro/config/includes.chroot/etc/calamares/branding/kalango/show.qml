@@ -1,4 +1,4 @@
-/* Slides mostrados enquanto o Kalango OS é copiado para o disco. */
+/* Slides mostrados enquanto o KalangOS é copiado para o disco. */
 import QtQuick 2.0;
 import calamares.slideshow 1.0;
 
@@ -37,8 +37,8 @@ Presentation
             anchors.top: logo.bottom
             anchors.topMargin: 24
             text: presentation.pt
-                ? "Instalando o Kalango OS.<br/>O resto é automático e leva alguns minutos."
-                : "Installing Kalango OS.<br/>The rest is automatic and takes a few minutes."
+                ? "Instalando o KalangOS.<br/>O resto é automático e leva alguns minutos."
+                : "Installing KalangOS.<br/>The rest is automatic and takes a few minutes."
             color: "#e6edf3"
             font.pixelSize: 16
             wrapMode: Text.WordWrap

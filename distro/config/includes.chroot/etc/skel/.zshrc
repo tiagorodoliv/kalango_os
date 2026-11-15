@@ -1,4 +1,4 @@
-# ~/.zshrc do Kalango OS: prompt de duas linhas no estilo do Kali Linux, com
+# ~/.zshrc do KalangOS: prompt de duas linhas no estilo do Kali Linux, com
 # as cores do Kalango (ciano e azul; root em vermelho).
 #
 #   ┌──(usuário㉿computador)-[~/pasta]

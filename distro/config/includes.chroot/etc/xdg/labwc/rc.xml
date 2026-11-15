@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-  Configuração do labwc para o Kalango OS (vale para todos os usuários).
+  Configuração do labwc para o KalangOS (vale para todos os usuários).
 
   O kalango-shell roda em três janelas (ver src/shell/session.rs):
   - "kalango-shell": a área de trabalho (barra, dock, fundo). Tela cheia,

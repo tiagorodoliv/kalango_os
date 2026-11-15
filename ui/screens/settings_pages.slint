@@ -1576,7 +1576,7 @@ export component PrintersPage inherits Rectangle {
             if !Printers.available: EmptyNotice {
                 icon: Icons.printer;
                 title: @tr("Printing is not installed");
-                text: @tr("Printers work in the Kalango OS session, with CUPS installed.");
+                text: @tr("Printers work in the KalangOS session, with CUPS installed.");
             }
 
             if Printers.available: SectionLabel { text: @tr("PRINTERS"); }
@@ -1755,7 +1755,7 @@ export component SharingPage inherits Rectangle {
             if !Device.sharing-available: EmptyNotice {
                 icon: Icons.folder;
                 title: @tr("File sharing is not installed");
-                text: @tr("Sharing folders works in the Kalango OS session, with Samba installed.");
+                text: @tr("Sharing folders works in the KalangOS session, with Samba installed.");
             }
 
             if Device.sharing-available: SectionLabel { text: @tr("FILE SHARING"); }
@@ -2390,7 +2390,7 @@ export component DisplaysPage inherits Rectangle {
         title: @tr("Displays");
         text: Shell.native
             ? @tr("Could not read the displays (wlr-randr did not respond).")
-            : @tr("Resolution, scale and rotation can be changed in the Kalango OS session.");
+            : @tr("Resolution, scale and rotation can be changed in the KalangOS session.");
     }
 
     // Com rolagem: o desenho dos monitores mais as opções passam da janela.

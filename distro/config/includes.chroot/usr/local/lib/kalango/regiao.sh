@@ -1,4 +1,4 @@
-# Idioma e teclado da sessão do Kalango OS (lido com "." pelo kalango-session,
+# Idioma e teclado da sessão do KalangOS (lido com "." pelo kalango-session,
 # kalango-greeter e kalango-instalar).
 #
 # Ordem (o último vence):

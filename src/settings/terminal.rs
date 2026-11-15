@@ -188,7 +188,7 @@ mod tests {
     use super::*;
 
     const DRACULA: &str = "# Tema\n# name: Dracula\n# nome: Drácula\n[colors]\nbackground=282a36\nforeground=f8f8f2\nregular1=ff5555\n";
-    const SYSTEM: &str = "# Terminal do Kalango OS\nfont=JetBrains Mono:size=11\npad=10x8\n\n[colors]\nbackground=07090d\n";
+    const SYSTEM: &str = "# Terminal do KalangOS\nfont=JetBrains Mono:size=11\npad=10x8\n\n[colors]\nbackground=07090d\n";
 
     #[test]
     fn le_tema_e_cores() {

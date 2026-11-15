@@ -1,5 +1,5 @@
 #!/bin/sh
-# Instala os temas de ícones extras do Kalango OS (escolhidos em
+# Instala os temas de ícones extras do KalangOS (escolhidos em
 # Configurações → Aparência): Colloid e Fluent, ambos GPL-3.0, de
 # https://github.com/vinceliuice.
 #

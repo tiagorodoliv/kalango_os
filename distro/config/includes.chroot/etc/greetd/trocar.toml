@@ -1,4 +1,4 @@
-# greetd extra do Kalango OS: a tela de login de "Trocar de usuário".
+# greetd extra do KalangOS: a tela de login de "Trocar de usuário".
 #
 # Roda como kalango-trocar@N.service (N = VT 8 a 12, passado com --vt) enquanto
 # a sessão de quem trocou continua aberta e bloqueada no VT dela. Quem entra

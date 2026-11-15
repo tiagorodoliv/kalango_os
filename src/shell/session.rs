@@ -1,4 +1,4 @@
-//! Integração com a sessão real do Kalango OS (labwc).
+//! Integração com a sessão real do KalangOS (labwc).
 //!
 //! O mesmo binário roda em três processos, escolhidos pelo argumento:
 //! - sem argumento: a área de trabalho (barra, dock, fundo), sempre atrás dos apps;
@@ -114,7 +114,7 @@ impl Mode {
     }
 }
 
-/// Diz se estamos na sessão real do Kalango OS (`KALANGO_SESSION=1`).
+/// Diz se estamos na sessão real do KalangOS (`KALANGO_SESSION=1`).
 pub fn is_native() -> bool {
     std::env::var("KALANGO_SESSION").is_ok_and(|v| v == "1")
 }

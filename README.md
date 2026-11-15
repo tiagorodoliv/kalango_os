@@ -1,4 +1,4 @@
-# Kalango OS
+# KalangOS
 
 Distro Linux baseada no **Debian 13 (trixie)**, com uma interface própria (shell) em
 **Rust + [Slint](https://slint.dev)** sobre o compositor Wayland **labwc**.
@@ -94,7 +94,7 @@ Não precisa de sudo: compila contra o Debian de build do `distro/build.sh` (pre
 compartilha `target/vm-dev/` com a VM; o `kalango-dev.service` da ISO live aplica o shell e as configs antes da
 tela de login. Pacotes novos e o instalador ainda precisam da ISO de verdade.
 
-Para instalar: menu de apps → RECENTES → **Instalar Kalango OS** (Calamares, com a marca do Kalango).
+Para instalar: menu de apps → RECENTES → **Instalar KalangOS** (Calamares, com a marca do Kalango).
 
 A Loja (GNOME Software) mostra os apps do Debian e do **Flathub** juntos (Spotify, Discord, VS Code, Steam...).
 
@@ -123,10 +123,10 @@ Falhas de segurança vão em particular: [SECURITY.md](SECURITY.md). Convivênci
 
 ## Licença
 
-O código do Kalango OS (shell, scripts e configurações da distro) é licenciado sob a
+O código do KalangOS (shell, scripts e configurações da distro) é licenciado sob a
 **GNU General Public License v3.0 ou posterior** ([LICENSE](LICENSE)).
 
-O nome "Kalango OS" e o logotipo **não** estão sob a GPL: versões modificadas precisam de outro nome e outro
+O nome "KalangOS" e o logotipo **não** estão sob a GPL: versões modificadas precisam de outro nome e outro
 logo. Detalhes em [TRADEMARKS.md](TRADEMARKS.md).
 
 Componentes de terceiros:

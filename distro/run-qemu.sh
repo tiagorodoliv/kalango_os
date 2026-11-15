@@ -1,5 +1,5 @@
 #!/bin/sh
-# Testa a ISO do Kalango OS no QEMU (com KVM).
+# Testa a ISO do KalangOS no QEMU (com KVM).
 #
 # Uso:  distro/run-qemu.sh [--uefi | --secureboot] [--gl] [--disco | --so-disco] [--pendrive]
 #                          [--dev pasta] [caminho.iso]

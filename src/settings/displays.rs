@@ -380,7 +380,7 @@ pub fn primary<'a>(outputs: &'a [Output], config: &str) -> Option<&'a Output> {
 pub fn set_primary_in_config(config: &str, name: &str) -> String {
     let mut lines: Vec<&str> = config.lines().filter(|l| !l.trim().starts_with("principal=")).collect();
     if lines.is_empty() {
-        lines.push("# Monitores do Kalango OS (gravado pelas Configurações).");
+        lines.push("# Monitores do KalangOS (gravado pelas Configurações).");
     }
     let mut text = lines.join("\n");
     text.push_str(&format!("\nprincipal={name}\n"));
@@ -499,7 +499,7 @@ pub fn merge_config(text: &str, setting: &Setting) -> String {
         .map(str::to_string)
         .collect();
     if !lines.iter().any(|l| l.starts_with('#')) {
-        lines.insert(0, "# Monitores do Kalango OS (gravado pelas Configurações).".into());
+        lines.insert(0, "# Monitores do KalangOS (gravado pelas Configurações).".into());
     }
     lines.push(setting.to_line());
     lines.join("\n") + "\n"

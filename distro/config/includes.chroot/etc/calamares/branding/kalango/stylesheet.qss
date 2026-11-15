@@ -1,4 +1,4 @@
-/* Tema escuro do Kalango OS no instalador (cores de ui/theme.slint). */
+/* Tema escuro do KalangOS no instalador (cores de ui/theme.slint). */
 QWidget {
     background-color: #0d1218;
     color: #e6edf3;

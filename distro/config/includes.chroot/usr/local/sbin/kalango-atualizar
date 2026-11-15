@@ -1,5 +1,5 @@
 #!/bin/sh
-# Atualizações do Kalango OS (Configurações → Atualizações), como root pelo
+# Atualizações do KalangOS (Configurações → Atualizações), como root pelo
 # pkexec (política org.kalango.atualizar).
 #
 #   kalango-atualizar procurar   (apt-get update: baixa a lista de versões novas)

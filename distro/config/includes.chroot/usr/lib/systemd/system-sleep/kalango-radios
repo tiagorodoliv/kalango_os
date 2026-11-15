@@ -1,5 +1,5 @@
 #!/bin/sh
-# Wi-Fi e Bluetooth de volta depois de suspender/hibernar (Kalango OS).
+# Wi-Fi e Bluetooth de volta depois de suspender/hibernar (KalangOS).
 #
 # Em algumas placas combo (ex.: Intel Wireless 3160/7260 em notebooks HP), ao
 # voltar da suspensão o driver lê o rádio como bloqueado por hardware

@@ -74,7 +74,7 @@ impl Prefs {
 
     pub fn to_text(&self) -> String {
         format!(
-            "# Energia do Kalango OS (Configurações → Energia). Tempos em minutos; 0 = nunca.\n\
+            "# Energia do KalangOS (Configurações → Energia). Tempos em minutos; 0 = nunca.\n\
              apagar-tela={}\nsuspender-bateria={}\nsuspender-tomada={}\nbloquear={}\n",
             self.blank,
             self.suspend_battery,

@@ -1,6 +1,6 @@
 //! Idioma da interface.
 //!
-//! O inglês é o idioma padrão do Kalango OS; o português do Brasil é uma
+//! O inglês é o idioma padrão do KalangOS; o português do Brasil é uma
 //! tradução. Os textos dos `.slint` usam `@tr("...")` e a tradução fica em
 //! `lang/pt_BR/LC_MESSAGES/kalango_os.po`, embutida no binário pelo `build.rs`.
 //! Os poucos textos montados no Rust (relógio, avisos, status de rede...)

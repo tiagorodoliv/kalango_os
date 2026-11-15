@@ -1,4 +1,4 @@
-# greetd: gerenciador de login do Kalango OS.
+# greetd: gerenciador de login do KalangOS.
 #
 # Na ISO live, o usuário "user" (criado pelo live-config, senha "live") entra
 # direto na sessão (kalango-session → labwc → kalango-shell). Ao sair da sessão

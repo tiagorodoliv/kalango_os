@@ -2,7 +2,7 @@
 # da VM (distro/testar-vm.sh) antes da tela de login. Só age na ISO live com
 # a pasta "kalango-dev"; nos outros casos o script sai sem fazer nada.
 [Unit]
-Description=Kalango OS: aplica o shell de desenvolvimento da VM
+Description=KalangOS: aplica o shell de desenvolvimento da VM
 ConditionPathExists=/run/live/medium
 After=local-fs.target systemd-udev-settle.service
 Before=greetd.service
