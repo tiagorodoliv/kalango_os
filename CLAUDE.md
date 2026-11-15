@@ -230,6 +230,16 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `kalango-instalar` abre o Calamares com `sudo env WAYLAND_DISPLAY=... calamares` (a sessão não tem agente do
   polkit para o pkexec). O GRUB vai por apt a partir da mídia: `package-lists/kalango.list.binary` põe grub-pc,
   grub-efi e cryptsetup no repositório da ISO. Testado em VM: instala, dá boot pelo disco e entra no greeter.
+- **Ícone e GRUB (2026-11-15):** ícone novo = K do logotipo como tronco + calango subindo + rabo de fita de luz
+  (`assets/logo/gerar_icone.py`; o Tiago escolheu a versão Noite, `Kalango_Icone_Noite.png`). Tema do GRUB por
+  `distro/grub/gerar-tema.py` (precisa de `grub-mkfont`; rodar de novo se mudar fundo/ícone): sistema instalado em
+  `/boot/grub/themes/kalango` + `GRUB_THEME` no `grub.d/kalango.cfg` (o 10_linux põe `--class kalango`, a 1ª palavra do
+  GRUB_DISTRIBUTOR); ISO em `bootloaders/grub-pc/{grub.cfg,theme.cfg,live-theme/}` (menu próprio com classes e "safe
+  graphics" = nomodeset). No tema: seleção só com fatias w/c/e (n/s deslocam o texto), fonte = família + Regular/Bold,
+  a `progress_bar` ignora a altura (contagem é um `label` com `id="__timeout__"`).
+- **Rádios depois de suspender (2026-11-15):** no HP (Intel Wireless 3160) o `iwlwifi` volta com RF_KILL de hardware e o
+  Bluetooth (USB 8087:07dc) some. `/usr/lib/systemd/system-sleep/kalango-radios` guarda o estado antes e, só se quebrou,
+  recarrega o driver → remove/rescan do PCI; btusb → religa o hub USB. Log: `journalctl -t kalango-radios`.
 - Identidade: `/usr/lib/os-release` = "Kalango OS" (`ID=kalango`, `ID_LIKE=debian`, protegido de atualização do
   base-files pelo hook `0050`), `etc/default/grub.d/kalango.cfg` (`GRUB_DISTRIBUTOR`).
 - Próximos passos da arquitetura: layer-shell para barra/dock/menu; contraste das legendas de partição do
