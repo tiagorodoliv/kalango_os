@@ -13,6 +13,7 @@
 # Tudo vai para o journal: journalctl -t kalango-radios
 #
 # Argumentos do systemd-sleep: $1 = pre|post, $2 = suspend|hibernate|...
+# ("consertar" é o próprio script rodando em segundo plano depois do post).
 
 ESTADO=/run/kalango-radios
 log() { logger -t kalango-radios "$*"; }
@@ -118,7 +119,14 @@ consertar_bluetooth() {
 case "$1" in
     pre) antes ;;
     post)
+        # O conserto leva até ~20 s: roda numa unidade própria, em segundo
+        # plano. Rodando aqui, o systemd-sleep esperava e a sessão ficava
+        # congelada depois de acordar.
         [ -d "$ESTADO" ] || exit 0
+        systemd-run --no-block --quiet --unit="kalango-radios-$(date +%s)" "$0" consertar "$2" ||
+            logger -t kalango-radios "falha ao iniciar o conserto"
+        ;;
+    consertar)
         consertar_wifi "$2"
         consertar_bluetooth "$2"
         ;;
