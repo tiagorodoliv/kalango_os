@@ -145,6 +145,8 @@
                 serverDecoration="no"
                 skipTaskbar="yes"
                 skipWindowSwitcher="yes">
+      <!-- No monitor principal, junto da barra (o shell põe o nome dele). -->
+      <action name="MoveToOutput" output="" />
       <action name="ToggleFullscreen"/>
       <action name="ToggleAlwaysOnTop"/>
       <action name="ToggleOmnipresent"/>
@@ -153,6 +155,8 @@
                 serverDecoration="no"
                 skipTaskbar="yes"
                 skipWindowSwitcher="yes">
+      <!-- No monitor principal, junto da barra (o shell põe o nome dele). -->
+      <action name="MoveToOutput" output="" />
       <action name="ToggleFullscreen"/>
       <action name="ToggleAlwaysOnTop"/>
       <action name="ToggleOmnipresent"/>

@@ -87,6 +87,23 @@ fn read_plan() -> Option<Plan> {
     plan(&outputs, &config)
 }
 
+/// Tamanho lógico (px) do monitor principal, lido agora pelo `wlr-randr`.
+///
+/// As janelas de tela cheia que aparecem por cima (menu de apps, painel
+/// rápido) já nascem nesse tamanho: sem isso a primeira imagem saía no
+/// tamanho padrão da janela, no meio da tela, e pulava para o lugar certo
+/// quando o labwc punha em tela cheia.
+pub fn primary_size() -> Option<(u32, u32)> {
+    let out = Command::new("wlr-randr").stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let outputs = displays::parse(&String::from_utf8_lossy(&out.stdout));
+    let config = displays::config_path().and_then(|p| std::fs::read_to_string(p).ok()).unwrap_or_default();
+    let (w, h) = displays::primary(&outputs, &config)?.logical_size();
+    (w > 0 && h > 0).then_some((w, h))
+}
+
 /// Grava o plano no `rc.xml` (posições do principal e regras dos fundos).
 fn write_plan(p: &Plan) -> bool {
     if let Ok(mut o) = PRIMARY_ORIGIN.lock() {

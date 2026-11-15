@@ -198,6 +198,13 @@ pub fn run() -> Result<(), slint::PlatformError> {
             timers.push(t);
         }
     }
+    // Menu de apps e painel rápido: já no tamanho da tela (ver
+    // `outputs::primary_size`).
+    if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::DockMenu) && session::is_native() {
+        if let Some((w, h)) = outputs::primary_size() {
+            ui.window().set_size(slint::LogicalSize::new(w as f32, h as f32));
+        }
+    }
     if mode == Mode::Settings {
         if let Some(page) = page {
             ui.set_settings_page(page);

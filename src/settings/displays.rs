@@ -471,6 +471,25 @@ pub fn config_path() -> Option<PathBuf> {
     Some(base.join("kalango/monitores.conf"))
 }
 
+/// Linha de um monitor no `monitores.conf` (`None` se não há).
+pub fn config_line(text: &str, output: &str) -> Option<String> {
+    text.lines().find(|l| Setting::from_line(l).is_some_and(|s| s.output == output)).map(str::to_string)
+}
+
+/// Troca a linha de um monitor pela antiga (`None` = tira a linha), sem
+/// mexer no resto (principal, outros monitores).
+pub fn restore_line(text: &str, output: &str, old: Option<&str>) -> String {
+    let mut lines: Vec<String> = text
+        .lines()
+        .filter(|l| Setting::from_line(l).is_none_or(|s| s.output != output))
+        .map(str::to_string)
+        .collect();
+    if let Some(old) = old {
+        lines.push(old.to_string());
+    }
+    lines.join("\n") + "\n"
+}
+
 /// Junta a configuração de uma saída ao arquivo (substitui a linha dela).
 pub fn merge_config(text: &str, setting: &Setting) -> String {
     let mut lines: Vec<String> = text
@@ -587,11 +606,12 @@ struct State {
     previous: Vec<Setting>,
     /// O que foi aplicado e espera "Manter".
     pending: Vec<Setting>,
-    /// `monitores.conf` de antes da mudança (`None` = não existia), para
-    /// voltar se a contagem acabar sem "Manter". A mudança já vai para o
-    /// arquivo ao aplicar: fechar as Configurações durante a contagem mantém
-    /// o que está na tela, e o monitor reconectado volta para o lugar certo.
-    previous_config: Option<Option<String>>,
+    /// Linhas do `monitores.conf` dos monitores mudados, como estavam antes
+    /// (`None` = não havia), para voltar só elas se a contagem acabar sem
+    /// "Manter" (sem desfazer o principal ou a posição gravados nesse meio
+    /// tempo). A mudança já vai para o arquivo ao aplicar: fechar as
+    /// Configurações durante a contagem mantém o que está na tela.
+    previous_lines: Vec<(String, Option<String>)>,
     countdown: Option<Timer>,
     /// Posições arrastadas ainda não aplicadas.
     arranged: bool,
@@ -644,16 +664,16 @@ fn show(ui: &AppWindow, state: &mut State, outputs: Option<Vec<Output>>) {
     }
 }
 
-/// Aplica configurações (uma por monitor) e começa a contagem de 15 s para
-/// confirmar; sem "Manter", tudo volta sozinho.
-fn apply_with_confirm(ui: &AppWindow, st: &Rc<RefCell<State>>, settings: Vec<Setting>) -> bool {
-    let device = ui.global::<Device>();
-    let mut s = st.borrow_mut();
+/// Aplica as configurações (uma por monitor) e grava no `monitores.conf`.
+///
+/// Devolve como cada monitor estava (para voltar) e as linhas antigas do
+/// arquivo, ou `None` se o monitor recusou (aí já voltou tudo).
+fn apply_and_save(device: &Device, s: &State, settings: &[Setting]) -> Option<(Vec<Setting>, Vec<(String, Option<String>)>)> {
     let previous: Vec<Setting> = settings
         .iter()
         .filter_map(|n| s.outputs.iter().find(|o| o.name == n.output).map(Output::current_setting))
         .collect();
-    for setting in &settings {
+    for setting in settings {
         if wlr_randr(&setting.args()).is_none() {
             for p in &previous {
                 let _ = wlr_randr(&p.args());
@@ -661,14 +681,14 @@ fn apply_with_confirm(ui: &AppWindow, st: &Rc<RefCell<State>>, settings: Vec<Set
             device.set_display_message(
                 tr("The display did not accept this configuration.", "O monitor não aceitou essa configuração.").into(),
             );
-            return false;
+            return None;
         }
     }
-    // Grava já (ver `State::previous_config`).
+    let mut old_lines = Vec::new();
     if let Some(path) = config_path() {
-        let before = fs::read_to_string(&path).ok();
-        let mut text = before.clone().unwrap_or_default();
-        for setting in &settings {
+        let mut text = fs::read_to_string(&path).unwrap_or_default();
+        for setting in settings {
+            old_lines.push((setting.output.clone(), config_line(&text, &setting.output)));
             text = merge_config(&text, setting);
         }
         if let Some(dir) = path.parent() {
@@ -677,8 +697,17 @@ fn apply_with_confirm(ui: &AppWindow, st: &Rc<RefCell<State>>, settings: Vec<Set
         if let Err(err) = fs::write(&path, text) {
             eprintln!("kalango-shell: monitores.conf: {err}");
         }
-        s.previous_config = Some(before);
     }
+    Some((previous, old_lines))
+}
+
+/// Aplica configurações (uma por monitor) e começa a contagem de 15 s para
+/// confirmar; sem "Manter", tudo volta sozinho.
+fn apply_with_confirm(ui: &AppWindow, st: &Rc<RefCell<State>>, settings: Vec<Setting>) -> bool {
+    let device = ui.global::<Device>();
+    let mut s = st.borrow_mut();
+    let Some((previous, old_lines)) = apply_and_save(&device, &s, &settings) else { return false };
+    s.previous_lines = old_lines;
     s.previous = previous;
     s.pending = settings;
     s.arranged = false;
@@ -720,19 +749,20 @@ fn finish(ui: &AppWindow, state: &Rc<RefCell<State>>, keep: bool) {
     device.set_display_confirm(false);
     st.pending.clear();
     let previous = std::mem::take(&mut st.previous);
-    let before = st.previous_config.take();
+    let old_lines = std::mem::take(&mut st.previous_lines);
     if keep {
         device.set_display_message(tr("Display configuration saved.", "Configuração do monitor salva.").into());
     } else {
         for setting in &previous {
             let _ = wlr_randr(&setting.args());
         }
-        // Volta também o arquivo.
-        if let (Some(before), Some(path)) = (before, config_path()) {
-            let _ = match before {
-                Some(text) => fs::write(&path, text),
-                None => fs::remove_file(&path),
-            };
+        // Volta também as linhas desses monitores no arquivo (só elas).
+        if let Some(path) = config_path() {
+            let mut text = fs::read_to_string(&path).unwrap_or_default();
+            for (output, old) in &old_lines {
+                text = restore_line(&text, output, old.as_deref());
+            }
+            let _ = fs::write(&path, text);
         }
         device.set_display_message(
             tr("The display went back to the previous configuration.", "O monitor voltou à configuração anterior.").into(),
@@ -830,7 +860,15 @@ pub fn install(ui: &AppWindow, mode: Mode) {
                 .map(|(o, p)| Setting { position: Some(p), ..o.current_setting() })
                 .collect::<Vec<_>>()
         };
-        apply_with_confirm(&ui, &st, settings);
+        // Posição não deixa a tela preta: aplica e grava já, sem contagem.
+        let device = ui.global::<Device>();
+        let mut s = st.borrow_mut();
+        if apply_and_save(&device, &s, &settings).is_some() {
+            s.arranged = false;
+            device.set_display_message(tr("Position saved.", "Posição salva.").into());
+        }
+        let outputs = read_outputs();
+        show(&ui, &mut s, outputs);
     });
 
     device.on_identify_displays(crate::shell::outputs::request_identify);
@@ -945,6 +983,19 @@ HDMI-A-1 "Dell Inc. DELL P2419H (HDMI-A-1)"
         let mut p = vec![(-1920, 100), (0, 0)];
         normalize(&mut p);
         assert_eq!(p, vec![(0, 100), (1920, 0)]);
+    }
+
+    #[test]
+    fn volta_so_a_linha_do_monitor() {
+        let text = "# x\neDP-1 escala=1 rotacao=normal posicao=2560,0 ativo=sim\nprincipal=HDMI-A-1\nHDMI-A-1 escala=2 rotacao=normal ativo=sim\n";
+        let old = "HDMI-A-1 escala=1 rotacao=normal posicao=0,0 ativo=sim";
+        let out = restore_line(text, "HDMI-A-1", Some(old));
+        assert!(out.contains("principal=HDMI-A-1"));
+        assert!(out.contains("eDP-1 escala=1 rotacao=normal posicao=2560,0"));
+        assert!(out.contains(old) && !out.contains("escala=2"));
+        assert!(!restore_line(text, "HDMI-A-1", None).contains("HDMI-A-1 escala"));
+        assert_eq!(config_line(text, "eDP-1").as_deref(), Some("eDP-1 escala=1 rotacao=normal posicao=2560,0 ativo=sim"));
+        assert_eq!(config_line(text, "DP-2"), None);
     }
 
     #[test]

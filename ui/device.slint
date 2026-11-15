@@ -120,6 +120,8 @@ export global Device {
     in property <string> network-status: @tr("No network information");
     /// Existe uma placa Wi-Fi.
     in property <bool> wifi-present: false;
+    /// Já leu o estado da rede (antes disso o painel não mostra nome nem estado).
+    in property <bool> network-ready: false;
     /// Rádio Wi-Fi ligado.
     in-out property <bool> wifi-enabled: false;
     /// Redes encontradas, da mais forte para a mais fraca (no máximo 8).

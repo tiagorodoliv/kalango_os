@@ -340,7 +340,8 @@ export component QuickSettings inherits Rectangle {
                     horizontal-stretch: 1;
                     icon: Icons.wifi;
                     title: "Wi-Fi";
-                    subtitle: !Device.wifi-enabled ? @tr("Off")
+                    subtitle: !Device.network-ready ? ""
+                        : !Device.wifi-enabled ? @tr("Off")
                         : Device.wifi-name != "" ? Device.wifi-name : @tr("Not connected");
                     on: Device.wifi-enabled;
                     has-details: true;

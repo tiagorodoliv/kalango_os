@@ -121,8 +121,13 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   área de trabalho abre outra dela e sai. Configurações → Monitores: desenho do arranjo (arrastar com encaixe nas
   bordas, `displays::place`), Identificar (arquivo `$XDG_RUNTIME_DIR/kalango-identificar` → número por 3 s em cada
   monitor), Tornar principal, Aplicar posição (`--pos`, confirmação de 15 s, `posicao=x,y` no monitores.conf).
-  O `monitores.conf` é gravado **ao aplicar** (fechar as Configurações na contagem mantém; sem "Manter" volta o
-  arquivo antigo) e a área de trabalho o reaplica quando um monitor aparece (cabo ligado de novo). O menu do botão
+  O `monitores.conf` é gravado **ao aplicar**. Posição e principal não têm contagem (não deixam a tela preta);
+  resolução/escala/rotação têm, e sem "Manter" volta **só a linha daquele monitor** (`displays::restore_line`;
+  regravar o arquivo inteiro apagava o principal e as posições feitos durante a contagem). A área de trabalho
+  reaplica o arquivo quando um monitor aparece (cabo ligado de novo). Menu de apps, painel rápido e menu da dock
+  têm `MoveToOutput` = monitor principal e já nascem no tamanho dele (`outputs::primary_size`): sem isso a primeira
+  imagem saía no meio e pulava para o canto. O painel rápido sabe da placa Wi-Fi pelo `/sys` (rfkill para o
+  rádio) antes do `nmcli` responder. O menu do botão
   direito também funciona nas janelas `--fundo` (`DesktopMenuArea`).
 - **Dock em janela própria (2026-11-14):** com "sempre visível" e placa de vídeo de verdade
   (`dock::hardware_gl`: i915/xe/amdgpu/radeon/nouveau/nvidia), a área de trabalho abre

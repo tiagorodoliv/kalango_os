@@ -109,6 +109,23 @@ pub fn parse_saved_wifi(text: &str) -> Vec<String> {
         .collect()
 }
 
+/// Existe uma placa Wi-Fi (`/sys/class/net/<placa>/wireless`).
+fn has_wifi_card() -> bool {
+    fs::read_dir("/sys/class/net")
+        .map(|dir| dir.flatten().any(|e| e.path().join("wireless").exists()))
+        .unwrap_or(false)
+}
+
+/// Rádio Wi-Fi ligado, pelo rfkill (o NetworkManager bloqueia o rádio ao
+/// desligar o Wi-Fi). Só a primeira imagem do painel; o nmcli confirma logo.
+fn wifi_radio_on() -> bool {
+    let Ok(dir) = fs::read_dir("/sys/class/rfkill") else { return true };
+    let read = |p: std::path::PathBuf| fs::read_to_string(p).unwrap_or_default().trim().to_string();
+    dir.flatten()
+        .filter(|e| read(e.path().join("type")) == "wlan")
+        .all(|e| read(e.path().join("soft")) == "0" && read(e.path().join("hard")) == "0")
+}
+
 /// Resumo dos dispositivos de rede, de `nmcli -t -f TYPE,STATE,CONNECTION device`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct NetStatus {
@@ -500,6 +517,7 @@ fn set_busy(weak: &Weak<AppWindow>, busy: bool) {
 
 fn apply(ui: &AppWindow, s: Snapshot, hold_volume: bool, rescan: bool) {
     let d = ui.global::<Device>();
+    d.set_network_ready(true);
     match s.network {
         Some(net) => {
             d.set_network_available(true);
@@ -733,6 +751,12 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     // Nas Configurações, procura redes de verdade ao abrir (a lista guardada
     // pode estar velha); o painel rápido só precisa do estado atual.
     if mode == Mode::QuickSettings {
+        // A placa Wi-Fi já se sabe pelo /sys (na hora): o bloco nasce como
+        // Wi-Fi mesmo se o nmcli demorar, em vez de "Rede" trocando depois.
+        if has_wifi_card() {
+            d.set_wifi_present(true);
+            d.set_wifi_enabled(wifi_radio_on());
+        }
         // O painel lê o estado antes de a janela aparecer (~0,1 s): sem isso
         // ele abria só com o brilho (lido na hora) e o botão "Rede" no lugar
         // do Wi-Fi, e o resto surgia depois. Se o NetworkManager travar, não

@@ -94,6 +94,7 @@ fn main() {
     device.set_brightness_available(true);
     device.set_brightness(0.8);
     device.set_wifi_present(true);
+    device.set_network_ready(true);
     device.set_wifi_enabled(true);
     device.set_wifi_name("Casa".into());
     device.set_bt_available(true);
