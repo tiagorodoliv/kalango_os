@@ -10,12 +10,18 @@
 #      driver; se continuar, tira o dispositivo PCI e procura de novo.
 #   2. Bluetooth que existia e sumiu: recarrega o btusb; se continuar, religa
 #      o hub USB onde ele estava.
+#   3. Se o rádio continuar bloqueado depois da suspensão "deep" (S3), quem
+#      bloqueia é a BIOS ao acordar e nada no Linux desfaz (só reiniciar). O
+#      computador passa a suspender em s2idle, em que a BIOS não participa
+#      (MemorySleepMode no sleep.conf.d). Testado no HP Pavilion 14: em s2idle
+#      Wi-Fi e Bluetooth voltam sozinhos.
 # Tudo vai para o journal: journalctl -t kalango-radios
 #
 # Argumentos do systemd-sleep: $1 = pre|post, $2 = suspend|hibernate|...
 # ("consertar" é o próprio script rodando em segundo plano depois do post).
 
 ESTADO=/run/kalango-radios
+S2IDLE=/etc/systemd/sleep.conf.d/50-kalango-radios.conf
 log() { logger -t kalango-radios "$*"; }
 
 # Dispositivo PCI e driver de cada placa Wi-Fi: "pci driver".
@@ -65,6 +71,22 @@ antes() {
     wifi_bloqueado >"$ESTADO/bloqueado"
     hubs_bluetooth | sort -u >"$ESTADO/hubs"
     conta_bluetooth >"$ESTADO/bluetooth"
+    # Modo da suspensão (o que está entre colchetes: "s2idle [deep]").
+    sed -n 's/.*\[\(.*\)\].*/\1/p' /sys/power/mem_sleep >"$ESTADO/modo" 2>/dev/null
+}
+
+# A BIOS bloqueou o rádio ao acordar do S3: daqui em diante, s2idle.
+usar_s2idle() {
+    [ "$1" = suspend ] || [ "$1" = suspend-then-hibernate ] || return 0
+    [ "$(cat "$ESTADO/modo" 2>/dev/null)" = deep ] || return 0
+    grep -qw s2idle /sys/power/mem_sleep || return 0
+    [ -e "$S2IDLE" ] && return 0
+    mkdir -p "$(dirname "$S2IDLE")"
+    printf '%s\n' \
+        "# Gerado por kalango-radios: ao acordar da suspensão deep (S3), a BIOS" \
+        "# deixava o Wi-Fi bloqueado por hardware. Apague para voltar ao deep." \
+        "[Sleep]" "MemorySleepMode=s2idle" >"$S2IDLE"
+    log "próximas suspensões em s2idle ($S2IDLE); para o rádio voltar agora, reinicie"
 }
 
 consertar_wifi() {
@@ -86,6 +108,7 @@ consertar_wifi() {
             log "Wi-Fi de volta"
         else
             log "Wi-Fi continua bloqueado por hardware (tecla de modo avião/BIOS?)"
+            usar_s2idle "$1"
         fi
     done <"$ESTADO/wifi"
 }

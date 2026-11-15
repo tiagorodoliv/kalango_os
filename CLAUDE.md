@@ -244,7 +244,10 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   a `progress_bar` ignora a altura (contagem é um `label` com `id="__timeout__"`).
 - **Rádios depois de suspender (2026-11-15):** no HP (Intel Wireless 3160) o `iwlwifi` volta com RF_KILL de hardware e o
   Bluetooth (USB 8087:07dc) some. `/usr/lib/systemd/system-sleep/kalango-radios` guarda o estado antes e, só se quebrou,
-  recarrega o driver → remove/rescan do PCI; btusb → religa o hub USB. Log: `journalctl -t kalango-radios`.
+  recarrega o driver → remove/rescan do PCI; btusb → religa o hub USB (numa unidade `systemd-run`: dentro do hook
+  congelava a sessão ~20 s). Nada disso desfaz o bloqueio da BIOS: se continuar bloqueado depois do deep (S3), grava
+  `/etc/systemd/sleep.conf.d/50-kalango-radios.conf` (`MemorySleepMode=s2idle`). Testado: em s2idle o HP volta com
+  Wi-Fi e Bluetooth. Log: `journalctl -t kalango-radios`.
 - Identidade: `/usr/lib/os-release` = "Kalango OS" (`ID=kalango`, `ID_LIKE=debian`, protegido de atualização do
   base-files pelo hook `0050`), `etc/default/grub.d/kalango.cfg` (`GRUB_DISTRIBUTOR`).
 - Próximos passos da arquitetura: layer-shell para barra/dock/menu; contraste das legendas de partição do
@@ -370,7 +373,8 @@ grade de fundo sutil (~48px).
 **Cores de destaque (ordem):** ciano `#3dd6f5`, roxo `#a78bfa`, azul `#7ea6f7`, verde `#5fd38d`, âmbar `#e8b04b`, rosa `#f28b95`.
 **Fontes:** sans tipo Inter para UI; mono tipo JetBrains Mono para relógio, barra, rótulos de seção (MAIÚSCULAS espaçadas) e terminal.
 **Marca:** usar os arquivos reais da marca em `ui/brand/` (global `Brand` em `ui/brand.slint`), nunca desenho próprio.
-Ícone (barra, terminal, janela): `kalango-icon.png`, o "g"-calango no quadrado azul, recortado de `assets/layout/logotipo.png`.
+Ícone (barra, menu, janela, Calamares): `kalango-icon.png` = o K com o calango (R1, `assets/logo/Kalango_Icone_Noite.png`;
+  o "g"-calango antigo saiu em 2026-11-15).
 Logotipo: `kalango-logo.png` (letras brancas) e `kalango-logo-claro.png` (letras azul-marinho, tema claro).
 O SVG de `assets/logo` é rastreado de bitmap e fica granulado em tamanho pequeno; só trocar para vetor se vier um desenhado à mão.
 
