@@ -34,8 +34,10 @@ pub struct Window {
 /// Estados do protocolo (array de u32 em bytes nativos).
 fn parse_states(bytes: &[u8]) -> (bool, bool) {
     let states: Vec<u32> = bytes
-        .chunks_exact(4)
-        .map(|c| u32::from_ne_bytes([c[0], c[1], c[2], c[3]]))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|c| u32::from_ne_bytes(*c))
         .collect();
     (states.contains(&2), states.contains(&1))
 }
@@ -58,7 +60,7 @@ impl Inner {
     /// Janelas da mais recentemente usada para a menos.
     fn windows(&self) -> Vec<Window> {
         let mut v: Vec<&Entry> = self.list.iter().filter(|e| !e.info.app_id.is_empty() || !e.info.title.is_empty()).collect();
-        v.sort_by(|a, b| b.used.cmp(&a.used));
+        v.sort_by_key(|e| std::cmp::Reverse(e.used));
         v.into_iter().map(|e| e.info.clone()).collect()
     }
 }

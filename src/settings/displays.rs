@@ -664,11 +664,14 @@ fn show(ui: &AppWindow, state: &mut State, outputs: Option<Vec<Output>>) {
     }
 }
 
+/// Como cada monitor estava e as linhas antigas do `monitores.conf` (para voltar).
+type Previous = (Vec<Setting>, Vec<(String, Option<String>)>);
+
 /// Aplica as configurações (uma por monitor) e grava no `monitores.conf`.
 ///
 /// Devolve como cada monitor estava (para voltar) e as linhas antigas do
 /// arquivo, ou `None` se o monitor recusou (aí já voltou tudo).
-fn apply_and_save(device: &Device, s: &State, settings: &[Setting]) -> Option<(Vec<Setting>, Vec<(String, Option<String>)>)> {
+fn apply_and_save(device: &Device, s: &State, settings: &[Setting]) -> Option<Previous> {
     let previous: Vec<Setting> = settings
         .iter()
         .filter_map(|n| s.outputs.iter().find(|o| o.name == n.output).map(Output::current_setting))

@@ -378,9 +378,12 @@ fn quote_path(p: &str) -> String {
 // Conexões salvas
 // ---------------------------------------------------------------------------
 
+/// Conexão salva: nome, tipo e se está ativa.
+pub type SavedConnection = (String, String, bool);
+
 /// Conexões de `nmcli -t -f NAME,TYPE,ACTIVE connection show`: as de rede
 /// (cabo e Wi-Fi) e as VPNs.
-pub fn parse_connections(text: &str) -> (Vec<(String, String, bool)>, Vec<(String, String, bool)>) {
+pub fn parse_connections(text: &str) -> (Vec<SavedConnection>, Vec<SavedConnection>) {
     let mut nets = Vec::new();
     let mut vpns = Vec::new();
     for line in text.lines() {

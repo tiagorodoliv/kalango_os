@@ -115,7 +115,7 @@ pub fn parse_logind(text: &str) -> (String, String, String) {
     let get = |key: &str| {
         text.lines()
             .filter_map(|l| l.trim().strip_prefix(key)?.trim_start().strip_prefix('=').map(|v| v.trim().to_string()))
-            .last()
+            .next_back()
     };
     let lid = get("HandleLidSwitch").unwrap_or_else(|| "suspend".into());
     let lid_ac = get("HandleLidSwitchExternalPower").unwrap_or_else(|| lid.clone());
