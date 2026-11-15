@@ -459,7 +459,18 @@ struct Snapshot {
     battery: Option<(u32, bool)>,
 }
 
-fn read_snapshot(rescan: bool) -> Snapshot {
+/// Como a lista de redes é lida (`nmcli ... --rescan`).
+#[derive(Clone, Copy, PartialEq)]
+enum Scan {
+    /// O que o NetworkManager já sabe, na hora (`no`).
+    Cached,
+    /// Busca de novo só se a última tem mais de 30 s (`auto`).
+    Auto,
+    /// Busca nova, esperando ela terminar (`yes`; 4 a 8 s).
+    Fresh,
+}
+
+fn read_snapshot(scan: Scan) -> Snapshot {
     let mut s = Snapshot::default();
     if let Some(dev) = output("nmcli", &["-t", "-f", "TYPE,STATE,CONNECTION", "device"]) {
         let status = parse_devices(&dev);
@@ -467,7 +478,11 @@ fn read_snapshot(rescan: bool) -> Snapshot {
         if status.wifi_present && s.wifi_enabled {
             // "auto": o NetworkManager só procura de novo se a última busca
             // tem mais de 30 s (conectado, ele quase não procura sozinho).
-            let rescan = if rescan { "yes" } else { "auto" };
+            let rescan = match scan {
+                Scan::Cached => "no",
+                Scan::Auto => "auto",
+                Scan::Fresh => "yes",
+            };
             if let Some(list) = output(
                 "nmcli",
                 &["-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", rescan],
@@ -514,7 +529,18 @@ fn refresh(weak: Weak<AppWindow>, shared: Arc<Shared>, rescan: bool) {
         set_busy(&weak, true);
     }
     std::thread::spawn(move || {
-        let snap = read_snapshot(rescan);
+        // Busca nova de redes: leva de 4 a 8 s na sessão gráfica (no HP).
+        // Antes dela, mostra o que o NetworkManager já sabe (estado, lista
+        // atual), senão a página de Rede inteira ficava vazia esse tempo.
+        if rescan {
+            let quick = read_snapshot(Scan::Cached);
+            let weak = weak.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                let Some(ui) = weak.upgrade() else { return };
+                apply(&ui, quick, false, false);
+            });
+        }
+        let snap = read_snapshot(if rescan { Scan::Fresh } else { Scan::Auto });
         let hold_volume = now_ms().saturating_sub(shared.volume_touched.load(Ordering::SeqCst)) < VOLUME_HOLD_MS;
         shared.reading.store(false, Ordering::SeqCst);
         let _ = slint::invoke_from_event_loop(move || {
@@ -790,7 +816,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         // espera mais que isso e segue como antes.
         let (tx, rx) = std::sync::mpsc::channel();
         std::thread::spawn(move || {
-            let _ = tx.send(read_snapshot(false));
+            let _ = tx.send(read_snapshot(Scan::Cached));
         });
         match rx.recv_timeout(FIRST_READ_WAIT) {
             Ok(snap) => apply(ui, snap, false, false),

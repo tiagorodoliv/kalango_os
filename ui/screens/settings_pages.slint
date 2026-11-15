@@ -572,7 +572,8 @@ export component NetworkPage inherits Rectangle {
         alignment: start;
         spacing: 16px;
 
-        if !Device.network-available: EmptyNotice {
+        // Só depois da primeira leitura (antes dela, "indisponível" assustava).
+        if Device.network-ready && !Device.network-available: EmptyNotice {
             icon: Icons.wifi;
             title: @tr("Network manager unavailable");
             text: @tr("NetworkManager did not respond. Check that the service is running.");
