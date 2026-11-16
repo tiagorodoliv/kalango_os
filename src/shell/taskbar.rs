@@ -73,8 +73,10 @@ pub fn dock_id_with(app_id: &str, apps: &[DesktopApp]) -> Option<String> {
     if let Some((id, _)) = CATALOG.iter().find(|(_, ids)| ids.contains(&a.as_str())) {
         return Some(id.to_string());
     }
+    // Janelas do próprio shell (barra, fundo, menus) ficam fora da dock;
+    // as que têm .desktop (a Calculadora) entram como qualquer app.
     if a.starts_with("kalango-") {
-        return None;
+        return match_desktop(&a, apps).map(|d| d.id());
     }
     Some(match match_desktop(&a, apps) {
         Some(d) => d.id(),
@@ -411,6 +413,12 @@ mod tests {
         assert_eq!(dock_id_with("firefox-esr", &apps).as_deref(), Some("browser"));
         assert_eq!(dock_id_with("kalango-settings", &apps).as_deref(), Some("settings"));
         assert_eq!(dock_id_with("kalango-dock", &apps), None);
+        let calc = desktop::parse(
+            std::path::Path::new("/usr/share/applications/kalango-calculadora.desktop"),
+            "[Desktop Entry]\nType=Application\nName=Calculator\nExec=kalango-shell --calculadora\nStartupWMClass=kalango-calculadora\n",
+        )
+        .unwrap();
+        assert_eq!(dock_id_with("kalango-calculadora", std::slice::from_ref(&calc)), Some(calc.id()));
         assert_eq!(dock_id_with("xyz", &apps).as_deref(), Some("window:xyz"));
     }
 

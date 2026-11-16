@@ -80,10 +80,10 @@ export component AppWindow inherits Window {
     // Referência do layout em px lógicos; no dispositivo (feature kms)
     // a janela ocupa a tela inteira automaticamente.
     // A dock em janela própria tem o tamanho dela (`--faixa=LxA`).
-    preferred-width: root.mode == ShellMode.dock ? Shell.dock-strip-width : root.mode == ShellMode.calculator ? 900px : 1440px;
-    preferred-height: root.mode == ShellMode.dock ? Shell.dock-strip-height : root.mode == ShellMode.calculator ? 640px : 900px;
-    min-width: root.mode == ShellMode.dock ? 0 : root.mode == ShellMode.calculator ? 520px : 1100px;
-    min-height: root.mode == ShellMode.dock ? 0 : root.mode == ShellMode.calculator ? 560px : 720px;
+    preferred-width: root.mode == ShellMode.dock ? Shell.dock-strip-width : root.mode == ShellMode.calculator ? 740px : 1440px;
+    preferred-height: root.mode == ShellMode.dock ? Shell.dock-strip-height : root.mode == ShellMode.calculator ? 540px : 900px;
+    min-width: root.mode == ShellMode.dock ? 0 : root.mode == ShellMode.calculator ? 460px : 1100px;
+    min-height: root.mode == ShellMode.dock ? 0 : root.mode == ShellMode.calculator ? 480px : 720px;
     // O launcher, o painel rápido e a dock são camadas transparentes por cima
     // dos apps (a dock: os cantos arredondados mostram o que está atrás).
     background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings || root.mode == ShellMode.calendar || root.mode == ShellMode.dock

@@ -253,7 +253,7 @@ export component CalculatorScreen inherits Rectangle {
         y: 62px;
         width: root.width - 40px;
         height: root.height - self.y - 20px;
-        property <length> side: self.width >= 760px ? 230px : 0px;
+        property <length> side: self.width >= 660px ? 210px : 0px;
         property <length> main-w: self.width - (self.side > 0 ? self.side + 16px : 0px);
 
         // Visor.
@@ -286,10 +286,10 @@ export component CalculatorScreen inherits Rectangle {
                 y: 14px;
                 width: parent.width - 36px;
                 height: 40px;
-                text: @tr("Type or use the keys: 2^10 + sqrt(9), 15% of 200 = 200*15%");
+                text: "0";
                 color: Theme.text-muted;
-                font-family: Theme.sans;
-                font-size: 13.5px;
+                font-family: Theme.mono;
+                font-size: 26px;
                 horizontal-alignment: right;
                 vertical-alignment: center;
                 overflow: elide;
@@ -485,10 +485,10 @@ export component CalculatorScreen inherits Rectangle {
             if Calc.prog-expr == "": Text {
                 x: 18px;
                 width: parent.width - 36px;
-                text: @tr("0xFF & 0b1010 << 2,  255 ^ 0x0F,  ~0,  1 << 31");
+                text: "0";
                 color: Theme.text-muted;
                 font-family: Theme.mono;
-                font-size: 15px;
+                font-size: 20px;
                 vertical-alignment: center;
             }
         }

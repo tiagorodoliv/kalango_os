@@ -189,12 +189,31 @@ fn install_window_frame(ui: &AppWindow) -> slint::Timer {
     shell.set_rounded_window(window_has_alpha());
     ui.window().with_winit_window(|w| w.set_decorations(false));
 
+    // Depois de entregar o arraste ao labwc, a janela não recebe mais o
+    // "botão solto" (o compositor fica com o mouse até o fim): sem avisar o
+    // Slint, a borda ficava "apertada", o cursor de redimensionar não saía e
+    // os cliques seguintes iam todos para ela (os botões não respondiam).
+    // O aviso vai na próxima volta do laço de eventos: mandado dentro do
+    // tratamento do clique, o Slint terminava o clique depois e a borda
+    // voltava a ficar "apertada".
+    fn release_pointer(ui: &AppWindow) {
+        let weak = ui.as_weak();
+        slint::Timer::single_shot(std::time::Duration::ZERO, move || {
+            use slint::platform::{PointerEventButton, WindowEvent};
+            let Some(ui) = weak.upgrade() else { return };
+            let away = slint::LogicalPosition::new(-1.0, -1.0);
+            ui.window().dispatch_event(WindowEvent::PointerReleased { position: away, button: PointerEventButton::Left });
+            ui.window().dispatch_event(WindowEvent::PointerExited);
+        });
+    }
+
     let weak = ui.as_weak();
     shell.on_window_drag(move || {
         if let Some(ui) = weak.upgrade() {
             ui.window().with_winit_window(|w| {
                 let _ = w.drag_window();
             });
+            release_pointer(&ui);
         }
     });
     let weak = ui.as_weak();
@@ -213,6 +232,7 @@ fn install_window_frame(ui: &AppWindow) -> slint::Timer {
             ui.window().with_winit_window(|w| {
                 let _ = w.drag_resize_window(dir);
             });
+            release_pointer(&ui);
         }
     });
     let weak = ui.as_weak();
