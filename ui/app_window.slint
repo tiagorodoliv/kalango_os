@@ -35,11 +35,13 @@ import { LoginScreen } from "screens/login.slint";
 import { Launcher } from "screens/launcher.slint";
 import { SwitcherView, Switcher, SwitcherItem, DockMenuView, DockMenu, DockMenuWindow } from "screens/switcher.slint";
 import { SettingsScreen } from "screens/settings.slint";
+import { CalculatorScreen, Calc, CalcHistory } from "screens/calculator.slint";
 import { QuickSettings } from "screens/quick_settings.slint";
 import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice, Updates, UpdateItem } from "device.slint";
 
 // Reexportados para o Rust enxergar os globais e tipos.
 export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry, IconPreview, Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution }
+export { Calc, CalcHistory }
 export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice, Calendar, CalendarDay, Updates, UpdateItem }
 
 /// Telas de nível superior.
@@ -64,6 +66,8 @@ export enum ShellMode {
     fundo,
     /// Só o calendário do relógio, sobre fundo transparente (`--calendario`).
     calendar,
+    /// Só a Calculadora, janela comum com moldura própria (`--calculadora`).
+    calculator,
     /// Alt+Tab: as janelas abertas (`--alternar`, src/shell/switcher.rs).
     switcher,
     /// Menu do botão direito de um app da dock (`--menu-dock=`, src/shell/taskbar.rs).
@@ -76,14 +80,14 @@ export component AppWindow inherits Window {
     // Referência do layout em px lógicos; no dispositivo (feature kms)
     // a janela ocupa a tela inteira automaticamente.
     // A dock em janela própria tem o tamanho dela (`--faixa=LxA`).
-    preferred-width: root.mode == ShellMode.dock ? Shell.dock-strip-width : 1440px;
-    preferred-height: root.mode == ShellMode.dock ? Shell.dock-strip-height : 900px;
-    min-width: root.mode == ShellMode.dock ? 0 : 1100px;
-    min-height: root.mode == ShellMode.dock ? 0 : 720px;
+    preferred-width: root.mode == ShellMode.dock ? Shell.dock-strip-width : root.mode == ShellMode.calculator ? 900px : 1440px;
+    preferred-height: root.mode == ShellMode.dock ? Shell.dock-strip-height : root.mode == ShellMode.calculator ? 640px : 900px;
+    min-width: root.mode == ShellMode.dock ? 0 : root.mode == ShellMode.calculator ? 520px : 1100px;
+    min-height: root.mode == ShellMode.dock ? 0 : root.mode == ShellMode.calculator ? 560px : 720px;
     // O launcher, o painel rápido e a dock são camadas transparentes por cima
     // dos apps (a dock: os cantos arredondados mostram o que está atrás).
     background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings || root.mode == ShellMode.calendar || root.mode == ShellMode.dock
-        || (root.mode == ShellMode.settings && Shell.rounded-window)
+        || ((root.mode == ShellMode.settings || root.mode == ShellMode.calculator) && Shell.rounded-window)
         || root.mode == ShellMode.switcher || root.mode == ShellMode.dock-menu
         ? transparent : Theme.background;
     // A dock é uma janela comum (não tela cheia): sem moldura nenhuma.
@@ -538,6 +542,18 @@ export component AppWindow inherits Window {
                 close => { Shell.quit(); }
             }
         }
+        if root.mode == ShellMode.calculator && Shell.own-titlebar: WindowFrame {
+            title: @tr("Calculator");
+            rounded: Shell.rounded-window;
+            maximized: Shell.window-maximized;
+            close => { Shell.quit(); }
+            minimize => { Shell.window-minimize(); }
+            toggle-maximize => { Shell.window-toggle-maximize(); }
+            drag => { Shell.window-drag(); }
+            resize(edge) => { Shell.window-resize(edge); }
+            CalculatorScreen { }
+        }
+        if root.mode == ShellMode.calculator && !Shell.own-titlebar: CalculatorScreen { }
         if root.mode == ShellMode.settings && !Shell.own-titlebar: Rectangle {
             Backdrop { variant: BackdropVariant.plain; }
             SettingsScreen {

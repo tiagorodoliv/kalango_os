@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Calculator
+Name[pt_BR]=Calculadora
+GenericName=Calculator and developer tools
+GenericName[pt_BR]=Calculadora e ferramentas de programador
+Comment=Expressions, programmer mode (hex, binary, bits) and tools: Base64, URL, hashes, Unix time, colors, UUID, JSON
+Comment[pt_BR]=Expressões, modo programador (hexa, binário, bits) e ferramentas: Base64, URL, hashes, tempo Unix, cores, UUID, JSON
+Exec=kalango-shell --calculadora
+Icon=accessories-calculator
+Terminal=false
+Categories=Utility;Calculator;Development;
+Keywords=calc;calculadora;hex;binary;binário;base64;hash;sha256;md5;json;uuid;timestamp;
+StartupWMClass=kalango-calculadora

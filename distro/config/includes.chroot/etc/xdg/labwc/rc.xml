@@ -148,6 +148,8 @@
     <!-- Configurações: moldura própria (o labwc só arredonda a barra de
          título dele; os cantos de baixo e a borda ficavam retos). -->
     <windowRule identifier="kalango-settings" serverDecoration="no" />
+    <!-- Calculadora (kalango-shell, modo calculadora): a mesma moldura própria. -->
+    <windowRule identifier="kalango-calculadora" serverDecoration="no" />
     <windowRule identifier="kalango-launcher"
                 serverDecoration="no"
                 skipTaskbar="yes"

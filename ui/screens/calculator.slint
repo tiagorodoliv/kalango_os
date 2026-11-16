@@ -1,0 +1,719 @@
+// Calculadora do KalangOS (`kalango-shell --calculadora`, src/tools/).
+// Três abas: Calculadora (expressões, resultado ao vivo, histórico),
+// Programador (bases, bits) e Ferramentas (Base64, URL, hashes, tempo Unix,
+// cores, UUID, JSON, texto). Estilo das Configurações: Theme e Inter/JetBrains Mono.
+
+import { Theme } from "../theme.slint";
+
+export struct CalcHistory {
+    expr: string,
+    result: string,
+}
+
+export global Calc {
+    /// Aba: 0 = Calculadora, 1 = Programador, 2 = Ferramentas.
+    in-out property <int> tab: 0;
+
+    // --- Calculadora ---
+    in-out property <string> expr;
+    /// Resultado ao vivo (ou a mensagem de erro).
+    in property <string> preview;
+    in property <bool> preview-error;
+    /// Ângulos em graus (senão radianos).
+    in-out property <bool> degrees: true;
+    in property <[CalcHistory]> history;
+    /// A expressão mudou: o Rust calcula o resultado ao vivo.
+    callback changed();
+    /// "=" ou Enter: guarda no histórico e põe o resultado no campo.
+    callback commit();
+    callback clear-history();
+    /// Apaga o último caractere da expressão (e recalcula).
+    callback backspace();
+
+    // --- Programador ---
+    in-out property <string> prog-expr;
+    in property <string> hex;
+    in property <string> dec;
+    in property <string> oct;
+    in property <string> bin;
+    /// O byte de baixo como caractere (ASCII imprimível), "" se não for.
+    in property <string> ascii;
+    in property <string> prog-error;
+    /// Tamanho da palavra: 8, 16, 32 ou 64 bits.
+    in-out property <int> bits: 32;
+    in-out property <bool> signed: true;
+    /// Bit 0 primeiro.
+    in property <[bool]> bit-values;
+    callback prog-changed();
+    callback toggle-bit(int);
+
+    // --- Ferramentas ---
+    in-out property <int> tool: 0;
+    in-out property <string> tool-input;
+    in property <string> tool-output;
+    in property <bool> tool-error;
+    /// Ferramenta de cores: a cor reconhecida.
+    in property <bool> tool-has-color;
+    in property <color> tool-color;
+    /// Ação 0 (principal) ou 1 (secundária) da ferramenta escolhida.
+    callback run-tool(int);
+}
+
+/// Ferramentas: nome, ajuda e rótulos das duas ações ("" = sem a segunda).
+struct ToolInfo {
+    name: string,
+    hint: string,
+    primary: string,
+    secondary: string,
+}
+
+/// Botão do teclado e das ações.
+component Key inherits Rectangle {
+    in property <string> text;
+    /// 0 = número, 1 = operador/função, 2 = destaque (=), 3 = perigo (C).
+    in property <int> kind: 0;
+    in property <length> font-size: 17px;
+    in property <bool> mono: true;
+    callback clicked();
+    border-radius: Theme.radius-small;
+    background: root.kind == 2 ? (touch.pressed ? Theme.accent.darker(0.15) : touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent)
+        : touch.pressed ? Theme.tile-hover.darker(0.1) : touch.has-hover ? Theme.tile-hover : root.kind == 0 ? Theme.tile : Theme.panel;
+    border-width: root.kind == 2 ? 0 : 1px;
+    border-color: Theme.border;
+    animate background { duration: 80ms; }
+    Text {
+        text: root.text;
+        color: root.kind == 2 ? Theme.on-accent : root.kind == 3 ? Theme.danger : root.kind == 1 ? Theme.accent : Theme.text;
+        font-family: root.mono ? Theme.mono : Theme.sans;
+        font-size: root.font-size;
+        font-weight: 600;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Aba do topo.
+component TabPill inherits Rectangle {
+    in property <string> text;
+    in property <bool> selected;
+    callback clicked();
+    width: label.preferred-width + 32px;
+    height: 34px;
+    border-radius: 17px;
+    background: root.selected ? Theme.accent-soft : touch.has-hover ? Theme.tile : transparent;
+    border-width: root.selected ? 1px : 0;
+    border-color: Theme.accent.with-alpha(0.45);
+    label := Text {
+        text: root.text;
+        color: root.selected ? Theme.accent : Theme.text;
+        font-family: Theme.sans;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Linha de resultado do Programador (rótulo, valor, copiar).
+component BaseRow inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    callback copy(string);
+    height: 40px;
+    border-radius: Theme.radius-small;
+    background: touch.has-hover ? Theme.tile : transparent;
+    Text {
+        x: 12px;
+        width: 46px;
+        text: root.label;
+        color: Theme.text-muted;
+        font-family: Theme.mono;
+        font-size: 12.5px;
+        font-weight: 600;
+        vertical-alignment: center;
+    }
+    Text {
+        x: 64px;
+        width: root.width - self.x - 70px;
+        text: root.value;
+        color: Theme.text;
+        font-family: Theme.mono;
+        font-size: 16px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    if touch.has-hover && root.value != "": Text {
+        x: root.width - self.width - 12px;
+        text: @tr("Copy");
+        color: Theme.accent;
+        font-family: Theme.sans;
+        font-size: 12.5px;
+        vertical-alignment: center;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.copy(root.value); }
+    }
+}
+
+/// Área de texto com borda (entrada e saída das Ferramentas).
+component TextBox inherits Rectangle {
+    in-out property <string> text;
+    in property <bool> read-only: false;
+    in property <string> placeholder;
+    in property <color> text-color: Theme.text;
+    callback edited();
+    border-radius: Theme.radius-small;
+    background: Theme.sunken;
+    border-width: 1px;
+    border-color: input.has-focus ? Theme.accent : Theme.border;
+    clip: true;
+    if root.text == "": Text {
+        x: 12px;
+        y: 10px;
+        width: parent.width - 24px;
+        text: root.placeholder;
+        color: Theme.text-muted;
+        font-family: Theme.sans;
+        font-size: 13.5px;
+        wrap: word-wrap;
+    }
+    flick := Flickable {
+        x: 12px;
+        y: 10px;
+        width: parent.width - 24px;
+        height: parent.height - 20px;
+        content-height: max(self.height, input.preferred-height);
+        input := TextInput {
+            width: flick.width;
+            text <=> root.text;
+            read-only: root.read-only;
+            single-line: false;
+            wrap: word-wrap;
+            color: root.text-color;
+            font-family: Theme.mono;
+            font-size: 13.5px;
+            edited => { root.edited(); }
+        }
+    }
+}
+
+export component CalculatorScreen inherits Rectangle {
+    background: Theme.background;
+
+    // Copiar: campo invisível que passa o texto para a área de transferência.
+    clipboard := TextInput { visible: false; width: 0; height: 0; }
+    function copy(text: string) {
+        clipboard.text = text;
+        clipboard.select-all();
+        clipboard.copy();
+        root.copied = text;
+        copied-timer.running = true;
+    }
+    property <string> copied;
+    copied-timer := Timer {
+        interval: 1.6s;
+        running: false;
+        triggered => {
+            root.copied = "";
+            self.running = false;
+        }
+    }
+
+    // --- Abas ---
+    HorizontalLayout {
+        x: 20px;
+        y: 14px;
+        height: 34px;
+        spacing: 6px;
+        alignment: start;
+        TabPill { text: @tr("Calculator"); selected: Calc.tab == 0; clicked => { Calc.tab = 0; } }
+        TabPill { text: @tr("Programmer"); selected: Calc.tab == 1; clicked => { Calc.tab = 1; } }
+        TabPill { text: @tr("Tools"); selected: Calc.tab == 2; clicked => { Calc.tab = 2; } }
+    }
+    if root.copied != "": Text {
+        x: root.width - self.width - 22px;
+        y: 22px;
+        text: @tr("Copied");
+        color: Theme.success;
+        font-family: Theme.sans;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    // ------------------------------------------------------------------
+    // Calculadora
+    // ------------------------------------------------------------------
+    if Calc.tab == 0: calc-tab := Rectangle {
+        x: 20px;
+        y: 62px;
+        width: root.width - 40px;
+        height: root.height - self.y - 20px;
+        property <length> side: self.width >= 760px ? 230px : 0px;
+        property <length> main-w: self.width - (self.side > 0 ? self.side + 16px : 0px);
+
+        // Visor.
+        Rectangle {
+            width: parent.main-w;
+            x: 0;
+            y: 0;
+            height: 108px;
+            border-radius: Theme.radius;
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: expr-input.has-focus ? Theme.accent.with-alpha(0.6) : Theme.border;
+            expr-input := TextInput {
+                x: 18px;
+                y: 14px;
+                width: parent.width - 36px;
+                height: 40px;
+                text <=> Calc.expr;
+                font-family: Theme.mono;
+                font-size: 26px;
+                color: Theme.text;
+                horizontal-alignment: right;
+                single-line: true;
+                edited => { Calc.changed(); }
+                accepted => { Calc.commit(); }
+                init => { self.focus(); }
+            }
+            if Calc.expr == "": Text {
+                x: 18px;
+                y: 14px;
+                width: parent.width - 36px;
+                height: 40px;
+                text: @tr("Type or use the keys: 2^10 + sqrt(9), 15% of 200 = 200*15%");
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            Text {
+                x: 18px;
+                y: 62px;
+                width: parent.width - 36px;
+                height: 34px;
+                text: Calc.preview != "" ? (Calc.preview-error ? Calc.preview : "= " + Calc.preview) : "";
+                color: Calc.preview-error ? Theme.danger.with-alpha(0.85) : Theme.accent;
+                font-family: Calc.preview-error ? Theme.sans : Theme.mono;
+                font-size: Calc.preview-error ? 13.5px : 22px;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            TouchArea {
+                x: 0;
+                y: 60px;
+                height: 40px;
+                mouse-cursor: pointer;
+                clicked => {
+                    if (!Calc.preview-error && Calc.preview != "") {
+                        root.copy(Calc.preview);
+                    }
+                }
+            }
+        }
+
+        // Teclado.
+        keypad := GridLayout {
+            x: 0;
+            y: 120px;
+            width: parent.main-w;
+            height: parent.height - self.y;
+            spacing: 8px;
+            Row {
+                Key { text: Calc.degrees ? "DEG" : "RAD"; kind: 1; font-size: 13px; clicked => { Calc.degrees = !Calc.degrees; Calc.changed(); } }
+                Key { text: "sin"; kind: 1; font-size: 14px; clicked => { Calc.expr += "sin("; Calc.changed(); expr-input.focus(); } }
+                Key { text: "cos"; kind: 1; font-size: 14px; clicked => { Calc.expr += "cos("; Calc.changed(); expr-input.focus(); } }
+                Key { text: "tan"; kind: 1; font-size: 14px; clicked => { Calc.expr += "tan("; Calc.changed(); expr-input.focus(); } }
+                Key { text: "ln"; kind: 1; font-size: 14px; clicked => { Calc.expr += "ln("; Calc.changed(); expr-input.focus(); } }
+            }
+            Row {
+                Key { text: "("; kind: 1; clicked => { Calc.expr += "("; Calc.changed(); expr-input.focus(); } }
+                Key { text: ")"; kind: 1; clicked => { Calc.expr += ")"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "√"; kind: 1; clicked => { Calc.expr += "√"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "xʸ"; kind: 1; clicked => { Calc.expr += "^"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "π"; kind: 1; clicked => { Calc.expr += "π"; Calc.changed(); expr-input.focus(); } }
+            }
+            Row {
+                Key { text: "7"; clicked => { Calc.expr += "7"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "8"; clicked => { Calc.expr += "8"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "9"; clicked => { Calc.expr += "9"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "÷"; kind: 1; clicked => { Calc.expr += "÷"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "C"; kind: 3; clicked => { Calc.expr = ""; Calc.changed(); expr-input.focus(); } }
+            }
+            Row {
+                Key { text: "4"; clicked => { Calc.expr += "4"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "5"; clicked => { Calc.expr += "5"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "6"; clicked => { Calc.expr += "6"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "×"; kind: 1; clicked => { Calc.expr += "×"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "⌫"; kind: 1; clicked => { Calc.backspace(); expr-input.focus(); } }
+            }
+            Row {
+                Key { text: "1"; clicked => { Calc.expr += "1"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "2"; clicked => { Calc.expr += "2"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "3"; clicked => { Calc.expr += "3"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "−"; kind: 1; clicked => { Calc.expr += "−"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "%"; kind: 1; clicked => { Calc.expr += "%"; Calc.changed(); expr-input.focus(); } }
+            }
+            Row {
+                Key { text: "0"; clicked => { Calc.expr += "0"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "."; clicked => { Calc.expr += "."; Calc.changed(); expr-input.focus(); } }
+                Key { text: "ans"; kind: 1; font-size: 13px; clicked => { Calc.expr += "ans"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "+"; kind: 1; clicked => { Calc.expr += "+"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "="; kind: 2; font-size: 20px; clicked => { Calc.commit(); expr-input.focus(); } }
+            }
+        }
+
+        // Histórico.
+        if calc-tab.side > 0: Rectangle {
+            x: calc-tab.main-w + 16px;
+            width: calc-tab.side;
+            border-radius: Theme.radius;
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: Theme.border;
+            Text {
+                x: 16px;
+                y: 14px;
+                text: @tr("HISTORY");
+                color: Theme.text-muted;
+                font-family: Theme.mono;
+                font-size: 11.5px;
+                letter-spacing: 1.5px;
+            }
+            if Calc.history.length > 0: Text {
+                x: parent.width - self.width - 16px;
+                y: 13px;
+                text: @tr("Clear");
+                color: Theme.accent;
+                font-family: Theme.sans;
+                font-size: 12.5px;
+                TouchArea { mouse-cursor: pointer; clicked => { Calc.clear-history(); } }
+            }
+            if Calc.history.length == 0: Text {
+                x: 16px;
+                y: 44px;
+                width: parent.width - 32px;
+                text: @tr("Results appear here. Click one to use it again.");
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13px;
+                wrap: word-wrap;
+            }
+            Flickable {
+                x: 8px;
+                y: 40px;
+                width: parent.width - 16px;
+                height: parent.height - 48px;
+                content-height: Calc.history.length * 58px;
+                for h[i] in Calc.history: Rectangle {
+                    y: i * 58px;
+                    height: 54px;
+                    border-radius: Theme.radius-small;
+                    background: hist-touch.has-hover ? Theme.tile : transparent;
+                    Text {
+                        x: 10px;
+                        y: 8px;
+                        width: parent.width - 20px;
+                        text: h.expr;
+                        color: Theme.text-muted;
+                        font-family: Theme.mono;
+                        font-size: 12px;
+                        horizontal-alignment: right;
+                        overflow: elide;
+                    }
+                    Text {
+                        x: 10px;
+                        y: 26px;
+                        width: parent.width - 20px;
+                        text: "= " + h.result;
+                        color: Theme.text;
+                        font-family: Theme.mono;
+                        font-size: 16px;
+                        horizontal-alignment: right;
+                        overflow: elide;
+                    }
+                    hist-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            Calc.expr += h.result;
+                            Calc.changed();
+                            expr-input.focus();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Programador
+    // ------------------------------------------------------------------
+    if Calc.tab == 1: Rectangle {
+        x: 20px;
+        y: 62px;
+        width: root.width - 40px;
+        height: root.height - self.y - 20px;
+
+        Rectangle {
+            y: 0;
+            height: 56px;
+            border-radius: Theme.radius;
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: prog-input.has-focus ? Theme.accent.with-alpha(0.6) : Theme.border;
+            prog-input := TextInput {
+                x: 18px;
+                width: parent.width - 36px;
+                height: parent.height;
+                vertical-alignment: center;
+                text <=> Calc.prog-expr;
+                font-family: Theme.mono;
+                font-size: 20px;
+                color: Theme.text;
+                single-line: true;
+                edited => { Calc.prog-changed(); }
+                init => { self.focus(); }
+            }
+            if Calc.prog-expr == "": Text {
+                x: 18px;
+                width: parent.width - 36px;
+                text: @tr("0xFF & 0b1010 << 2,  255 ^ 0x0F,  ~0,  1 << 31");
+                color: Theme.text-muted;
+                font-family: Theme.mono;
+                font-size: 15px;
+                vertical-alignment: center;
+            }
+        }
+        if Calc.prog-error != "": Text {
+            x: 4px;
+            y: 62px;
+            text: Calc.prog-error;
+            color: Theme.danger.with-alpha(0.85);
+            font-family: Theme.sans;
+            font-size: 13px;
+        }
+
+        // Tamanho da palavra e sinal.
+        HorizontalLayout {
+            y: 84px;
+            height: 32px;
+            spacing: 6px;
+            alignment: start;
+            for b in [8, 16, 32, 64]: Rectangle {
+                width: 68px;
+                border-radius: 16px;
+                background: Calc.bits == b ? Theme.accent : bit-touch.has-hover ? Theme.tile-hover : Theme.tile;
+                Text {
+                    text: b + " bits";
+                    color: Calc.bits == b ? Theme.on-accent : Theme.text;
+                    font-family: Theme.mono;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+                bit-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { Calc.bits = b; Calc.prog-changed(); }
+                }
+            }
+            Rectangle { width: 10px; }
+            Rectangle {
+                width: sign-label.preferred-width + 28px;
+                border-radius: 16px;
+                background: sign-touch.has-hover ? Theme.tile-hover : Theme.tile;
+                border-width: 1px;
+                border-color: Theme.border;
+                sign-label := Text {
+                    text: Calc.signed ? @tr("Signed") : @tr("Unsigned");
+                    color: Theme.text;
+                    font-family: Theme.sans;
+                    font-size: 13px;
+                    font-weight: 600;
+                }
+                sign-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { Calc.signed = !Calc.signed; Calc.prog-changed(); }
+                }
+            }
+        }
+
+        // Resultado nas bases.
+        Rectangle {
+            y: 128px;
+            height: 5 * 40px + 16px;
+            border-radius: Theme.radius;
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: Theme.border;
+            VerticalLayout {
+                padding: 8px;
+                BaseRow { label: "HEX"; value: Calc.hex; copy(v) => { root.copy(v); } }
+                BaseRow { label: "DEC"; value: Calc.dec; copy(v) => { root.copy(v); } }
+                BaseRow { label: "OCT"; value: Calc.oct; copy(v) => { root.copy(v); } }
+                BaseRow { label: "BIN"; value: Calc.bin; copy(v) => { root.copy(v); } }
+                BaseRow { label: "ASCII"; value: Calc.ascii; copy(v) => { root.copy(v); } }
+            }
+        }
+
+        // Bits clicáveis (16 por linha, do mais alto para o mais baixo).
+        bits-area := Rectangle {
+            y: 128px + 5 * 40px + 28px;
+            height: parent.height - self.y;
+            property <int> rows: Math.ceil(Calc.bits / 16);
+            property <length> cell: min(30px, (self.width - 3 * 10px) / 16);
+            for row[r] in [0, 1, 2, 3]: Rectangle {
+                visible: r < bits-area.rows;
+                y: r * (bits-area.cell + 22px);
+                height: bits-area.cell + 18px;
+                property <int> top: Calc.bits - 1 - r * 16;
+                for col[c] in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]: Rectangle {
+                    property <int> bit: parent.top - c;
+                    property <bool> on: bit >= 0 && bit < Calc.bit-values.length && Calc.bit-values[bit];
+                    x: c * bits-area.cell + Math.floor(c / 4) * 10px;
+                    y: 0;
+                    width: bits-area.cell - 3px;
+                    height: bits-area.cell - 3px;
+                    border-radius: 5px;
+                    background: on ? Theme.accent : bt.has-hover ? Theme.tile-hover : Theme.tile;
+                    Text {
+                        text: on ? "1" : "0";
+                        color: on ? Theme.on-accent : Theme.text-muted;
+                        font-family: Theme.mono;
+                        font-size: 13px;
+                        font-weight: 600;
+                    }
+                    if Math.mod(bit, 4) == 0: Text {
+                        y: parent.height + 2px;
+                        x: 0;
+                        width: parent.width;
+                        text: bit;
+                        color: Theme.text-muted;
+                        font-family: Theme.mono;
+                        font-size: 10px;
+                        horizontal-alignment: center;
+                    }
+                    bt := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { Calc.toggle-bit(bit); }
+                    }
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Ferramentas
+    // ------------------------------------------------------------------
+    property <[ToolInfo]> tools: [
+        { name: "Base64", hint: @tr("Text ↔ Base64 (UTF-8). Decoding also accepts the URL-safe variant."), primary: @tr("Encode"), secondary: @tr("Decode") },
+        { name: "URL", hint: @tr("Percent-encoding for URLs and query strings."), primary: @tr("Encode"), secondary: @tr("Decode") },
+        { name: "Hash", hint: @tr("MD5, SHA-1 and SHA-256 of the text (UTF-8)."), primary: @tr("Calculate"), secondary: "" },
+        { name: @tr("Unix time"), hint: @tr("A number (seconds or milliseconds) → date; a date (2026-11-15 21:30 or 15/11/2026) → number. Empty: now."), primary: @tr("Convert"), secondary: @tr("Now") },
+        { name: @tr("Colors"), hint: @tr("#3dd6f5, #fff or rgb(61, 214, 245) → HEX, RGB and HSL."), primary: @tr("Convert"), secondary: "" },
+        { name: "UUID", hint: @tr("Random UUIDs (version 4)."), primary: @tr("Generate"), secondary: "" },
+        { name: "JSON", hint: @tr("Checks the JSON and shows the line and column of the first error."), primary: @tr("Format"), secondary: @tr("Minify") },
+        { name: @tr("Text"), hint: @tr("Characters, words, lines and bytes; UPPER and lower case."), primary: @tr("Count"), secondary: @tr("Change case") },
+    ];
+    if Calc.tab == 2: Rectangle {
+        x: 20px;
+        y: 62px;
+        width: root.width - 40px;
+        height: root.height - self.y - 20px;
+
+        // Lista das ferramentas.
+        VerticalLayout {
+            x: 0;
+            width: 150px;
+            alignment: start;
+            spacing: 4px;
+            for t[i] in root.tools: Rectangle {
+                height: 36px;
+                border-radius: Theme.radius-small;
+                background: Calc.tool == i ? Theme.accent-soft : tt.has-hover ? Theme.tile : transparent;
+                border-width: Calc.tool == i ? 1px : 0;
+                border-color: Theme.accent.with-alpha(0.45);
+                Text {
+                    x: 12px;
+                    text: t.name;
+                    color: Calc.tool == i ? Theme.accent : Theme.text;
+                    font-family: Theme.sans;
+                    font-size: 14px;
+                    font-weight: Calc.tool == i ? 600 : 400;
+                    vertical-alignment: center;
+                }
+                tt := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        Calc.tool = i;
+                        if (i == 5) {
+                            Calc.run-tool(0);
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            x: 166px;
+            width: parent.width - self.x;
+            property <ToolInfo> info: root.tools[Calc.tool];
+            Text {
+                y: 0;
+                width: parent.width;
+                text: info.hint;
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13px;
+                wrap: word-wrap;
+            }
+            TextBox {
+                y: 42px;
+                height: (parent.height - 42px - 52px) * 0.42;
+                text <=> Calc.tool-input;
+                placeholder: Calc.tool == 5 ? @tr("(no input needed)") : @tr("Paste or type here");
+            }
+            HorizontalLayout {
+                y: 42px + (parent.height - 42px - 52px) * 0.42 + 10px;
+                height: 36px;
+                spacing: 8px;
+                alignment: start;
+                Key { width: max(96px, self.preferred-width); text: info.primary; kind: 2; mono: false; font-size: 14px; clicked => { Calc.run-tool(0); } }
+                if info.secondary != "": Key { width: 110px; text: info.secondary; kind: 1; mono: false; font-size: 14px; clicked => { Calc.run-tool(1); } }
+                Rectangle { horizontal-stretch: 1; }
+                if Calc.tool-output != "" && !Calc.tool-error: Key {
+                    width: 96px;
+                    text: @tr("Copy");
+                    kind: 0;
+                    mono: false;
+                    font-size: 14px;
+                    clicked => { root.copy(Calc.tool-output); }
+                }
+            }
+            out := TextBox {
+                y: 42px + (parent.height - 42px - 52px) * 0.42 + 56px;
+                height: parent.height - self.y;
+                text: Calc.tool-output;
+                read-only: true;
+                text-color: Calc.tool-error ? Theme.danger : Theme.text;
+                placeholder: @tr("The result appears here");
+            }
+            if Calc.tool == 4 && Calc.tool-has-color: Rectangle {
+                x: parent.width - 76px;
+                y: out.y + 12px;
+                width: 60px;
+                height: 60px;
+                border-radius: 12px;
+                background: Calc.tool-color;
+                border-width: 1px;
+                border-color: Theme.border;
+            }
+        }
+    }
+}

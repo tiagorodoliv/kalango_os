@@ -43,6 +43,8 @@ pub enum Mode {
     DockMenu,
     /// Calendário do relógio da barra (`--calendario`, `src/shell/calendar.rs`).
     Calendar,
+    /// Calculadora com ferramentas de programador (`--calculadora`, `src/tools/`).
+    Calculator,
 }
 
 impl Mode {
@@ -60,6 +62,7 @@ impl Mode {
                 a if a == "--alternar" || a.starts_with("--alternar=") => mode = Mode::Switcher,
                 a if a.starts_with("--menu-dock=") => mode = Mode::DockMenu,
                 "--calendario" => mode = Mode::Calendar,
+                "--calculadora" => mode = Mode::Calculator,
                 _ => {}
             }
         }
@@ -81,6 +84,7 @@ impl Mode {
             Mode::Switcher => "kalango-alternar",
             Mode::DockMenu => "kalango-dock-menu",
             Mode::Calendar => "kalango-calendario",
+            Mode::Calculator => "kalango-calculadora",
         }
     }
 
@@ -94,6 +98,7 @@ impl Mode {
             Mode::QuickSettings => Some("--quick-settings"),
             Mode::Dock => Some("--dock"),
             Mode::Calendar => Some("--calendario"),
+            Mode::Calculator => Some("--calculadora"),
             Mode::Fundo | Mode::Switcher | Mode::DockMenu => None,
         }
     }
@@ -110,6 +115,7 @@ impl Mode {
             Mode::Switcher => ShellMode::Switcher,
             Mode::DockMenu => ShellMode::DockMenu,
             Mode::Calendar => ShellMode::Calendar,
+            Mode::Calculator => ShellMode::Calculator,
         }
     }
 }
@@ -231,10 +237,11 @@ pub fn open(id: &str) -> bool {
         _ => (id, None),
     };
     let cmd = match id {
-        "launcher" | "settings" | "quick-settings" | "calendar-popup" => {
+        "launcher" | "settings" | "quick-settings" | "calendar-popup" | "calculator" => {
             let mode = match id {
                 "launcher" => Mode::Launcher,
                 "settings" => Mode::Settings,
+                "calculator" => Mode::Calculator,
                 "calendar-popup" => Mode::Calendar,
                 _ => Mode::QuickSettings,
             };

@@ -372,6 +372,40 @@ fn main() {
         shell.set_running_extra(slint::ModelRc::default());
     }
 
+    // Calculadora (--calculadora): as três abas, com a lógica de verdade.
+    {
+        kalango_os::tools::calculator::install(&ui);
+        let calc = ui.global::<kalango_os::Calc>();
+        ui.set_mode(kalango_os::ShellMode::Calculator);
+        window.set_size(PhysicalSize::new((900.0 * SCALE) as u32, (640.0 * SCALE) as u32));
+        calc.invoke_clear_history();
+        for e in ["1/3", "2^10 + sqrt(9) * 3"] {
+            calc.set_expr(e.into());
+            calc.invoke_commit();
+        }
+        calc.set_expr("200 * 15% + ans".into());
+        calc.invoke_changed();
+        calc.set_tab(0);
+        save(&window, &out.join("calculadora.png"));
+        calc.set_prog_expr("0xFF & 0b1010 << 2 | 1 << 13".into());
+        calc.set_bits(16);
+        calc.invoke_prog_changed();
+        calc.set_tab(1);
+        save(&window, &out.join("calculadora_programador.png"));
+        calc.set_tab(2);
+        calc.set_tool(6);
+        calc.set_tool_input(r#"{"nome":"KalangOS","versao":[0,1,1],"ok":true}"#.into());
+        calc.invoke_run_tool(0);
+        save(&window, &out.join("calculadora_json.png"));
+        calc.set_tool(4);
+        calc.set_tool_input("#3dd6f5".into());
+        calc.invoke_run_tool(0);
+        save(&window, &out.join("calculadora_cores.png"));
+        calc.invoke_clear_history();
+        ui.set_mode(kalango_os::ShellMode::Desktop);
+        window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));
+    }
+
     // Variações de tema para conferir a troca ao vivo.
     let theme = ui.global::<Theme>();
     theme.set_accent_index(1);

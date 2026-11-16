@@ -1353,3 +1353,111 @@ msgstr "Exatamente como está no roteador"
 
 msgid "Leave empty for an open network"
 msgstr "Deixe vazio se a rede for aberta"
+
+msgid "#3dd6f5, #fff or rgb(61, 214, 245) → HEX, RGB and HSL."
+msgstr "#3dd6f5, #fff ou rgb(61, 214, 245) → HEX, RGB e HSL."
+
+msgid "(no input needed)"
+msgstr "(não precisa de entrada)"
+
+msgid "0xFF & 0b1010 << 2,  255 ^ 0x0F,  ~0,  1 << 31"
+msgstr "0xFF & 0b1010 << 2,  255 ^ 0x0F,  ~0,  1 << 31"
+
+msgid "A number (seconds or milliseconds) → date; a date (2026-11-15 21:30 or 15/11/2026) → number. Empty: now."
+msgstr "Um número (segundos ou milissegundos) → data; uma data (2026-11-15 21:30 ou 15/11/2026) → número. Vazio: agora."
+
+msgid "Calculate"
+msgstr "Calcular"
+
+msgid "Calculator"
+msgstr "Calculadora"
+
+msgid "Change case"
+msgstr "Trocar maiúsc./minúsc."
+
+msgid "Characters, words, lines and bytes; UPPER and lower case."
+msgstr "Caracteres, palavras, linhas e bytes; MAIÚSCULAS e minúsculas."
+
+msgid "Checks the JSON and shows the line and column of the first error."
+msgstr "Confere o JSON e mostra a linha e a coluna do primeiro erro."
+
+msgid "Clear"
+msgstr "Limpar"
+
+msgid "Colors"
+msgstr "Cores"
+
+msgid "Convert"
+msgstr "Converter"
+
+msgid "Copied"
+msgstr "Copiado"
+
+msgid "Copy"
+msgstr "Copiar"
+
+msgid "Count"
+msgstr "Contar"
+
+msgid "Decode"
+msgstr "Decodificar"
+
+msgid "Encode"
+msgstr "Codificar"
+
+msgid "Format"
+msgstr "Formatar"
+
+msgid "Generate"
+msgstr "Gerar"
+
+msgid "HISTORY"
+msgstr "HISTÓRICO"
+
+msgid "MD5, SHA-1 and SHA-256 of the text (UTF-8)."
+msgstr "MD5, SHA-1 e SHA-256 do texto (UTF-8)."
+
+msgid "Minify"
+msgstr "Compactar"
+
+msgid "Now"
+msgstr "Agora"
+
+msgid "Paste or type here"
+msgstr "Cole ou digite aqui"
+
+msgid "Percent-encoding for URLs and query strings."
+msgstr "Codificação com % para URLs e parâmetros."
+
+msgid "Programmer"
+msgstr "Programador"
+
+msgid "Random UUIDs (version 4)."
+msgstr "UUIDs aleatórios (versão 4)."
+
+msgid "Results appear here. Click one to use it again."
+msgstr "Os resultados aparecem aqui. Clique num para usar de novo."
+
+msgid "Signed"
+msgstr "Com sinal"
+
+msgid "Text"
+msgstr "Texto"
+
+msgid "Text ↔ Base64 (UTF-8). Decoding also accepts the URL-safe variant."
+msgstr "Texto ↔ Base64 (UTF-8). Para decodificar, aceita também a variante de URL."
+
+msgid "The result appears here"
+msgstr "O resultado aparece aqui"
+
+msgid "Tools"
+msgstr "Ferramentas"
+
+msgid "Type or use the keys: 2^10 + sqrt(9), 15% of 200 = 200*15%"
+msgstr "Digite ou use as teclas: 2^10 + sqrt(9), 15% de 200 = 200*15%"
+
+msgid "Unix time"
+msgstr "Tempo Unix"
+
+msgid "Unsigned"
+msgstr "Sem sinal"

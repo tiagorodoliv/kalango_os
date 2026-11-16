@@ -63,6 +63,12 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     da rede é apagado: um perfil de tentativa com senha errada faz o `nmcli` falhar com "key-mgmt missing".
     Campo que precisa de `focus()` não pode estar sob `visible: false` nem num `if` recém-criado (o foco se
     perde no winit); o painel da senha do Wi-Fi encolhe para altura 0 com `opacity: 0`.
+  - `kalango-shell --calculadora` (2026-11-15): **Calculadora** própria (`src/tools/`, `ui/screens/calculator.slint`,
+    global `Calc`), moldura própria (regra `kalango-calculadora` no rc.xml), `.desktop` em "Todos os apps". Abas:
+    Calculadora (`tools::expr`, resultado ao vivo, `ans`, histórico em `~/.local/state/kalango/calculadora.txt`),
+    Programador (`eval_int`, 8–64 bits, com/sem sinal, bits clicáveis) e Ferramentas (`tools::codec`: Base64, URL,
+    MD5/SHA-1/SHA-256 próprios testados com os vetores oficiais, tempo Unix, cores, UUID, JSON, texto). Sem
+    dependências novas. Copiar = TextInput invisível com `copy()`.
   - `kalango-shell --quick-settings`: **painel rápido** do canto da barra (como o menu do sistema do Ubuntu;
     `ui/screens/quick_settings.slint`). Clicar no bloco Wi-Fi/volume/bateria/energia da barra abre; rodar de novo
     fecha (pidfile, como o launcher). Tela cheia, transparente, por cima (regra no rc.xml), renderer femtovg.

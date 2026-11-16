@@ -15,6 +15,7 @@ pub mod common;
 pub mod launcher;
 pub mod settings;
 pub mod shell;
+pub mod tools;
 
 use common::{clock, i18n, system};
 use launcher::apps;
@@ -267,7 +268,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
         if let (Mode::Settings, Some(page)) = (mode, page) {
             session::request_page(page);
         }
-        if mode == Mode::Settings {
+        if matches!(mode, Mode::Settings | Mode::Calculator) {
             session::raise(mode);
         }
         return Ok(());
@@ -302,9 +303,12 @@ pub fn run() -> Result<(), slint::PlatformError> {
             ui.set_settings_page(page);
         }
         timers.extend(session::watch_page_requests(&ui));
-        if session::is_native() {
-            timers.push(install_window_frame(&ui));
-        }
+    }
+    if mode == Mode::Calculator {
+        tools::calculator::install(&ui);
+    }
+    if matches!(mode, Mode::Settings | Mode::Calculator) && session::is_native() {
+        timers.push(install_window_frame(&ui));
     }
     ui.run()
 }
