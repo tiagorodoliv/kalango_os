@@ -1,6 +1,6 @@
 [package]
 name = "kalango_os"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Interface gráfica (shell) do KalangOS, distro Linux baseada no Debian, em Rust + Slint"
 license = "GPL-3.0-or-later"
