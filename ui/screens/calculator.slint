@@ -27,8 +27,11 @@ export global Calc {
     /// "=" ou Enter: guarda no histórico e põe o resultado no campo.
     callback commit();
     callback clear-history();
-    /// Apaga o último caractere da expressão (e recalcula).
-    callback backspace();
+    /// Insere `texto` no lugar da seleção (bytes `de`..`ate`, na ordem que
+    /// vierem) e recalcula; devolve a posição do cursor depois do inserido.
+    callback insert(string /* texto */, int /* de */, int /* ate */) -> int;
+    /// Apaga a seleção ou o caractere antes do cursor; devolve o cursor.
+    callback backspace(int /* de */, int /* ate */) -> int;
 
     // --- Programador ---
     in-out property <string> prog-expr;
@@ -254,6 +257,13 @@ export component CalculatorScreen inherits Rectangle {
         width: root.width - 40px;
         height: root.height - self.y - 20px;
         property <length> side: self.width >= 660px ? 210px : 0px;
+        /// Tecla da tela: insere onde está o cursor (ou no lugar da seleção),
+        /// como se tivesse sido digitada.
+        function put(text: string) {
+            let pos = Calc.insert(text, expr-input.anchor-position-byte-offset, expr-input.cursor-position-byte-offset);
+            expr-input.set-selection-offsets(pos, pos);
+            expr-input.focus();
+        }
         property <length> main-w: self.width - (self.side > 0 ? self.side + 16px : 0px);
 
         // Visor.
@@ -278,7 +288,10 @@ export component CalculatorScreen inherits Rectangle {
                 horizontal-alignment: right;
                 single-line: true;
                 edited => { Calc.changed(); }
-                accepted => { Calc.commit(); }
+                accepted => {
+                    Calc.commit();
+                    self.set-selection-offsets(100000, 100000);
+                }
                 init => { self.focus(); }
             }
             if Calc.expr == "": Text {
@@ -329,45 +342,53 @@ export component CalculatorScreen inherits Rectangle {
             spacing: 8px;
             Row {
                 Key { text: Calc.degrees ? "DEG" : "RAD"; kind: 1; font-size: 13px; clicked => { Calc.degrees = !Calc.degrees; Calc.changed(); } }
-                Key { text: "sin"; kind: 1; font-size: 14px; clicked => { Calc.expr += "sin("; Calc.changed(); expr-input.focus(); } }
-                Key { text: "cos"; kind: 1; font-size: 14px; clicked => { Calc.expr += "cos("; Calc.changed(); expr-input.focus(); } }
-                Key { text: "tan"; kind: 1; font-size: 14px; clicked => { Calc.expr += "tan("; Calc.changed(); expr-input.focus(); } }
-                Key { text: "ln"; kind: 1; font-size: 14px; clicked => { Calc.expr += "ln("; Calc.changed(); expr-input.focus(); } }
+                Key { text: "sin"; kind: 1; font-size: 14px; clicked => { calc-tab.put("sin("); } }
+                Key { text: "cos"; kind: 1; font-size: 14px; clicked => { calc-tab.put("cos("); } }
+                Key { text: "tan"; kind: 1; font-size: 14px; clicked => { calc-tab.put("tan("); } }
+                Key { text: "ln"; kind: 1; font-size: 14px; clicked => { calc-tab.put("ln("); } }
             }
             Row {
-                Key { text: "("; kind: 1; clicked => { Calc.expr += "("; Calc.changed(); expr-input.focus(); } }
-                Key { text: ")"; kind: 1; clicked => { Calc.expr += ")"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "√"; kind: 1; clicked => { Calc.expr += "√"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "xʸ"; kind: 1; clicked => { Calc.expr += "^"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "π"; kind: 1; clicked => { Calc.expr += "π"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "("; kind: 1; clicked => { calc-tab.put("("); } }
+                Key { text: ")"; kind: 1; clicked => { calc-tab.put(")"); } }
+                Key { text: "√"; kind: 1; clicked => { calc-tab.put("√"); } }
+                Key { text: "xʸ"; kind: 1; clicked => { calc-tab.put("^"); } }
+                Key { text: "π"; kind: 1; clicked => { calc-tab.put("π"); } }
             }
             Row {
-                Key { text: "7"; clicked => { Calc.expr += "7"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "8"; clicked => { Calc.expr += "8"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "9"; clicked => { Calc.expr += "9"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "÷"; kind: 1; clicked => { Calc.expr += "÷"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "C"; kind: 3; clicked => { Calc.expr = ""; Calc.changed(); expr-input.focus(); } }
+                Key { text: "7"; clicked => { calc-tab.put("7"); } }
+                Key { text: "8"; clicked => { calc-tab.put("8"); } }
+                Key { text: "9"; clicked => { calc-tab.put("9"); } }
+                Key { text: "÷"; kind: 1; clicked => { calc-tab.put("÷"); } }
+                Key { text: "C"; kind: 3; clicked => { Calc.expr = ""; Calc.changed(); expr-input.set-selection-offsets(0, 0); expr-input.focus(); } }
             }
             Row {
-                Key { text: "4"; clicked => { Calc.expr += "4"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "5"; clicked => { Calc.expr += "5"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "6"; clicked => { Calc.expr += "6"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "×"; kind: 1; clicked => { Calc.expr += "×"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "⌫"; kind: 1; clicked => { Calc.backspace(); expr-input.focus(); } }
+                Key { text: "4"; clicked => { calc-tab.put("4"); } }
+                Key { text: "5"; clicked => { calc-tab.put("5"); } }
+                Key { text: "6"; clicked => { calc-tab.put("6"); } }
+                Key { text: "×"; kind: 1; clicked => { calc-tab.put("×"); } }
+                Key { text: "⌫"; kind: 1; clicked => {
+                    let pos = Calc.backspace(expr-input.anchor-position-byte-offset, expr-input.cursor-position-byte-offset);
+                    expr-input.set-selection-offsets(pos, pos);
+                    expr-input.focus();
+                } }
             }
             Row {
-                Key { text: "1"; clicked => { Calc.expr += "1"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "2"; clicked => { Calc.expr += "2"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "3"; clicked => { Calc.expr += "3"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "−"; kind: 1; clicked => { Calc.expr += "−"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "%"; kind: 1; clicked => { Calc.expr += "%"; Calc.changed(); expr-input.focus(); } }
+                Key { text: "1"; clicked => { calc-tab.put("1"); } }
+                Key { text: "2"; clicked => { calc-tab.put("2"); } }
+                Key { text: "3"; clicked => { calc-tab.put("3"); } }
+                Key { text: "−"; kind: 1; clicked => { calc-tab.put("−"); } }
+                Key { text: "%"; kind: 1; clicked => { calc-tab.put("%"); } }
             }
             Row {
-                Key { text: "0"; clicked => { Calc.expr += "0"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "."; clicked => { Calc.expr += "."; Calc.changed(); expr-input.focus(); } }
-                Key { text: "ans"; kind: 1; font-size: 13px; clicked => { Calc.expr += "ans"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "+"; kind: 1; clicked => { Calc.expr += "+"; Calc.changed(); expr-input.focus(); } }
-                Key { text: "="; kind: 2; font-size: 20px; clicked => { Calc.commit(); expr-input.focus(); } }
+                Key { text: "0"; clicked => { calc-tab.put("0"); } }
+                Key { text: "."; clicked => { calc-tab.put("."); } }
+                Key { text: "ans"; kind: 1; font-size: 13px; clicked => { calc-tab.put("ans"); } }
+                Key { text: "+"; kind: 1; clicked => { calc-tab.put("+"); } }
+                Key { text: "="; kind: 2; font-size: 20px; clicked => {
+                    Calc.commit();
+                    expr-input.set-selection-offsets(100000, 100000);
+                    expr-input.focus();
+                } }
             }
         }
 
@@ -442,11 +463,7 @@ export component CalculatorScreen inherits Rectangle {
                     }
                     hist-touch := TouchArea {
                         mouse-cursor: pointer;
-                        clicked => {
-                            Calc.expr += h.result;
-                            Calc.changed();
-                            expr-input.focus();
-                        }
+                        clicked => { calc-tab.put(h.result); }
                     }
                 }
             }

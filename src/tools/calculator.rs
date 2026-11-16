@@ -52,6 +52,33 @@ fn show_history(calc: &Calc, items: &[(String, String)]) {
     calc.set_history(ModelRc::from(Rc::new(VecModel::from(rows))));
 }
 
+/// Posição em bytes ajustada para dentro do texto e no começo de um caractere
+/// (× ÷ π ocupam mais de um byte).
+fn boundary(text: &str, pos: i32) -> usize {
+    let mut p = (pos.max(0) as usize).min(text.len());
+    while !text.is_char_boundary(p) {
+        p -= 1;
+    }
+    p
+}
+
+/// Põe `insert` no lugar da seleção `a`..`b` (bytes, em qualquer ordem).
+/// Devolve o texto novo e a posição do cursor depois do inserido.
+pub fn insert_at(text: &str, insert: &str, a: i32, b: i32) -> (String, usize) {
+    let (x, y) = (boundary(text, a.min(b)), boundary(text, a.max(b)));
+    (format!("{}{insert}{}", &text[..x], &text[y..]), x + insert.len())
+}
+
+/// Apaga a seleção `a`..`b` ou, sem seleção, o caractere antes do cursor.
+pub fn backspace_at(text: &str, a: i32, b: i32) -> (String, usize) {
+    let (x, y) = (boundary(text, a.min(b)), boundary(text, a.max(b)));
+    if x != y {
+        return (format!("{}{}", &text[..x], &text[y..]), x);
+    }
+    let Some((start, _)) = text[..x].char_indices().next_back() else { return (text.to_string(), 0) };
+    (format!("{}{}", &text[..start], &text[x..]), start)
+}
+
 /// Resultado de uma ferramenta: texto e se é erro.
 fn run_tool(tool: i32, action: i32, input: &str) -> (String, bool) {
     let ok = |s: String| (s, false);
@@ -155,13 +182,22 @@ pub fn install(ui: &AppWindow) {
         show_history(&ui.global::<Calc>(), &[]);
     });
     let weak = ui.as_weak();
-    calc.on_backspace(move || {
-        let Some(ui) = weak.upgrade() else { return };
+    calc.on_insert(move |text, a, b| {
+        let Some(ui) = weak.upgrade() else { return 0 };
         let calc = ui.global::<Calc>();
-        let mut text = calc.get_expr().to_string();
-        text.pop();
-        calc.set_expr(text.into());
+        let (new, pos) = insert_at(&calc.get_expr(), &text, a, b);
+        calc.set_expr(new.into());
         calc.invoke_changed();
+        pos as i32
+    });
+    let weak = ui.as_weak();
+    calc.on_backspace(move |a, b| {
+        let Some(ui) = weak.upgrade() else { return 0 };
+        let calc = ui.global::<Calc>();
+        let (new, pos) = backspace_at(&calc.get_expr(), a, b);
+        calc.set_expr(new.into());
+        calc.invoke_changed();
+        pos as i32
     });
 
     // --- Programador ---
@@ -230,6 +266,20 @@ pub fn install(ui: &AppWindow) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn teclas_no_cursor() {
+        // Cursor no meio: "12|3" + "+" → "12+3", cursor depois do "+".
+        assert_eq!(insert_at("123", "+", 2, 2), ("12+3".into(), 3));
+        // Seleção é trocada (em qualquer ordem).
+        assert_eq!(insert_at("1+2", "×", 3, 1), ("1×".into(), 3));
+        // Fora do texto: no fim; no meio de um "×" (2 bytes): antes dele.
+        assert_eq!(insert_at("12", "3", 99, 99), ("123".into(), 3));
+        assert_eq!(insert_at("2×3", "(", 2, 2), ("2(×3".into(), 2));
+        assert_eq!(backspace_at("2×3", 3, 3), ("23".into(), 1));
+        assert_eq!(backspace_at("123", 0, 0), ("123".into(), 0));
+        assert_eq!(backspace_at("12345", 1, 4), ("15".into(), 1));
+    }
 
     #[test]
     fn historico_e_ferramentas() {
