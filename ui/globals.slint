@@ -109,6 +109,15 @@ export global Shell {
     in property <bool> rounded-window: false;
     /// A janela está maximizada (os cantos ficam retos).
     in property <bool> window-maximized: false;
+    /// Configurações com moldura própria (sessão real; o labwc não decora).
+    in property <bool> own-titlebar: false;
+    /// O que a moldura própria pede (src/lib.rs, pelo winit).
+    callback window-drag();
+    /// 0 = cima, 1 = baixo, 2 = esquerda, 3 = direita, 4..7 = cantos
+    /// (cima-esq, cima-dir, baixo-esq, baixo-dir).
+    callback window-resize(int);
+    callback window-minimize();
+    callback window-toggle-maximize();
 
     // --- Preenchido pelo Rust (src/common/clock.rs e src/common/system.rs) ---
 

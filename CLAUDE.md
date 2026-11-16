@@ -29,7 +29,11 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     O `<margin top="35" bottom="70">` do labwc impede app maximizado de cobrir barra e dock (colada na borda).
   - `kalango-shell --launcher`: menu de apps em tela cheia, transparente, sempre por cima. Super (onRelease) ou
     Super+Espaço abre; rodar de novo fecha (pidfile em `$XDG_RUNTIME_DIR`).
-  - `kalango-shell --settings`: Configurações em janela comum. A aparência é salva em
+  - `kalango-shell --settings`: Configurações em janela comum, com **moldura própria** (2026-11-15:
+    `ui/components/window_frame.slint` + `install_window_frame` no `lib.rs`; regra `kalango-settings`
+    `serverDecoration="no"` no rc.xml, porque o labwc 0.8 só arredonda a barra de título dele). Barra,
+    botões no estilo/lado da Aparência, arrastar/redimensionar/maximizar pelo winit; cantos redondos só com
+    OpenGL (alfa), retos maximizada. A aparência é salva em
     `~/.config/kalango/aparencia.conf` e os outros processos aplicam em <1 s (`src/settings/appearance.rs`).
     As outras páginas mexem no sistema de verdade (`src/settings/device.rs` + global `Device` em `ui/device.slint`,
     páginas em `ui/screens/settings_pages.slint`): Rede e Wi-Fi pelo `nmcli` (lista, liga/desliga, conecta com

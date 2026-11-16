@@ -8,7 +8,9 @@
   - "kalango-launcher": o menu de apps. Tela cheia, transparente, por cima;
   - "kalango-quick-settings": o painel rápido do canto da barra (volume,
     brilho, Wi-Fi, desligar). Tela cheia, transparente, por cima;
-  - "kalango-settings": as Configurações, janela comum.
+  - "kalango-settings": as Configurações, janela comum com moldura própria
+    (barra de título, botões e borda redonda desenhados pelo shell,
+    ui/components/window_frame.slint): o labwc não decora;
   - "kalango-calendario": o calendário do relógio da barra. Tela cheia,
     transparente, por cima;
   - "kalango-alternar": o Alt+Tab (src/shell/switcher.rs). Tela cheia, transparente,
@@ -143,6 +145,9 @@
       <action name="ToggleAlwaysOnBottom"/>
       <action name="ToggleOmnipresent"/>
     </windowRule>
+    <!-- Configurações: moldura própria (o labwc só arredonda a barra de
+         título dele; os cantos de baixo e a borda ficavam retos). -->
+    <windowRule identifier="kalango-settings" serverDecoration="no" />
     <windowRule identifier="kalango-launcher"
                 serverDecoration="no"
                 skipTaskbar="yes"

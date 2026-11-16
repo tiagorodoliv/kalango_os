@@ -27,6 +27,7 @@ import { Backdrop, BackdropVariant } from "components/backdrop.slint";
 import { TopBar } from "components/top_bar.slint";
 import { Dock } from "components/dock.slint";
 import { DesktopMenuArea } from "components/desktop_menu.slint";
+import { WindowFrame } from "components/window_frame.slint";
 import { CalendarView, Calendar, CalendarDay } from "screens/calendar.slint";
 import { FilesWindow } from "apps/files.slint";
 import { TerminalWindow } from "apps/terminal.slint";
@@ -519,13 +520,25 @@ export component AppWindow inherits Window {
             logout => { Shell.open-app("logout"); }
         }
 
-        if root.mode == ShellMode.settings: Rectangle {
-            // Cantos de baixo no raio do labwc (cornerRadius 10 no rc.xml).
-            property <length> corner: Shell.rounded-window && !Shell.window-maximized ? 10px : 0px;
-            border-bottom-left-radius: self.corner;
-            border-bottom-right-radius: self.corner;
-            background: Theme.background;
-            clip: Shell.rounded-window;
+        // Na sessão real, moldura própria (barra de título, botões e borda
+        // arredondada): o labwc não decora esta janela (rc.xml). Fora dela
+        // (dev), a decoração é a do compositor.
+        if root.mode == ShellMode.settings && Shell.own-titlebar: WindowFrame {
+            title: @tr("Settings");
+            rounded: Shell.rounded-window;
+            maximized: Shell.window-maximized;
+            close => { Shell.quit(); }
+            minimize => { Shell.window-minimize(); }
+            toggle-maximize => { Shell.window-toggle-maximize(); }
+            drag => { Shell.window-drag(); }
+            resize(edge) => { Shell.window-resize(edge); }
+            Backdrop { variant: BackdropVariant.plain; }
+            SettingsScreen {
+                current <=> root.settings-page;
+                close => { Shell.quit(); }
+            }
+        }
+        if root.mode == ShellMode.settings && !Shell.own-titlebar: Rectangle {
             Backdrop { variant: BackdropVariant.plain; }
             SettingsScreen {
                 current <=> root.settings-page;

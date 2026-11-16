@@ -1,0 +1,247 @@
+// Moldura própria das janelas do KalangOS (Configurações): barra de título,
+// botões e borda, desenhados pelo shell em vez do labwc (regra
+// serverDecoration="no" no rc.xml). O labwc 0.8 só arredonda a barra de
+// título dele; com a moldura própria, os cantos de baixo e a borda acompanham.
+//
+// Os botões seguem Configurações → Aparência → Botões das janelas: o estilo
+// (`Theme.window-buttons`, os mesmos desenhos de src/settings/window_buttons.rs)
+// e o lado (`Theme.window-buttons-side`).
+
+import { Theme } from "../theme.slint";
+
+/// Altura da barra de título (a do labwc com a fonte Inter 10).
+export global Frame {
+    out property <length> titlebar: 30px;
+    out property <length> radius: 10px;
+}
+
+/// Símbolo de um botão desenhado em traço: "close", "iconify", "max" ou
+/// "restore", centrado no próprio componente.
+component Glyph inherits Rectangle {
+    in property <string> kind;
+    in property <length> size: 8px;
+    in property <color> ink;
+    in property <length> stroke: 1.5px;
+    width: self.size;
+    height: self.size;
+    if root.kind == "close": Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 10;
+        viewbox-height: 10;
+        stroke: root.ink;
+        stroke-width: root.stroke;
+        commands: "M 0 0 L 10 10 M 10 0 L 0 10";
+    }
+    if root.kind == "iconify": Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 10;
+        viewbox-height: 10;
+        stroke: root.ink;
+        stroke-width: root.stroke;
+        commands: "M 0 5 L 10 5";
+    }
+    if root.kind == "max": Rectangle {
+        border-width: root.stroke;
+        border-color: root.ink;
+        border-radius: 1px;
+    }
+    if root.kind == "restore": Rectangle {
+        Rectangle {
+            x: parent.width * 0.25;
+            y: 0;
+            width: parent.width * 0.75;
+            height: parent.height * 0.75;
+            border-width: root.stroke;
+            border-color: root.ink;
+            border-radius: 1px;
+        }
+        Rectangle {
+            x: 0;
+            y: parent.height * 0.25;
+            width: parent.width * 0.75;
+            height: parent.height * 0.75;
+            background: Theme.panel;
+            border-width: root.stroke;
+            border-color: root.ink;
+            border-radius: 1px;
+        }
+    }
+}
+
+/// Um botão da barra (fechar, minimizar, maximizar) no estilo escolhido.
+component TitleButton inherits Rectangle {
+    /// "close", "iconify" ou "max".
+    in property <string> kind;
+    in property <bool> maximized;
+    callback clicked();
+
+    property <int> style: Theme.window-buttons;
+    property <bool> hover: touch.has-hover;
+    property <string> glyph: root.kind == "max" && root.maximized ? "restore" : root.kind;
+    property <color> text: #e6edf3;
+
+    width: root.style == 1 ? 20px : root.style == 4 ? 40px : 28px;
+    height: Frame.titlebar;
+
+    // 1 = círculos coloridos (macOS); o símbolo só com o mouse em cima.
+    if root.style == 1: Rectangle {
+        width: 12px;
+        height: 12px;
+        border-radius: 6px;
+        background: root.kind == "close" ? #ff5f57 : root.kind == "iconify" ? #febc2e : #28c840;
+        if root.hover: Glyph { kind: root.glyph; size: 6px; ink: #3b0a0a; stroke: 1.3px; }
+    }
+    // 2 = arredondados (GNOME): círculo discreto atrás do símbolo.
+    if root.style == 2: Rectangle {
+        width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        background: root.hover ? #ffffff38 : #ffffff1c;
+        Glyph { kind: root.glyph; size: 8px; ink: root.text; }
+    }
+    // 3 = destaque: símbolo na cor de destaque; com o mouse, círculo cheio.
+    if root.style == 3: Rectangle {
+        width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        background: root.hover ? (root.kind == "close" ? Theme.danger : Theme.accent) : transparent;
+        Glyph { kind: root.glyph; size: 9px; ink: root.hover ? #04121a : Theme.accent; stroke: 1.6px; }
+    }
+    // 4 = retangulares (Windows): fundo inteiro com o mouse; fechar vermelho.
+    if root.style == 4: Rectangle {
+        background: root.hover ? (root.kind == "close" ? #e81123 : #ffffff1f) : transparent;
+        Glyph { kind: root.glyph; size: 10px; ink: root.text; stroke: 1px; }
+    }
+    // 0 = padrão (como o do labwc): só o símbolo.
+    if root.style == 0: Rectangle {
+        background: root.hover ? #ffffff14 : transparent;
+        border-radius: 6px;
+        width: 24px;
+        height: 22px;
+        Glyph { kind: root.glyph; size: 9px; ink: root.text; }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Moldura com barra de título; o conteúdo da janela vai como filho (abaixo
+/// da barra). Os callbacks fazem o que o labwc faria (ver src/lib.rs).
+export component WindowFrame inherits Rectangle {
+    in property <string> title;
+    /// Cantos arredondados (só com transparência: renderer OpenGL).
+    in property <bool> rounded: true;
+    in property <bool> maximized: false;
+    callback close();
+    callback minimize();
+    callback toggle-maximize();
+    /// Começa a arrastar a janela (botão apertado na barra).
+    callback drag();
+    /// Começa a redimensionar pela borda: 0 = cima, 1 = baixo, 2 = esquerda,
+    /// 3 = direita, 4 = cima-esq, 5 = cima-dir, 6 = baixo-esq, 7 = baixo-dir.
+    callback resize(int);
+
+    property <length> r: root.rounded && !root.maximized ? Frame.radius : 0px;
+    property <bool> left: Theme.window-buttons-side == 0;
+
+    border-radius: root.r;
+    background: Theme.background;
+    clip: root.rounded;
+
+    // --- Conteúdo ---
+    Rectangle {
+        y: Frame.titlebar;
+        height: parent.height - Frame.titlebar;
+        @children
+    }
+
+    // --- Barra de título ---
+    Rectangle {
+        y: 0;
+        height: Frame.titlebar;
+        background: Theme.panel-solid;
+
+        bar-touch := TouchArea {
+            pointer-event(e) => {
+                if (e.kind == PointerEventKind.down && e.button == PointerEventButton.left) {
+                    root.drag();
+                }
+            }
+            double-clicked => { root.toggle-maximize(); }
+        }
+        Text {
+            text: root.title;
+            color: Theme.text;
+            font-family: Theme.sans;
+            font-size: 13px;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        HorizontalLayout {
+            x: root.left ? (Theme.window-buttons == 4 ? 0px : 8px)
+                : parent.width - self.preferred-width - (Theme.window-buttons == 4 ? 0px : 6px);
+            width: self.preferred-width;
+            spacing: Theme.window-buttons == 4 ? 0px : 2px;
+            for kind in root.left ? ["close", "iconify", "max"] : ["iconify", "max", "close"]: TitleButton {
+                kind: kind;
+                maximized: root.maximized;
+                clicked => {
+                    if (kind == "close") {
+                        root.close();
+                    } else if (kind == "iconify") {
+                        root.minimize();
+                    } else {
+                        root.toggle-maximize();
+                    }
+                }
+            }
+        }
+        Rectangle {
+            y: parent.height - 1px;
+            height: 1px;
+            background: Theme.border;
+        }
+    }
+
+    // --- Borda (acompanha os cantos) ---
+    if !root.maximized: Rectangle {
+        border-radius: root.r;
+        border-width: 1px;
+        border-color: Theme.border;
+    }
+
+    // --- Bordas de redimensionar (6 px; os cantos, 14 px) ---
+    if !root.maximized: Rectangle {
+        property <length> e: 6px;
+        property <length> c: 14px;
+        TouchArea { y: 0; height: parent.e; x: parent.c; width: parent.width - 2 * parent.c; mouse-cursor: ns-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(0); } } }
+        TouchArea { y: parent.height - parent.e; height: parent.e; x: parent.c; width: parent.width - 2 * parent.c; mouse-cursor: ns-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(1); } } }
+        TouchArea { x: 0; width: parent.e; y: parent.c; height: parent.height - 2 * parent.c; mouse-cursor: ew-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(2); } } }
+        TouchArea { x: parent.width - parent.e; width: parent.e; y: parent.c; height: parent.height - 2 * parent.c; mouse-cursor: ew-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(3); } } }
+        TouchArea { x: 0; y: 0; width: parent.c; height: parent.e; mouse-cursor: nwse-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(4); } } }
+        TouchArea { x: 0; y: 0; width: parent.e; height: parent.c; mouse-cursor: nwse-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(4); } } }
+        TouchArea { x: parent.width - parent.c; y: 0; width: parent.c; height: parent.e; mouse-cursor: nesw-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(5); } } }
+        TouchArea { x: parent.width - parent.e; y: 0; width: parent.e; height: parent.c; mouse-cursor: nesw-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(5); } } }
+        TouchArea { x: 0; y: parent.height - parent.e; width: parent.c; height: parent.e; mouse-cursor: nesw-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(6); } } }
+        TouchArea { x: 0; y: parent.height - parent.c; width: parent.e; height: parent.c; mouse-cursor: nesw-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(6); } } }
+        TouchArea { x: parent.width - parent.c; y: parent.height - parent.e; width: parent.c; height: parent.e; mouse-cursor: nwse-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(7); } } }
+        TouchArea { x: parent.width - parent.e; y: parent.height - parent.c; width: parent.e; height: parent.c; mouse-cursor: nwse-resize;
+            pointer-event(ev) => { if (ev.kind == PointerEventKind.down) { root.resize(7); } } }
+    }
+}

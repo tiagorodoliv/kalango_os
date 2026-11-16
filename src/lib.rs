@@ -174,6 +174,74 @@ pub(crate) fn select_renderer(mode: Mode) {
     }
 }
 
+/// Moldura própria das Configurações (ui/components/window_frame.slint): o
+/// labwc não decora a janela (regra serverDecoration="no"), e a barra de
+/// título, os botões e as bordas de redimensionar fazem o que ele faria, pelo
+/// winit. Os cantos só são redondos com transparência (OpenGL); maximizada,
+/// retos. O timer devolvido acompanha o maximizar.
+fn install_window_frame(ui: &AppWindow) -> slint::Timer {
+    use slint::winit_030::winit::window::ResizeDirection;
+    use slint::winit_030::WinitWindowAccessor;
+
+    let shell = ui.global::<Shell>();
+    shell.set_own_titlebar(true);
+    shell.set_rounded_window(window_has_alpha());
+    ui.window().with_winit_window(|w| w.set_decorations(false));
+
+    let weak = ui.as_weak();
+    shell.on_window_drag(move || {
+        if let Some(ui) = weak.upgrade() {
+            ui.window().with_winit_window(|w| {
+                let _ = w.drag_window();
+            });
+        }
+    });
+    let weak = ui.as_weak();
+    shell.on_window_resize(move |edge| {
+        let dir = match edge {
+            0 => ResizeDirection::North,
+            1 => ResizeDirection::South,
+            2 => ResizeDirection::West,
+            3 => ResizeDirection::East,
+            4 => ResizeDirection::NorthWest,
+            5 => ResizeDirection::NorthEast,
+            6 => ResizeDirection::SouthWest,
+            _ => ResizeDirection::SouthEast,
+        };
+        if let Some(ui) = weak.upgrade() {
+            ui.window().with_winit_window(|w| {
+                let _ = w.drag_resize_window(dir);
+            });
+        }
+    });
+    let weak = ui.as_weak();
+    shell.on_window_minimize(move || {
+        if let Some(ui) = weak.upgrade() {
+            ui.window().set_minimized(true);
+        }
+    });
+    let weak = ui.as_weak();
+    shell.on_window_toggle_maximize(move || {
+        if let Some(ui) = weak.upgrade() {
+            let max = ui.window().is_maximized();
+            ui.window().set_maximized(!max);
+        }
+    });
+
+    let weak = ui.as_weak();
+    let timer = slint::Timer::default();
+    timer.start(slint::TimerMode::Repeated, std::time::Duration::from_millis(250), move || {
+        if let Some(ui) = weak.upgrade() {
+            let max = ui.window().is_maximized() || ui.window().is_fullscreen();
+            let shell = ui.global::<Shell>();
+            if shell.get_window_maximized() != max {
+                shell.set_window_maximized(max);
+            }
+        }
+    });
+    timer
+}
+
 /// Abre a janela do modo pedido nos argumentos e roda até ela ser fechada.
 pub fn run() -> Result<(), slint::PlatformError> {
     // "Definir como papel de parede" (Abrir com, no Thunar): sem janela.
@@ -234,23 +302,8 @@ pub fn run() -> Result<(), slint::PlatformError> {
             ui.set_settings_page(page);
         }
         timers.extend(session::watch_page_requests(&ui));
-        // Cantos de baixo arredondados como os de cima (o labwc só arredonda
-        // a barra de título); maximizada, retos, como o labwc faz no topo.
-        if window_has_alpha() && session::is_native() {
-            let shell = ui.global::<Shell>();
-            shell.set_rounded_window(true);
-            let weak = ui.as_weak();
-            let t = slint::Timer::default();
-            t.start(slint::TimerMode::Repeated, std::time::Duration::from_millis(300), move || {
-                if let Some(ui) = weak.upgrade() {
-                    let max = ui.window().is_maximized() || ui.window().is_fullscreen();
-                    let shell = ui.global::<Shell>();
-                    if shell.get_window_maximized() != max {
-                        shell.set_window_maximized(max);
-                    }
-                }
-            });
-            timers.push(t);
+        if session::is_native() {
+            timers.push(install_window_frame(&ui));
         }
     }
     ui.run()
