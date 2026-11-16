@@ -807,8 +807,8 @@ export component SettingsScreen inherits Rectangle {
             width: parent.width - 2 * self.x;
             height: parent.height - self.y - 8px;
             property <length> item-h: clamp((self.height) / root.order.length, 34px, 42px);
-            viewport-height: root.order.length * self.item-h;
-            interactive: self.viewport-height > self.height;
+            content-height: root.order.length * self.item-h;
+            interactive: self.content-height > self.height;
             VerticalLayout {
                 alignment: start;
                 for i in root.order: SidebarItem {
