@@ -77,6 +77,29 @@ pub(crate) fn read_battery() -> Option<u32> {
         .and_then(|c| c.trim().parse().ok())
 }
 
+/// A bateria está recebendo energia da tomada: carregando, cheia ou parada
+/// pelo limite de carga ("Not charging" com o carregador ligado).
+pub(crate) fn battery_on_ac() -> bool {
+    let Some(path) = battery_path() else { return false };
+    let status = fs::read_to_string(path.join("status")).unwrap_or_default();
+    match status.trim() {
+        "Charging" | "Full" => true,
+        "Not charging" => ac_online(),
+        _ => false,
+    }
+}
+
+/// Algum carregador ligado (`/sys/class/power_supply/*/online` de um "Mains").
+fn ac_online() -> bool {
+    fs::read_dir("/sys/class/power_supply").is_ok_and(|dir| {
+        dir.flatten().any(|e| {
+            let p = e.path();
+            fs::read_to_string(p.join("type")).is_ok_and(|t| t.trim() == "Mains")
+                && fs::read_to_string(p.join("online")).is_ok_and(|o| o.trim() == "1")
+        })
+    })
+}
+
 /// Inicia o timer que atualiza CPU e bateria na UI.
 ///
 /// Retorna o `Timer`, que deve ser mantido vivo pelo chamador.
@@ -97,8 +120,11 @@ pub fn start(ui: &AppWindow) -> Timer {
         prev.set(now);
         shell.set_cpu(cpu.into());
 
-        let battery = read_battery().map_or_else(|| "--".to_string(), |b| format!("{b}%"));
+        let level = read_battery();
+        let battery = level.map_or_else(|| "--".to_string(), |b| format!("{b}%"));
         shell.set_battery(battery.into());
+        shell.set_battery_level(level.unwrap_or(0).min(100) as i32);
+        shell.set_battery_charging(level.is_some() && battery_on_ac());
     };
 
     update();

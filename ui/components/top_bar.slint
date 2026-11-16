@@ -5,6 +5,7 @@ import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { Shell } from "../globals.slint";
 import { KalangoIcon } from "../brand.slint";
+import { BatteryIcon } from "battery_icon.slint";
 
 /// Ícone de status centralizado verticalmente na barra.
 component BarIcon inherits Rectangle {
@@ -175,7 +176,12 @@ export component TopBar inherits Rectangle {
                 // Sem bateria (desktop, VM) o Rust manda "--": o indicador some.
                 if Theme.bar-show-battery && Shell.battery != "--": HorizontalLayout {
                     spacing: 4px;
-                    BarIcon { icon: Icons.battery; size: 17px; tint: status-row.fg; }
+                    BatteryIcon {
+                        y: (parent.height - self.height) / 2;
+                        level: Shell.battery-level;
+                        charging: Shell.battery-charging;
+                        tint: status-row.fg;
+                    }
                     Text {
                         text: Shell.battery;
                         vertical-alignment: center;

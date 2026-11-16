@@ -13,6 +13,7 @@ import { Shell } from "../globals.slint";
 import { Device } from "../device.slint";
 import { SliderBar, LinkText } from "../components/widgets.slint";
 import { WifiList } from "../components/wifi_list.slint";
+import { BatteryIcon } from "../components/battery_icon.slint";
 
 /// Botão redondo com ícone (linha de cima do painel).
 component RoundButton inherits Rectangle {
@@ -233,15 +234,15 @@ export component QuickSettings inherits Rectangle {
                 if Shell.battery != "--": HorizontalLayout {
                     spacing: 6px;
                     alignment: start;
-                    Image {
-                        source: Icons.battery;
-                        colorize: Device.charging ? Theme.accent : Theme.text;
-                        width: 18px;
-                        height: 40px;
-                        image-fit: contain;
+                    Rectangle {
+                        width: 25px;
+                        BatteryIcon {
+                            level: Shell.battery-level;
+                            charging: Shell.battery-charging;
+                        }
                     }
                     Text {
-                        text: Device.charging ? Shell.battery + " · " + @tr("charging") : Shell.battery;
+                        text: Shell.battery-charging ? Shell.battery + " · " + @tr("charging") : Shell.battery;
                         color: Theme.text;
                         font-family: Theme.mono;
                         font-size: 12.5px;

@@ -150,6 +150,10 @@ export global Shell {
     in property <string> cpu: "--";
     /// Carga da bateria, "78%" ou "--" sem bateria.
     in property <string> battery: "--";
+    /// Carga em número (0–100), para o desenho do ícone.
+    in property <int> battery-level: 0;
+    /// Ligada na tomada (carregando ou cheia): o ícone mostra o raio.
+    in property <bool> battery-charging: false;
     /// Gravando num pendrive (`src/shell/usb.rs`): a barra pede para não remover.
     in property <bool> usb-writing: false;
     /// "Identificar" monitores: número e nome do monitor desta janela.

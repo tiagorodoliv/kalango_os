@@ -1,0 +1,64 @@
+// Ícone da bateria desenhado ao vivo (barra superior e painel rápido), como
+// o do macOS: o preenchimento acompanha a carga; carregando, fica verde com o
+// raio no meio; com 20% ou menos (sem carregador), vermelho.
+
+import { Theme } from "../theme.slint";
+
+export component BatteryIcon inherits Rectangle {
+    /// Carga, 0–100.
+    in property <int> level: 100;
+    /// Ligado na tomada (carregando ou cheia).
+    in property <bool> charging: false;
+    /// Cor do contorno (a do texto da barra).
+    in property <color> tint: Theme.text;
+
+    width: 25px;
+    height: 12px;
+
+    property <length> body-w: root.width - 3px;
+    property <length> pad: 2px;
+    property <color> fill: root.charging ? Theme.success
+        : root.level <= 20 ? Theme.danger
+        : root.tint;
+
+    // Corpo.
+    Rectangle {
+        x: 0;
+        width: root.body-w;
+        border-width: 1.2px;
+        border-color: root.tint.with-alpha(0.9);
+        border-radius: 3.5px;
+        // Carga.
+        Rectangle {
+            x: root.pad;
+            y: root.pad;
+            height: parent.height - 2 * root.pad;
+            width: max(1.5px, (parent.width - 2 * root.pad) * clamp(root.level, 0, 100) / 100);
+            border-radius: 1.8px;
+            background: root.fill;
+            animate width { duration: Theme.anim; }
+        }
+    }
+    // Polo.
+    Rectangle {
+        x: root.body-w + 0.6px;
+        y: (root.height - self.height) / 2;
+        width: 1.8px;
+        height: 4.5px;
+        border-radius: 1px;
+        background: root.tint.with-alpha(0.9);
+    }
+    // Raio (carregando): contorno escuro para destacar sobre o verde.
+    if root.charging: Path {
+        x: (root.body-w - self.width) / 2;
+        y: -2px;
+        width: 11px;
+        height: root.height + 4px;
+        viewbox-width: 9;
+        viewbox-height: 14;
+        fill: #ffffff;
+        stroke: #07090d;
+        stroke-width: 1.4px;
+        commands: "M 5.6 0.4 L 1.0 7.9 L 4.1 7.9 L 3.3 13.6 L 8.0 5.8 L 4.9 5.8 Z";
+    }
+}
