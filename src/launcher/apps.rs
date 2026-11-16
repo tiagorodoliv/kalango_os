@@ -101,7 +101,7 @@ pub fn themed_icon_names(id: &str) -> &'static [&'static str] {
         "music" => &["org.xfce.parole", "parole", "multimedia-audio-player"],
         "documents" => &["folder-documents"],
         "calendar" => &["org.gnome.Calendar", "office-calendar"],
-        "monitor" => &["htop", "utilities-system-monitor", "org.gnome.SystemMonitor"],
+        "monitor" => &["org.gnome.SystemMonitor", "utilities-system-monitor", "htop"],
         "updates" => &["system-software-update", "software-update-available", "update-manager"],
         _ => &[],
     }

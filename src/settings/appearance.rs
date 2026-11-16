@@ -147,18 +147,19 @@ fn sync_gtk_css(accent_index: i32, window_buttons: i32) {
     else {
         return;
     };
-    let path = base.join("gtk-3.0/gtk.css");
-    let current = fs::read_to_string(&path).ok();
-    if current.as_deref().is_some_and(|t| !t.starts_with(GTK_MARK)) {
-        return;
-    }
-    let wanted = gtk_css(accent_index, window_buttons);
-    if current.as_deref() == Some(wanted.as_str()) {
-        return;
-    }
-    let _ = fs::create_dir_all(base.join("gtk-3.0"));
-    if let Err(err) = fs::write(&path, wanted) {
-        eprintln!("kalango-shell: falha ao gravar {}: {err}", path.display());
+    let accent = ACCENTS[accent_index.clamp(0, 5) as usize];
+    let gtk4 = format!("{GTK_MARK}\n{}", crate::settings::window_buttons::gtk4_css(window_buttons, accent));
+    for (dir, wanted) in [("gtk-3.0", gtk_css(accent_index, window_buttons)), ("gtk-4.0", gtk4)] {
+        let path = base.join(dir).join("gtk.css");
+        let current = fs::read_to_string(&path).ok();
+        // Um gtk.css feito à mão (sem a marca) fica intocado.
+        if current.as_deref().is_some_and(|t| !t.starts_with(GTK_MARK)) || current.as_deref() == Some(wanted.as_str()) {
+            continue;
+        }
+        let _ = fs::create_dir_all(base.join(dir));
+        if let Err(err) = fs::write(&path, wanted) {
+            eprintln!("kalango-shell: falha ao gravar {}: {err}", path.display());
+        }
     }
 }
 

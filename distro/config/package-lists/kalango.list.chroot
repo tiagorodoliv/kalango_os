@@ -43,6 +43,8 @@ mousepad
 geany
 ristretto
 htop
+# "Monitor" do menu: gráficos de CPU, memória, rede e disco (o htop fica de reserva)
+gnome-system-monitor
 parole
 xdg-user-dirs
 

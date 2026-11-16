@@ -32,7 +32,7 @@ use crate::{AppEntry, AppWindow, Apps, DockMenu, DockMenuWindow, Shell, Theme};
 pub const WINDOW_PREFIX: &str = "window:";
 
 /// `app_id` das janelas de cada app do catálogo (sem diferenciar maiúsculas).
-const CATALOG: [(&str, &[&str]); 9] = [
+const CATALOG: [(&str, &[&str]); 10] = [
     ("files", &["thunar", "org.xfce.thunar"]),
     ("terminal", &["foot", "footclient"]),
     ("browser", &["firefox-esr", "firefox", "org.mozilla.firefox"]),
@@ -42,6 +42,7 @@ const CATALOG: [(&str, &[&str]); 9] = [
     ("music", &["org.xfce.parole", "parole"]),
     ("calendar", &["org.gnome.calendar", "gnome-calendar"]),
     ("settings", &["kalango-settings"]),
+    ("monitor", &["org.gnome.systemmonitor", "gnome-system-monitor"]),
 ];
 
 /// Apps do sistema, lidos uma vez (e de novo quando aparece uma janela que

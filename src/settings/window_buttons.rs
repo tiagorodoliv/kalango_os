@@ -102,6 +102,44 @@ pub fn gtk_css(style: i32, accent: &str) -> String {
     }
 }
 
+/// O mesmo para os apps GTK 4/libadwaita (Monitor do Sistema, Loja, Agenda):
+/// lá o desenho do botão fica na imagem dentro dele
+/// (`windowcontrols > button > image`). Vai para `~/.config/gtk-4.0/gtk.css`.
+pub fn gtk4_css(style: i32, accent: &str) -> String {
+    const B: &str = "windowcontrols > button";
+    const I: &str = "windowcontrols > button > image";
+    match style {
+        1 => format!(
+            "{I} {{ min-width: 14px; min-height: 14px; padding: 0; margin: 0 1px; \
+             color: transparent; box-shadow: none; -gtk-icon-size: 10px; }}\n\
+             {B}.close > image {{ background-color: #ff5f57; }}\n\
+             {B}.minimize > image {{ background-color: #febc2e; }}\n\
+             {B}.maximize > image {{ background-color: #28c840; }}\n\
+             {B}:hover > image {{ color: rgba(59, 10, 10, 0.8); }}\n\
+             {B}:backdrop > image {{ background-color: #4b5563; }}\n\
+             {B}, {B}:hover, {B}:active {{ background: none; box-shadow: none; }}\n"
+        ),
+        2 => format!(
+            "{I} {{ background-color: alpha(white, 0.11); color: #e6edf3; }}\n\
+             {B}:hover > image {{ background-color: alpha(white, 0.22); }}\n"
+        ),
+        3 => format!(
+            "{I} {{ background-color: transparent; color: {accent}; }}\n\
+             {B}:hover > image {{ background-color: {accent}; color: #04121a; }}\n\
+             {B}.close:hover > image {{ background-color: #f07178; }}\n\
+             {B}:backdrop > image {{ color: #8b98a5; }}\n"
+        ),
+        4 => format!(
+            "{I} {{ background-color: transparent; border-radius: 0; color: #e6edf3; }}\n\
+             {B} {{ border-radius: 0; min-width: 40px; }}\n\
+             {B}:hover {{ background-color: alpha(white, 0.12); }}\n\
+             {B}.close:hover {{ background-color: #e81123; }}\n\
+             {B}.close:hover > image {{ color: white; }}\n"
+        ),
+        _ => String::new(),
+    }
+}
+
 /// Põe o lado dos botões no GSettings (o GTK do Chrome, Firefox e apps GNOME
 /// lê na hora). Só grava se mudou.
 fn sync_gtk_layout(side: i32) {
@@ -286,7 +324,12 @@ mod tests {
 
     #[test]
     fn botoes_no_gtk() {
-        assert!(gtk_css(0, "#3dd6f5").is_empty());
+        assert!(gtk_css(0, "#3dd6f5").is_empty() && gtk4_css(0, "#3dd6f5").is_empty());
+        assert!(gtk4_css(1, "#3dd6f5").contains("windowcontrols > button.close > image { background-color: #ff5f57; }"));
+        for st in 1..5 {
+            let c = gtk4_css(st, "#3dd6f5");
+            assert_eq!(c.matches('{').count(), c.matches('}').count(), "gtk4 estilo {st}");
+        }
         let c = gtk_css(1, "#3dd6f5");
         assert!(c.contains("headerbar button.titlebutton.close, .titlebar button.titlebutton.close { background-color: #ff5f57; }"));
         assert!(gtk_css(3, "#a78bfa").contains("color: #a78bfa;"));

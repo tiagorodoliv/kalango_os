@@ -138,7 +138,12 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
         "documents" => vec!["thunar".into(), documents_dir(&home)],
         "images" => vec!["ristretto".into(), pictures_dir(&home)],
         "music" => vec!["parole".into()],
-        "monitor" => vec!["foot".into(), "--title=Monitor".into(), "htop".into()],
+        // Monitor do Sistema do GNOME (gráficos de CPU, memória, rede e disco);
+        // sem ele, o htop no terminal.
+        "monitor" => match find_in_path("gnome-system-monitor") {
+            Some(_) => vec!["gnome-system-monitor".into()],
+            None => vec!["foot".into(), "--title=Monitor".into(), "htop".into()],
+        },
         // Ícones de Wi-Fi e volume da barra superior.
         // Editor gráfico do NetworkManager (opções raras: 802.1X, VLAN, ponte...);
         // sem ele, o nmtui no terminal.
