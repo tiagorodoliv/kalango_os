@@ -71,6 +71,9 @@ const HIDDEN_PROGRAMS: &[&str] = &[
     "footclient",
 ];
 
+/// Argumentos do `kalango-shell` que são apps de verdade (aparecem no menu).
+const SHELL_APPS: &[&str] = &["--calculadora"];
+
 /// Lê um `.desktop`. Devolve `None` para o que não deve aparecer no menu:
 /// não é aplicativo, está oculto (`NoDisplay`/`Hidden`), é só de outro
 /// ambiente (`OnlyShowIn`) ou não tem `Exec`.
@@ -140,7 +143,10 @@ pub fn parse(path: &Path, content: &str) -> Option<DesktopApp> {
         terminal,
         wm_class,
     };
-    if HIDDEN_PROGRAMS.contains(&app.program()) {
+    // Os atalhos do próprio shell ficam de fora (papel de parede...), menos os
+    // apps dele, como a Calculadora (kalango-shell --calculadora).
+    let shell_app = app.program() == "kalango-shell" && app.argv.iter().any(|a| SHELL_APPS.contains(&a.as_str()));
+    if HIDDEN_PROGRAMS.contains(&app.program()) && !shell_app {
         return None;
     }
     app.keywords = format!("{generic}{keywords} {}", app.program());
@@ -498,6 +504,10 @@ Exec=gimp-2.10 --new
         let base = "[Desktop Entry]\nType=Application\nName=A\nExec=a\n";
         assert!(parse(p, base).is_some());
         assert!(parse(p, &format!("{base}NoDisplay=true\n")).is_none());
+        // Atalhos do shell: só os apps dele aparecem.
+        let shell = "[Desktop Entry]\nType=Application\nName=Calculator\nExec=kalango-shell --calculadora\n";
+        assert!(parse(p, shell).is_some());
+        assert!(parse(p, &shell.replace("--calculadora", "--papel-de-parede %f")).is_none());
         assert!(parse(p, &format!("{base}Hidden=true\n")).is_none());
         assert!(parse(p, &format!("{base}OnlyShowIn=GNOME;\n")).is_none());
         assert!(parse(p, "[Desktop Entry]\nType=Link\nName=A\nExec=a\n").is_none());
