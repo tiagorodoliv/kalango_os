@@ -16,7 +16,7 @@
 //!   `org.kalango.energia`, senha do administrador).
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, SystemTime};
 
@@ -134,30 +134,24 @@ fn read_prefs() -> Prefs {
     config_path().and_then(|p| fs::read_to_string(p).ok()).map(|t| Prefs::parse(&t)).unwrap_or_default()
 }
 
-/// Na tomada (algum carregador `Mains` ligado). Sem bateria: sempre.
+/// Na tomada (algum carregador `Mains` ligado). Sem bateria do computador
+/// (a de mouse ou fone sem fio não conta): sempre.
 pub fn on_ac() -> bool {
-    let Ok(dir) = fs::read_dir("/sys/class/power_supply") else { return true };
-    let mut has_battery = false;
-    let mut mains_online = false;
-    for e in dir.flatten() {
-        let p = e.path();
-        match fs::read_to_string(p.join("type")).unwrap_or_default().trim() {
-            "Battery" => has_battery = true,
-            "Mains" | "USB" => {
-                mains_online |= fs::read_to_string(p.join("online")).is_ok_and(|v| v.trim() == "1");
-            }
-            _ => {}
-        }
+    if crate::common::system::battery_path().is_none() {
+        return true;
     }
-    !has_battery || mains_online
+    let Ok(dir) = fs::read_dir("/sys/class/power_supply") else { return true };
+    dir.flatten().any(|e| {
+        let p = e.path();
+        matches!(fs::read_to_string(p.join("type")).unwrap_or_default().trim(), "Mains" | "USB")
+            && fs::read_to_string(p.join("online")).is_ok_and(|v| v.trim() == "1")
+    })
 }
 
 /// O computador tem tampa (notebook).
 fn has_lid() -> bool {
     fs::read_dir("/proc/acpi/button/lid").is_ok_and(|mut d| d.next().is_some())
-        || Path::new("/sys/class/power_supply").read_dir().is_ok_and(|d| {
-            d.flatten().any(|e| fs::read_to_string(e.path().join("type")).is_ok_and(|t| t.trim() == "Battery"))
-        })
+        || crate::common::system::battery_path().is_some()
 }
 
 fn command_ok(program: &str, args: &[&str]) -> Option<String> {

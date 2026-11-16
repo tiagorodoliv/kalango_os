@@ -66,8 +66,16 @@ pub(crate) fn battery_path() -> Option<PathBuf> {
         .flatten()
         .map(|entry| entry.path())
         .find(|path| {
-            fs::read_to_string(path.join("type")).is_ok_and(|t| t.trim() == "Battery")
+            let read = |f: &str| fs::read_to_string(path.join(f)).unwrap_or_default();
+            is_system_battery(&read("type"), &read("scope"))
         })
+}
+
+/// Bateria do próprio computador: tipo "Battery" e sem `scope=Device`, que é
+/// a de mouse, teclado ou fone sem fio (num desktop, a do mouse aparecia na
+/// barra como se fosse a do computador).
+fn is_system_battery(kind: &str, scope: &str) -> bool {
+    kind.trim() == "Battery" && scope.trim() != "Device"
 }
 
 /// Carga da primeira bateria encontrada (0–100); `None` se não houver bateria.
@@ -136,6 +144,14 @@ pub fn start(ui: &AppWindow) -> Timer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bateria_do_computador_e_nao_do_mouse() {
+        assert!(is_system_battery("Battery\n", ""));
+        assert!(is_system_battery("Battery", "System\n"));
+        assert!(!is_system_battery("Battery", "Device\n"));
+        assert!(!is_system_battery("Mains", ""));
+    }
 
     #[test]
     fn le_linha_agregada_do_proc_stat() {
