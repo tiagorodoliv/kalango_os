@@ -231,8 +231,14 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (`senha-ok` depois do login). Configurações → Usuários: Definir/Alterar/Remover PIN (senha conferida pelo
   `unix_chkpwd`, que exige `\0` no fim); login mostra "Senha ou PIN" (`Shell.login-has-pin`). Testado com pamtester.
   Testar o `passwd` alimentado por pipe: `script -qec passwd` com `sleep` entre as respostas e `LC_ALL=C`.
-- **Swap do instalador (2026-11-16):** sem `partition.conf` (Debian e pacote calamares não trazem) o Calamares fazia swap do
-  tamanho da RAM; `etc/calamares/modules/partition.conf` deixa a pequena (até 4 GB) como padrão.
+- **Swap (2026-11-17, pedido do Tiago: sem swap ou a pessoa escolhe o tamanho):** instalador sem partição swap
+  por padrão (`partition.conf`: `initialSwapChoice: none`; ainda dá para escolher pequena ou hibernar) e o
+  `shellprocess@kalango` roda `/usr/local/lib/kalango/sem-hibernar.sh`, que tira o `resume=` do GRUB quando a swap
+  não cabe a RAM (o Calamares o põe sempre; sem a swap, o boot esperava por ela). Depois de instalado:
+  Configurações → Energia → **Memória de troca** = arquivo `/swapfile` (0/2/4/8/16/32 GB, como no Ubuntu) pelo
+  `pkexec /usr/local/sbin/kalango-swap N` (`org.kalango.swap`; prioridade 10, abaixo da zram de 100; btrfs com
+  `mkswapfile`; código 2 = sem espaço); `power::parse_swaps` lê `/proc/swaps` e mostra zram e partição antiga.
+  Particionamento manual em UEFI: a FAT32 tem de ir em `/boot/efi` com a flag boot, senão não há GRUB.
 - **Calamares 3.3 (trixie) lê o shell só de `user:` → `shell:`**; a chave antiga `userShell` é ignorada (o hook
   `0140` grava as duas). Antes disso a instalação limpa criava o usuário com bash, sem o prompt do Kali.
 - **Apps abertos na dock e Alt+Tab (2026-11-14):** `src/shell/toplevels.rs` (wlr-foreign-toplevel, conexão própria numa

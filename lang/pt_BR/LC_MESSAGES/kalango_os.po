@@ -1556,3 +1556,16 @@ msgstr "Configurações de rede..."
 
 msgid "VPN settings..."
 msgstr "Configurações de VPN..."
+
+# Energia → Memória de troca (2026-11-17)
+msgid "SWAP MEMORY"
+msgstr "MEMÓRIA DE TROCA (SWAP)"
+
+msgid "Swap file on disk"
+msgstr "Arquivo de swap no disco"
+
+msgid "None (memory only)"
+msgstr "Nenhum (só a memória)"
+
+msgid "Optional. Compressed memory (zram) is always on; a swap file only helps when programs use more memory than the computer has."
+msgstr "Opcional. A memória comprimida (zram) fica sempre ligada; um arquivo de swap só ajuda quando os programas usam mais memória do que o computador tem."

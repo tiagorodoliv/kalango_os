@@ -415,6 +415,14 @@ export global Power {
     callback save();
     /// Grava tampa e botão no sistema (pkexec).
     callback save-system();
+    /// Arquivo de swap: posição em `power::SWAP_GB` (0 = nenhum, 1 = 2 GB...).
+    in-out property <int> swap-size: 0;
+    /// Resumo da swap que existe (zram e partição antiga).
+    in property <string> swap-summary: "";
+    in property <bool> swap-busy: false;
+    in-out property <string> swap-message: "";
+    /// Cria, troca ou remove o arquivo de swap (pkexec).
+    callback set-swap(int);
 }
 
 /// Uma conta de pessoa (Configurações → Usuários e tela de login).

@@ -14,6 +14,11 @@
 //!   `pkexec /usr/local/sbin/kalango-energia` grava
 //!   `/etc/systemd/logind.conf.d/50-kalango.conf` (política
 //!   `org.kalango.energia`, senha do administrador).
+//! - **Memória de troca (swap)**: a zram (swap comprimida na memória) fica
+//!   sempre ligada; um arquivo de swap no disco (`/swapfile`, como no Ubuntu)
+//!   é opcional e a pessoa escolhe o tamanho. `pkexec
+//!   /usr/local/sbin/kalango-swap TAMANHO_GB` (política `org.kalango.swap`).
+//!   Partições swap de instalações antigas só aparecem como informação.
 
 use std::fs;
 use std::path::PathBuf;
@@ -37,6 +42,66 @@ pub const BUTTON_ACTIONS: [&str; 3] = ["poweroff", "suspend", "ignore"];
 /// Perfis do power-profiles-daemon na ordem da tela.
 pub const PROFILES: [&str; 3] = ["power-saver", "balanced", "performance"];
 /// Arquivo do logind gravado pelo `kalango-energia`.
+/// Tamanhos do arquivo de swap (GB) na ordem da página; 0 = sem arquivo.
+pub const SWAP_GB: [u32; 6] = [0, 2, 4, 8, 16, 32];
+
+/// Swap em uso, lida de `/proc/swaps` (tamanhos em kB).
+#[derive(Debug, Default, PartialEq)]
+pub struct SwapInfo {
+    /// Tamanho do `/swapfile` (`None` = não há).
+    pub file_kb: Option<u64>,
+    /// Soma das partições swap (instalações antigas).
+    pub partitions_kb: u64,
+    /// Swap comprimida na memória (zram).
+    pub zram_kb: u64,
+}
+
+/// Lê o conteúdo de `/proc/swaps`.
+pub fn parse_swaps(text: &str) -> SwapInfo {
+    let mut info = SwapInfo::default();
+    for line in text.lines().skip(1) {
+        let f: Vec<&str> = line.split_whitespace().collect();
+        let (Some(name), Some(size)) = (f.first(), f.get(2).and_then(|s| s.parse::<u64>().ok())) else { continue };
+        if name.starts_with("/dev/zram") {
+            info.zram_kb += size;
+        } else if *name == "/swapfile" {
+            info.file_kb = Some(size);
+        } else if f.get(1) == Some(&"partition") {
+            info.partitions_kb += size;
+        }
+    }
+    info
+}
+
+/// Posição em [`SWAP_GB`] mais perto do tamanho do arquivo.
+pub fn swap_index(file_kb: Option<u64>) -> i32 {
+    let Some(kb) = file_kb else { return 0 };
+    let gb = kb as f64 / 1024.0 / 1024.0;
+    SWAP_GB
+        .iter()
+        .enumerate()
+        .skip(1)
+        .min_by(|a, b| (*a.1 as f64 - gb).abs().total_cmp(&(*b.1 as f64 - gb).abs()))
+        .map_or(0, |(i, _)| i as i32)
+}
+
+/// Texto do resumo da swap ("Memória comprimida: 4 GB · partição antiga: 34 GB").
+fn swap_summary(info: &SwapInfo) -> String {
+    let gb = |kb: u64| format!("{:.0} GB", kb as f64 / 1024.0 / 1024.0);
+    let mut parts = vec![format!("{} {}", tr("Compressed memory (zram):", "Memória comprimida (zram):"), gb(info.zram_kb))];
+    if info.partitions_kb > 0 {
+        parts.push(format!("{} {}", tr("swap partition:", "partição swap:"), gb(info.partitions_kb)));
+    }
+    parts.join(" · ")
+}
+
+/// Mostra o estado da swap na página.
+fn show_swap(pw: &Power) {
+    let info = parse_swaps(&fs::read_to_string("/proc/swaps").unwrap_or_default());
+    pw.set_swap_size(swap_index(info.file_kb));
+    pw.set_swap_summary(swap_summary(&info).into());
+}
+
 pub const LOGIND_CONF: &str = "/etc/systemd/logind.conf.d/50-kalango.conf";
 
 /// Escolhas da pessoa (`energia.conf`), em minutos.
@@ -179,6 +244,38 @@ fn install_settings(ui: &AppWindow) {
     pw.set_lid_battery(pos(&LID_ACTIONS, &lid));
     pw.set_lid_ac(pos(&LID_ACTIONS, &lid_ac));
     pw.set_power_button(pos(&BUTTON_ACTIONS, &button));
+
+    show_swap(&pw);
+    let weak = ui.as_weak();
+    pw.on_set_swap(move |i| {
+        let Some(gb) = SWAP_GB.get(i.max(0) as usize).copied() else { return };
+        let Some(ui) = weak.upgrade() else { return };
+        let pw = ui.global::<Power>();
+        pw.set_swap_busy(true);
+        pw.set_swap_message(tr("Changing the swap file...", "Mudando o arquivo de swap...").into());
+        let weak = weak.clone();
+        std::thread::spawn(move || {
+            let out = Command::new("pkexec")
+                .args(["/usr/local/sbin/kalango-swap", &gb.to_string()])
+                .stdin(Stdio::null())
+                .output();
+            let _ = slint::invoke_from_event_loop(move || {
+                let Some(ui) = weak.upgrade() else { return };
+                let pw = ui.global::<Power>();
+                pw.set_swap_busy(false);
+                let msg = match &out {
+                    Ok(o) if o.status.success() => tr("Saved.", "Salvo.").to_string(),
+                    Ok(o) if o.status.code() == Some(2) => {
+                        tr("Not enough free disk space for this size.", "Não há espaço livre no disco para esse tamanho.").to_string()
+                    }
+                    _ => tr("Not saved (no permission).", "Não foi salvo (sem permissão).").to_string(),
+                };
+                pw.set_swap_message(msg.into());
+                // Mostra o que ficou de fato (voltou atrás se não deu certo).
+                show_swap(&pw);
+            });
+        });
+    });
 
     // Modo de energia (sem o power-profiles-daemon, a seção some). Numa
     // thread: o powerprofilesctl é um script Python e leva ~0,8 s para as duas
@@ -360,6 +457,20 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn le_a_swap_em_uso() {
+        let text = "Filename\tType\tSize\tUsed\tPriority\n\
+                    /dev/zram0                              partition\t4194300\t0\t100\n\
+                    /dev/sda3                               partition\t36030636\t0\t-2\n\
+                    /swapfile                               file\t8388604\t0\t10\n";
+        let info = parse_swaps(text);
+        assert_eq!(info, SwapInfo { file_kb: Some(8388604), partitions_kb: 36030636, zram_kb: 4194300 });
+        // 8 GB → posição de 8 em SWAP_GB; sem arquivo → 0 ("nenhum").
+        assert_eq!(SWAP_GB[swap_index(info.file_kb) as usize], 8);
+        assert_eq!(swap_index(None), 0);
+        assert_eq!(SWAP_GB[swap_index(Some(2 * 1024 * 1024 - 4))as usize], 2);
+    }
 
     #[test]
     fn escolhas_no_arquivo() {

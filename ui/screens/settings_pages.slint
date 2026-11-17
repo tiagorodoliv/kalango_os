@@ -1303,6 +1303,32 @@ export component PowerPage inherits Rectangle {
                 font-size: 13px;
             }
 
+            SectionLabel { text: @tr("SWAP MEMORY"); }
+            Panel {
+                height: 67px;
+                Row {
+                    title: @tr("Swap file on disk");
+                    subtitle: Power.swap-summary;
+                    divider: false;
+                    Dropdown {
+                        x: parent.width - self.width - 20px;
+                        width: root.control;
+                        enabled: !Power.swap-busy;
+                        options: [@tr("None (memory only)"), "2 GB", "4 GB", "8 GB", "16 GB", "32 GB"];
+                        selected: Power.swap-size;
+                        chosen(i) => { Power.swap-size = i; Power.set-swap(i); }
+                    }
+                }
+            }
+            Text {
+                text: Power.swap-message != "" ? Power.swap-message
+                    : @tr("Optional. Compressed memory (zram) is always on; a swap file only helps when programs use more memory than the computer has.");
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13px;
+                wrap: word-wrap;
+            }
+
             SectionLabel { text: @tr("SHUT DOWN"); }
             HorizontalLayout {
                 alignment: start;

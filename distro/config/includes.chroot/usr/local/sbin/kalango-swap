@@ -1,0 +1,67 @@
+#!/bin/sh
+# Arquivo de swap do KalangOS (Configurações → Energia → Memória de troca).
+# Roda como root pelo pkexec (política org.kalango.swap).
+#
+#   kalango-swap TAMANHO_GB
+#       0                  remove o /swapfile (fica só a zram, na memória)
+#       1 2 4 8 16 32      cria (ou troca) o /swapfile com esse tamanho
+#
+# Como no Ubuntu: swap num arquivo, sem partição, que se muda a qualquer hora.
+# A zram (swap comprimida na própria memória) continua ligada em qualquer caso.
+# Não mexe em partições swap que já existam (instalações antigas).
+set -eu
+
+ARQ=/swapfile
+FSTAB=/etc/fstab
+
+[ $# -eq 1 ] || {
+	echo "uso: kalango-swap TAMANHO_GB" >&2
+	exit 1
+}
+case "$1" in
+0 | 1 | 2 | 4 | 8 | 16 | 32) gb=$1 ;;
+*)
+	echo "kalango-swap: tamanho inválido: $1" >&2
+	exit 1
+	;;
+esac
+
+# Tira o arquivo atual (se existir), da memória e do fstab.
+remover() {
+	if grep -q "^$ARQ " /proc/swaps 2>/dev/null; then
+		swapoff "$ARQ"
+	fi
+	rm -f "$ARQ"
+	sed -i "\|^$ARQ[[:space:]]|d" "$FSTAB"
+}
+
+if [ "$gb" -eq 0 ]; then
+	remover
+	echo "sem arquivo de swap"
+	exit 0
+fi
+
+# Espaço: o tamanho pedido + 2 GB de folga no disco do sistema (contando o
+# arquivo atual, que sai antes).
+livre_kb=$(df -Pk / | awk 'NR == 2 { print $4 }')
+atual_kb=0
+[ -f "$ARQ" ] && atual_kb=$(($(stat -c %s "$ARQ") / 1024))
+if [ $((livre_kb + atual_kb)) -lt $(((gb + 2) * 1024 * 1024)) ]; then
+	echo "kalango-swap: sem espaço no disco para ${gb} GB" >&2
+	exit 2
+fi
+
+remover
+if [ "$(stat -f -c %T /)" = btrfs ]; then
+	# Btrfs precisa de arquivo sem cópia na escrita e sem compressão.
+	btrfs filesystem mkswapfile --size "${gb}g" "$ARQ" >/dev/null
+else
+	fallocate -l "${gb}G" "$ARQ" 2>/dev/null || dd if=/dev/zero of="$ARQ" bs=1M count=$((gb * 1024)) status=none
+	chmod 600 "$ARQ"
+	mkswap "$ARQ" >/dev/null
+fi
+chmod 600 "$ARQ"
+# Prioridade menor que a da zram (que é 100): a memória comprimida vem antes.
+swapon --priority 10 "$ARQ"
+echo "$ARQ none swap sw,pri=10 0 0" >>"$FSTAB"
+echo "arquivo de swap: ${gb} GB"
