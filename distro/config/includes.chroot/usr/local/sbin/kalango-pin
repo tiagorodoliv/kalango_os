@@ -46,20 +46,46 @@ arquivo_do_pin() {
 	echo "$arq"
 }
 
-# Tentativas erradas registradas (arquivo ausente ou estranho = 0).
+# Tentativas erradas registradas (arquivo ausente ou estranho = 0). $1 = o
+# arquivo do PIN, $2 = a conta. Só vale um contador que seja arquivo comum da
+# própria pessoa: a pasta é 1733 e outra conta poderia plantar um falso.
 falhas_de() {
-	n=$(head -c 8 -- "$1.falhas" 2>/dev/null)
+	f=$1.falhas
+	[ -f "$f" ] && [ ! -L "$f" ] || { echo 0; return; }
+	[ "$(stat -c %u -- "$f")" = "$(id -u -- "$2")" ] || { echo 0; return; }
+	n=$(head -c 8 -- "$f" 2>/dev/null)
 	case "$n" in
 	'' | *[!0-9]*) echo 0 ;;
 	*) echo "$n" ;;
 	esac
 }
 
+# Grava o contador de tentativas ($1 = arquivo do PIN, $2 = conta, $3 = número)
+# sem seguir links: na tela de login isto roda como root, e um link plantado
+# (ex.: fulano.falhas -> /etc/shadow) faria o root sobrescrever e entregar o
+# arquivo para a pessoa. O que não for arquivo comum dela é apagado antes;
+# o dono é trocado no arquivo aberto (fchown), não pelo caminho.
+grava_falhas() {
+	PIN_FALHAS=$1.falhas PIN_UID=$(id -u -- "$2") PIN_N=$3 perl -e '
+		use Fcntl;
+		my $f = $ENV{PIN_FALHAS};
+		if (-l $f || (-e $f && ((lstat $f)[4] != $ENV{PIN_UID} || ! -f _))) {
+			unlink $f or exit 1;
+		}
+		sysopen(my $h, $f, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW, 0600) or exit 1;
+		my @st = stat $h;
+		exit 1 unless -f _;
+		chown $ENV{PIN_UID}, -1, $h if $> == 0;
+		print $h "$ENV{PIN_N}\n";
+		close $h or exit 1;
+	'
+}
+
 case "${1:-}" in
 verificar)
 	conta_valida "${PAM_USER:-}" || exit 1
 	arq=$(arquivo_do_pin "$PAM_USER") || exit 1
-	n=$(falhas_de "$arq")
+	n=$(falhas_de "$arq" "$PAM_USER")
 	[ "$n" -lt "$MAX" ] || exit 1
 	# Confere no perl (crypt da libc, o mesmo do /etc/shadow). Saída 2 = não
 	# parece um PIN (é a senha): não conta como tentativa errada.
@@ -78,11 +104,9 @@ verificar)
 		exit 0
 		;;
 	1)
-		echo $((n + 1)) >"$arq.falhas"
 		# Na tela de login o greetd roda como root: o arquivo fica da pessoa,
 		# para a tela de bloqueio (que roda como ela) poder atualizar.
-		[ "$(id -u)" = 0 ] && chown "$(id -u -- "$PAM_USER")" "$arq.falhas"
-		chmod 600 "$arq.falhas"
+		grava_falhas "$arq" "$PAM_USER" $((n + 1)) || true
 		exit 1
 		;;
 	*) exit 1 ;;
@@ -135,7 +159,7 @@ estado)
 	eu=$(id -un)
 	if ! arq=$(arquivo_do_pin "$eu"); then
 		echo sem
-	elif [ "$(falhas_de "$arq")" -ge "$MAX" ]; then
+	elif [ "$(falhas_de "$arq" "$eu")" -ge "$MAX" ]; then
 		echo bloqueado
 	else
 		echo ativo
