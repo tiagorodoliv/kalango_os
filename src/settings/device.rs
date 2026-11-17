@@ -205,6 +205,19 @@ pub fn parse_wpctl_description(text: &str) -> Option<String> {
 }
 
 /// Valor de uma chave de `/etc/os-release` (sem aspas).
+/// Codinome da série da versão (planta do sertão), da tabela `distro/codinomes`
+/// embutida no binário: "0.1.1" → "Mandacaru".
+pub fn codename(version: &str) -> Option<&'static str> {
+    let serie: String = version.split('.').take(2).collect::<Vec<_>>().join(".");
+    include_str!("../../distro/codinomes")
+        .lines()
+        .filter(|l| !l.trim_start().starts_with('#'))
+        .find_map(|l| {
+            let mut f = l.split_whitespace();
+            (f.next()? == serie).then(|| f.next()).flatten()
+        })
+}
+
 pub fn os_release_value(text: &str, key: &str) -> Option<String> {
     text.lines().find_map(|l| {
         let v = l.strip_prefix(key)?.strip_prefix('=')?;
@@ -424,7 +437,11 @@ fn now_ms() -> u64 {
 
 /// Ficha do sistema (lida uma vez, ao abrir).
 fn about_items() -> Vec<(String, String)> {
-    let mut items = vec![(tr("Version", "Versão").to_string(), format!("KalangOS {}", env!("CARGO_PKG_VERSION")))];
+    let version = match codename(env!("CARGO_PKG_VERSION")) {
+        Some(name) => format!("KalangOS {} {name}", env!("CARGO_PKG_VERSION")),
+        None => format!("KalangOS {}", env!("CARGO_PKG_VERSION")),
+    };
+    let mut items = vec![(tr("Version", "Versão").to_string(), version)];
     let read = |p: &str| fs::read_to_string(p).ok();
 
     // O os-release é o do KalangOS; a base vem do /etc/debian_version.
@@ -919,6 +936,12 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn codinome_da_versao() {
+        assert_eq!(codename("0.1.1"), Some("Mandacaru"));
+        assert_eq!(codename("9.9.0"), None);
+    }
 
     #[test]
     fn le_perfis_wifi_salvos() {

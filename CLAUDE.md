@@ -374,6 +374,11 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   mesmo arquivo publicado no apt (a 0.1.1-6, com as correções de segurança, chega na 1ª atualização). **Cada ISO leva uma revisão nova** (`KALANGO_REVISAO=N distro/build.sh`) e o
   `.deb` de `distro/out` é publicado junto: mesma versão com outro conteúdo faz o apt da ISO tentar "voltar" de
   versão e o `lb build` falha no fim (o `build.sh` confere isso no início).
+  **Codinomes = plantas do sertão nordestino (2026-11-17, pedido do Tiago), um por série (`distro/codinomes`):
+  0.1 = Mandacaru.** O `build.sh` gera `kalango-os-<versão>-<codinome>[-hardware-novo].iso` e põe no os-release
+  `PRETTY_NAME="KalangOS 0.1 Mandacaru"`, `VERSION=...` e `KALANGO_CODENAME=`; `VERSION_CODENAME` continua `trixie`
+  (scripts de repositórios de terceiros, como Docker e VS Code, leem esse campo). O shell mostra o codinome em Sobre
+  o sistema (`device::codename`, `include_str!` da tabela; o `build.sh` copia `distro/codinomes` para o builder).
   **Duas edições (2026-11-17, pedido do Tiago):** a padrão (kernel 6.12 do Debian 13, para máquinas antigas) e a
   **hardware novo** (`KALANGO_EDICAO=novo` → `kalango-os-<versão>-hardware-novo.iso`): `lb config --backports true` +
   `distro/edicoes/hardware-novo.pref` (pin 990 só para `linux-*`, `firmware-*`, `mesa-*` e libs do Mesa; o resto

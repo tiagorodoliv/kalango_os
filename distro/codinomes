@@ -1,0 +1,9 @@
+# Codinomes das versões do KalangOS: plantas típicas do sertão nordestino,
+# como os nomes de bichos do Ubuntu e os de Toy Story do Debian.
+# Uma linha por série (MAIOR.MENOR do Cargo.toml) e o nome, que vale para as
+# duas edições (padrão e hardware novo). Lido pelo distro/build.sh (nome da ISO
+# e /usr/lib/os-release) e pelo shell (Configurações → Sobre o sistema).
+#
+# Ainda livres: Aroeira, Barriguda, Catingueira, Facheiro, Juazeiro, Jurema,
+# Macambira, Mulungu, Palma, Pau-ferro, Quipá, Umbuzeiro, Xique-xique.
+0.1 Mandacaru

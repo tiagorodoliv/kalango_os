@@ -19,7 +19,8 @@
 #   KALANGO_EDICAO   "novo" = edição para hardware novo: kernel, Mesa e firmware
 #                    do trixie-backports (processadores e placas recentes, como os
 #                    Intel Core Ultra que só funcionam com kernel 7.x); a ISO sai
-#                    como kalango-os-<versão>-hardware-novo.iso
+#                    como kalango-os-<versão>-<codinome>-hardware-novo.iso
+# O codinome (planta do sertão) vem de distro/codinomes.
 set -eu
 
 # Reexecuta como root mantendo o espelho e a revisão do pacote escolhidos.
@@ -35,10 +36,16 @@ OUT="$DISTRO/out"
 # Versão do sistema = versão do pacote do shell (campo version do [package] no Cargo.toml).
 VERSION=$(sed -n 's/^version *= *"\(.*\)"/\1/p' "$ROOT/Cargo.toml" | head -n 1)
 [ -n "$VERSION" ] || { echo "Não consegui ler a versão do Cargo.toml." >&2; exit 1; }
+# Codinome da série (planta do sertão, distro/codinomes): "0.1.1" → "Mandacaru".
+SERIE=$(echo "$VERSION" | cut -d. -f1,2)
+CODINOME=$(awk -v s="$SERIE" '!/^#/ && $1 == s { print $2 }' "$DISTRO/codinomes")
+[ -n "$CODINOME" ] || { echo "Falta o codinome da série $SERIE em distro/codinomes." >&2; exit 1; }
+# Para o nome do arquivo: minúsculas e só letras, números e "-" ("Xique-xique" → "xique-xique").
+SLUG=$(printf '%s' "$CODINOME" | tr '[:upper:]' '[:lower:]' | iconv -f utf-8 -t ascii//TRANSLIT | tr -cd 'a-z0-9-')
 EDICAO="${KALANGO_EDICAO:-padrao}"
 case "$EDICAO" in
-padrao) ISO_NAME="kalango-os-$VERSION.iso" ;;
-novo) ISO_NAME="kalango-os-$VERSION-hardware-novo.iso" ;;
+padrao) ISO_NAME="kalango-os-$VERSION-$SLUG.iso" ;;
+novo) ISO_NAME="kalango-os-$VERSION-$SLUG-hardware-novo.iso" ;;
 *) echo "KALANGO_EDICAO inválida: $EDICAO (use padrao ou novo)" >&2; exit 1 ;;
 esac
 DEB_PRONTO="${KALANGO_DEB:-}"
@@ -120,7 +127,8 @@ if [ -z "$DEB_PRONTO" ]; then
 	mkdir -p "$BUILDER/work/shell"
 	rsync -a --delete \
 		--include='/Cargo.toml' --include='/Cargo.lock' --include='/build.rs' \
-		--include='/src/***' --include='/ui/***' --include='/lang/***' --exclude='*' \
+		--include='/src/***' --include='/ui/***' --include='/lang/***' \
+		--include='/distro/' --include='/distro/codinomes' --exclude='*' \
 		"$ROOT/" "$BUILDER/work/shell/"
 	no_builder "cd /work/shell && cargo build --release --locked"
 fi
@@ -143,6 +151,11 @@ desmontar_iso
 no_builder "cd /work/iso && { [ -x auto/clean ] && lb clean || true; }"
 rsync -a --delete "$DISTRO/auto/" "$BUILDER/work/iso/auto/"
 rsync -a --delete "$DISTRO/config/" "$BUILDER/work/iso/config/"
+# Versão e codinome no os-release da ISO (o do repositório só tem a série base).
+OSR="$BUILDER/work/iso/config/includes.chroot/usr/lib/os-release"
+sed -i -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"KalangOS $SERIE $CODINOME\"|" \
+	-e "s|^VERSION=.*|VERSION=\"$SERIE $CODINOME (base Debian 13 trixie)\"|" "$OSR"
+grep -q '^KALANGO_CODENAME=' "$OSR" || echo "KALANGO_CODENAME=$SLUG" >>"$OSR"
 # O shell vai como pacote (kalango-shell, distro/pacotes/gerar-deb.sh): o dpkg fica
 # dono dos arquivos e as versões novas chegam pelo repositório apt (OTA). Uma
 # cópia do .deb fica em distro/out para publicar com distro/repo/publicar.sh.
