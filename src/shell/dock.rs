@@ -204,9 +204,13 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
 
         retired.retain_mut(|c| c.try_wait().ok().flatten().is_none());
         if wanted != current {
+            let same_edge = matches!((current, wanted), (Some((a, _, _)), Some((b, _, _))) if a == b);
             if let Some(mut c) = child.take() {
-                if wanted.is_some() {
-                    // Outra dock vai abrir: a antiga fica até a nova aparecer.
+                if same_edge {
+                    // Outra dock vai abrir: a antiga fica até a nova aparecer
+                    // (a nova a fecha: session::claim_instance). Só funciona
+                    // entre processos do mesmo tipo: da dock para a faixa da
+                    // dock escondida, a antiga ficava aberta para sempre.
                     retired.push(c);
                 } else {
                     let _ = c.kill();

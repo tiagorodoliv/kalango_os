@@ -209,7 +209,7 @@
       <action name="ResizeTo" width="1" height="1" />
       <action name="MoveTo" x="0" y="0" />
     </windowRule>
-    <!-- Faixa da dock escondida (kalango-shell --dock-gatilho): 2 px na borda,
+    <!-- Faixa da dock escondida (modo dock-gatilho do kalango-shell): 2 px na borda,
          sempre por cima; o mouse encosta e a dock aparece. Posição trocada pelo shell. -->
     <windowRule identifier="kalango-dock-gatilho"
                 serverDecoration="no"

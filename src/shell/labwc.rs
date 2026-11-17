@@ -225,7 +225,7 @@ pub fn set_dock_trigger(position: Option<DockGeometry>) -> bool {
 
 /// Regra da faixa da dock escondida. Fica aqui (e não só no rc.xml do
 /// sistema) porque quem atualiza só pelo apt tem o rc.xml de uma ISO antiga.
-const TRIGGER_RULE: &str = r#"    <!-- Faixa da dock escondida (kalango-shell --dock-gatilho): 2 px na borda,
+const TRIGGER_RULE: &str = r#"    <!-- Faixa da dock escondida (modo dock-gatilho do kalango-shell): 2 px na borda,
          sempre por cima; o mouse encosta e a dock aparece. Posição trocada pelo shell. -->
     <windowRule identifier="kalango-dock-gatilho"
                 serverDecoration="no"
@@ -458,6 +458,43 @@ pub fn sync_layouts_menu() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Comentários XML bem formados: `--` dentro de `<!-- -->` é proibido e o
+    /// labwc perde as regras dali para frente (a dock escondida abria no meio
+    /// da tela, atrás das janelas, em 2026-11-17).
+    fn comments_ok(xml: &str) -> Result<(), String> {
+        let mut rest = xml;
+        while let Some(start) = rest.find("<!--") {
+            let after = &rest[start + 4..];
+            let end = after.find("-->").ok_or("comentário sem fim")?;
+            let inner = &after[..end];
+            if inner.contains("--") || inner.ends_with('-') {
+                return Err(format!("\"--\" dentro do comentário: {inner}"));
+            }
+            rest = &after[end + 3..];
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn rc_xml_gerado_e_bem_formado() {
+        let system = include_str!("../../distro/config/includes.chroot/etc/xdg/labwc/rc.xml");
+        comments_ok(system).unwrap();
+        // Com tudo o que o shell troca: margem, dock, faixa, monitores, botões.
+        let g = DockGeometry { x: 1059, y: 1010, width: 443, height: 62 };
+        let w = Wanted {
+            margins: Some(Margins { bottom: 70, left: 0, right: 0 }),
+            dock: Some(g),
+            dock_trigger: Some(DockGeometry { y: 1078, height: 2, ..g }),
+            primary: Some(("HDMI-A-1".into(), 0, 0)),
+            backgrounds: vec![("DP-1".into(), 2560, 0)],
+            window_theme: Some(("Kalango-Janelas".into(), "close,iconify,max:".into())),
+        };
+        let xml = build(system, &w).expect("build");
+        comments_ok(&xml).unwrap();
+        comments_ok(TRIGGER_RULE).unwrap();
+        assert!(xml.contains("kalango-dock-gatilho") && xml.contains("width=\"443\" height=\"2\""));
+    }
 
     #[test]
     fn posicao_da_janela_da_dock() {
