@@ -129,7 +129,61 @@ impl Mode {
 
 /// Diz se estamos na sessão real do KalangOS (`KALANGO_SESSION=1`).
 pub fn is_native() -> bool {
-    std::env::var("KALANGO_SESSION").is_ok_and(|v| v == "1")
+    static NATIVE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *NATIVE.get_or_init(|| {
+        std::env::var("KALANGO_SESSION").is_ok_and(|v| v == "1")
+            && std::env::current_exe().is_ok_and(|p| is_shell_binary(&p))
+    })
+}
+
+/// O executável é o próprio shell (`kalango-shell` instalado ou o
+/// `kalango_os` do cargo), e não um exemplo, um teste ou outra ferramenta.
+///
+/// Proteção: com `KALANGO_SESSION=1` herdado da sessão, o `examples/snapshot`
+/// se achava a área de trabalho, abria a dock com o próprio executável (ele
+/// mesmo), que abria outra... e travou a máquina (2026-11-17). Só o binário
+/// do shell age como sessão real; o resto é sempre protótipo.
+pub fn is_shell_binary(path: &Path) -> bool {
+    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    // Binário trocado por uma atualização com o shell rodando: "... (deleted)".
+    let name = name.strip_suffix(" (deleted)").unwrap_or(&name);
+    matches!(name, "kalango-shell" | "kalango_os")
+}
+
+/// Trava da área de trabalho (fica aberta enquanto o processo vive).
+static DESKTOP_LOCK: std::sync::OnceLock<fs::File> = std::sync::OnceLock::new();
+
+/// Uma área de trabalho por sessão: trava (`flock`) em `$XDG_RUNTIME_DIR`.
+///
+/// É a área de trabalho que abre a dock, os fundos e o Alt+Tab; duas delas
+/// abririam tudo em dobro (e, em cascata, travam a máquina). A segunda espera
+/// até 5 s, para a troca de monitor principal (a antiga abre a nova e sai),
+/// e desiste se a outra continuar viva. O descritor é `O_CLOEXEC` (padrão do
+/// Rust): os processos abertos pela área de trabalho não herdam a trava.
+fn claim_desktop() -> bool {
+    let Some(dir) = std::env::var_os("XDG_RUNTIME_DIR") else {
+        return true;
+    };
+    let Ok(file) = fs::OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(Path::new(&dir).join("kalango-shell-area-de-trabalho.lock"))
+    else {
+        return true;
+    };
+    for _ in 0..50 {
+        match file.try_lock() {
+            Ok(()) => {
+                let _ = DESKTOP_LOCK.set(file);
+                return true;
+            }
+            Err(std::fs::TryLockError::WouldBlock) => std::thread::sleep(Duration::from_millis(100)),
+            Err(_) => return true,
+        }
+    }
+    eprintln!("kalango-shell: já há uma área de trabalho nesta sessão; saindo");
+    false
 }
 
 /// Comando que abre um app do catálogo (`Apps.pinned` em `ui/globals.slint`).
@@ -419,10 +473,14 @@ pub fn watch_page_requests(ui: &AppWindow) -> Option<Timer> {
 ///
 /// Usa um arquivo com o PID em `$XDG_RUNTIME_DIR`. Se já existe outra
 /// instância viva: o launcher e o painel a fecham (o mesmo clique abre e
-/// fecha) e as Configurações não abrem outra janela. Devolve `false` quando este processo
+/// fecha) e as Configurações não abrem outra janela. A área de trabalho é
+/// única por sessão ([`claim_desktop`]). Devolve `false` quando este processo
 /// deve sair sem mostrar nada.
 pub fn claim_instance(mode: Mode) -> bool {
-    if matches!(mode, Mode::Desktop | Mode::Greeter | Mode::Switcher) {
+    if mode == Mode::Desktop {
+        return !is_native() || claim_desktop();
+    }
+    if matches!(mode, Mode::Greeter | Mode::Switcher) {
         return true;
     }
     let Some(dir) = std::env::var_os("XDG_RUNTIME_DIR") else {
@@ -520,6 +578,16 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn so_o_binario_do_shell_e_sessao_real() {
+        assert!(is_shell_binary(Path::new("/usr/local/bin/kalango-shell")));
+        assert!(is_shell_binary(Path::new("/usr/local/bin/kalango-shell (deleted)")));
+        assert!(is_shell_binary(Path::new("target/vm/kalango_os")));
+        // Exemplo e testes do cargo: sempre protótipo.
+        assert!(!is_shell_binary(Path::new("target/vm/examples/snapshot")));
+        assert!(!is_shell_binary(Path::new("target/vm/deps/kalango_os-1a2b3c")));
+    }
 
     #[test]
     fn fundo_pelos_argumentos() {

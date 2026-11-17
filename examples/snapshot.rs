@@ -56,7 +56,24 @@ fn save(window: &MinimalSoftwareWindow, path: &Path) {
     println!("gerado {}", path.display());
 }
 
+/// Variáveis da sessão real que fariam o exemplo agir como a área de
+/// trabalho de verdade: abrir a dock (com o próprio exemplo como executável),
+/// regravar o `~/.config/labwc/rc.xml` e chamar o `labwc --reconfigure`.
+const SESSION_VARS: [&str; 5] = ["KALANGO_SESSION", "LABWC_PID", "WAYLAND_DISPLAY", "DISPLAY", "XDG_RUNTIME_DIR"];
+
 fn main() {
+    // Chamado como processo do shell (`--dock`, `--launcher`...): isso só
+    // acontece se algo o confundiu com o kalango-shell. Sai na hora, para
+    // nunca abrir processos em cascata (travou a máquina em 2026-11-17).
+    if std::env::args().nth(1).is_some_and(|a| a.starts_with("--")) {
+        eprintln!("snapshot: argumento do kalango-shell ignorado; saindo");
+        std::process::exit(0);
+    }
+    // Sempre o protótipo, mesmo rodando dentro de uma sessão do KalangOS.
+    for var in SESSION_VARS {
+        // SAFETY: ainda sem outras threads (o Slint não foi iniciado).
+        unsafe { std::env::remove_var(var) };
+    }
     let out: PathBuf = std::env::args()
         .nth(1)
         .map(PathBuf::from)
