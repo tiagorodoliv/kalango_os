@@ -66,7 +66,7 @@ cat >"$P/DEBIAN/control" <<CTRL
 Package: kalango-shell
 Version: $VERSAO
 Architecture: amd64
-Maintainer: KalangOS <repo@kalangos.easysmartcontroll.com>
+Maintainer: KalangOS <repo@kalangos.org>
 Section: x11
 Priority: optional
 Depends: labwc, libc6, foot, zsh, zsh-autosuggestions, zsh-syntax-highlighting, fonts-droid-fallback
@@ -117,6 +117,21 @@ if [ "$1" = configure ]; then
 		done
 		mkdir -p "${MARCA%/*}"
 		date -Iseconds >"$MARCA"
+	fi
+fi
+
+if [ "$1" = configure ]; then
+	# Repositório no domínio do projeto (2026-11-17): sistemas instalados antes
+	# apontavam para kalangos.easysmartcontroll.com, que continua servindo os
+	# mesmos arquivos. Só troca a linha URIs do nosso arquivo; um feito à mão
+	# com outro endereço fica como está.
+	FONTE=/etc/apt/sources.list.d/kalango.sources
+	if [ -f "$FONTE" ]; then
+		sed -i 's|^URIs: https://kalangos\.easysmartcontroll\.com/apt$|URIs: https://kalangos.org/apt|' "$FONTE"
+	fi
+	# os-release (protegido do base-files pelo hook 0050): o site novo.
+	if [ -f /usr/lib/os-release ]; then
+		sed -i 's|^HOME_URL="https://kalangos\.easysmartcontroll\.com/"$|HOME_URL="https://kalangos.org/"|' /usr/lib/os-release
 	fi
 fi
 

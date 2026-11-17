@@ -5,6 +5,6 @@ VERSION="0.1 (base Debian 13 trixie)"
 VERSION_CODENAME=trixie
 ID=kalango
 ID_LIKE=debian
-HOME_URL="https://kalangos.easysmartcontroll.com/"
+HOME_URL="https://kalangos.org/"
 SUPPORT_URL="https://github.com/tiagorodoliv/kalango_os/discussions"
 BUG_REPORT_URL="https://github.com/tiagorodoliv/kalango_os/issues"

@@ -11,7 +11,12 @@
 # Sem .deb: só reassina e envia o que já está lá.
 #
 # No sistema: /etc/apt/sources.list.d/kalango.sources aponta para
-# https://kalangos.easysmartcontroll.com/apt (suite trixie, componente main).
+# https://kalangos.org/apt (suite trixie, componente main; até 2026-11-17 era
+# kalangos.easysmartcontroll.com/apt, que continua servindo os mesmos arquivos).
+#
+# Antes de montar, com KALANGO_REPO_DESTINO, traz do servidor os pacotes que já
+# estão lá: o envio usa --delete, e uma cópia local atrasada (publicada de outra
+# máquina) apagaria do servidor as versões que ela não tem.
 set -eu
 
 REPO=${KALANGO_REPO:-$HOME/.local/share/kalango-repo}
@@ -23,6 +28,11 @@ DIST="$WWW/dists/$SUITE"
 
 gpg --batch --list-secret-keys "$NOME" >/dev/null 2>&1 ||
 	{ echo "Sem a chave do repositório: rode distro/repo/criar-chave.sh" >&2; exit 1; }
+
+if [ -n "${KALANGO_REPO_DESTINO:-}" ]; then
+	mkdir -p "$WWW/pool"
+	rsync -av "$KALANGO_REPO_DESTINO/pool/" "$WWW/pool/"
+fi
 
 for deb in "$@"; do
 	nome=$(dpkg-deb -f "$deb" Package)

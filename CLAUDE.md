@@ -334,10 +334,12 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   também os temas do terminal e `/usr/share/kalango/zshrc`: o postinst põe o `.zshrc` no `/etc/skel`, deixa o zsh padrão
   para contas novas e, uma vez por máquina (`/var/lib/kalango/terminal-zsh`), passa do bash para o zsh quem já existe;
   depende de zsh e plugins), instalado na ISO por
-  `config/packages.chroot` (cópia em `distro/out/`). Repositório apt assinado em `https://kalangos.easysmartcontroll.com/apt`
+  `config/packages.chroot` (cópia em `distro/out/`). Repositório apt assinado em `https://kalangos.org/apt` (desde 2026-11-17; o endereço antigo
+  `kalangos.easysmartcontroll.com/apt` serve os mesmos arquivos e o postinst migra o `kalango.sources` e o `HOME_URL`)
   (suite trixie, main; `etc/apt/sources.list.d/kalango.sources`, chave `0B89DC19D08F8A6B` em
   `usr/share/keyrings/kalango-archive-keyring.gpg`). **A chave privada fica só na máquina do Tiago**
-  (`~/.local/share/kalango-repo/gnupg`); `distro/repo/publicar.sh` monta/assina e envia por rsync
+  (`~/.local/share/kalango-repo/gnupg`; no desktop KalangOS do Tiago em `~/Documents/.local/share/kalango-repo`,
+  usar `KALANGO_REPO=`); `distro/repo/publicar.sh` traz o pool do servidor, monta/assina e envia por rsync
   (`KALANGO_REPO_DESTINO`); o VPS só serve estático (`distro/repo/nginx-kalangos.conf`; VPS com aaPanel, acesso em `CLAUDE.local.md`,
   arquivos em `/www/wwwroot/kalangos.easysmartcontroll.com/apt`, certbot webroot; não mexer nos outros sites).
   Publicado `0.1.0-3` em 2026-11-15 (o HP o viu pela internet). Guia: `distro/repo/LEIAME.md`.
