@@ -18,6 +18,9 @@
 # Uso: distro/pacotes/gerar-deb.sh BINARIO PASTA_DE_SAIDA
 #   BINARIO: o kalango-shell compilado contra o trixie (build.sh, testar-vm.sh)
 #   KALANGO_REVISAO=N: revisão do pacote (padrão 1) → versão <Cargo.toml>-N
+# Também leva as políticas do polkit (org.kalango.*) e o limite de 5 s para o
+# xdg-document-portal parar ao sair (antes a tela ficava 90 s parada).
+#
 # Saída: PASTA_DE_SAIDA/kalango-shell_<versão>_amd64.deb
 set -eu
 
@@ -43,6 +46,13 @@ for d in usr/local/bin usr/local/sbin usr/local/lib/kalango; do
 	done
 done
 install -D -m 0755 "$INC/usr/lib/systemd/system-sleep/kalango-radios" "$P/usr/lib/systemd/system-sleep/kalango-radios"
+# Políticas do polkit dos scripts acima (kalango-integridade, -atualizar...):
+# quem só atualiza pelo apt também recebe as novas.
+mkdir -p "$P/usr/share/polkit-1/actions"
+cp -p "$INC/usr/share/polkit-1/actions/"org.kalango.*.policy "$P/usr/share/polkit-1/actions/"
+# Sair/reiniciar sem esperar 90 s pelo portal de documentos do Flatpak.
+install -D -m 0644 "$INC/usr/lib/systemd/user/xdg-document-portal.service.d/50-kalango.conf" \
+	"$P/usr/lib/systemd/user/xdg-document-portal.service.d/50-kalango.conf"
 # Terminal: temas do foot e o .zshrc do Kali (o /etc/skel é do postinst, para
 # não virar conffile nem brigar com a cópia que a ISO já deixa lá).
 mkdir -p "$P/usr/share/kalango/terminal"
