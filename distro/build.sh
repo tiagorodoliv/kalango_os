@@ -135,6 +135,21 @@ sh "$DISTRO/pacotes/gerar-deb.sh" "$BUILDER/work/shell/target/release/kalango_os
 	"$BUILDER/work/iso/config/packages.chroot"
 cp "$BUILDER/work/iso/config/packages.chroot"/kalango-shell_*.deb "$OUT/"
 chown "$OWNER" "$OUT"/kalango-shell_*.deb
+# A mesma versão já publicada no apt com outro conteúdo (cada compilação gera um
+# binário diferente) quebra o lb build lá no fim: o apt da ISO vê as duas e
+# tenta "voltar" de versão. Confere agora, antes da parte demorada.
+DEB=$(ls "$OUT"/kalango-shell_*.deb)
+VERSAO_DEB=$(dpkg-deb -f "$DEB" Version)
+SHA_DEB=$(sha256sum "$DEB" | cut -d' ' -f1)
+SHA_PUB=$(no_builder "curl -fsSL https://kalangos.org/apt/dists/trixie/main/binary-amd64/Packages" 2>/dev/null |
+	awk -v v="$VERSAO_DEB" '/^Version:/ { ver = $2 } /^SHA256:/ && ver == v { print $2 }' | head -n 1 || true)
+if [ -n "$SHA_PUB" ] && [ "$SHA_PUB" != "$SHA_DEB" ]; then
+	REV=${VERSAO_DEB##*-}
+	echo "kalango-shell $VERSAO_DEB já está publicado no apt com outro conteúdo." >&2
+	echo "Gere a ISO com a revisão seguinte e publique o .deb de $OUT junto com ela:" >&2
+	echo "  KALANGO_REVISAO=$((REV + 1)) distro/build.sh" >&2
+	exit 1
+fi
 rm -f "$BUILDER/work/iso/config/includes.chroot/usr/local/bin/.gitkeep"
 # Papéis de parede (assets/wallpapers/16x9, gerados por gerar.py): src/shell/wallpaper.rs.
 install -d "$BUILDER/work/iso/config/includes.chroot/usr/share/backgrounds/kalango"
