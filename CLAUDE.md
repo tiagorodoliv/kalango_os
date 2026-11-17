@@ -231,6 +231,16 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (`senha-ok` depois do login). Configurações → Usuários: Definir/Alterar/Remover PIN (senha conferida pelo
   `unix_chkpwd`, que exige `\0` no fim); login mostra "Senha ou PIN" (`Shell.login-has-pin`). Testado com pamtester.
   Testar o `passwd` alimentado por pipe: `script -qec passwd` com `sleep` entre as respostas e `LC_ALL=C`.
+- **Revisão de segurança (2026-11-17):** corrigidos (0.1.1-6) o contador do PIN, que seguia links como root na tela
+  de login (conta padrão virava dona do `/etc/shadow`; agora `O_NOFOLLOW` + `fchown`, e só vale contador da própria
+  pessoa), e pastas com caractere de controle no `kalango-compartilhar` (injetavam config no Samba). Revisados sem
+  problema: regra do polkit, scripts de usuários/impressoras/energia/swap/atualizar/integridade, ISO (sem segredos; o
+  `user` live não vai para o instalado), capturas do site. **Pendente:** senha do Wi-Fi/VPN e chave privada do WireGuard
+  vão como argumento (`ps` de outra conta vê por ~1 s; testar a troca por stdin/arquivo na VM com hwsim); chave do apt
+  sem senha (`gpg --passwd`); `gitleaks` no histórico antes de abrir o GitHub; nota de privacidade (logs do nginx);
+  decidir firewall padrão; aviso de senha de 1 caractere. A verificação de integridade pega mudança fora do apt, não
+  um invasor com root (ele também troca o md5sums). Regra: texto vindo da pessoa que vira arquivo de config de root
+  passa por validação de caracteres de controle; arquivo gravado por root em pasta gravável por outros nunca segue link.
 - **Swap (2026-11-17, pedido do Tiago: sem swap ou a pessoa escolhe o tamanho):** instalador sem partição swap
   por padrão (`partition.conf`: `initialSwapChoice: none`; ainda dá para escolher pequena ou hibernar) e o
   `shellprocess@kalango` roda `/usr/local/lib/kalango/sem-hibernar.sh`, que tira o `resume=` do GRUB quando a swap
@@ -361,7 +371,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   Publicado `0.1.0-3` em 2026-11-15 (o HP o viu pela internet). Guia: `distro/repo/LEIAME.md`.
   **ISO pública (2026-11-17):** `https://kalangos.org/download/kalango-os-0.1.1.iso` (+ `.sha256`; pasta
   `/www/wwwroot/kalangos.org/download`, que o `publicar.sh` do site não apaga), com o `kalango-shell 0.1.1-5`, o
-  mesmo arquivo publicado no apt. **Cada ISO leva uma revisão nova** (`KALANGO_REVISAO=N distro/build.sh`) e o
+  mesmo arquivo publicado no apt (a 0.1.1-6, com as correções de segurança, chega na 1ª atualização). **Cada ISO leva uma revisão nova** (`KALANGO_REVISAO=N distro/build.sh`) e o
   `.deb` de `distro/out` é publicado junto: mesma versão com outro conteúdo faz o apt da ISO tentar "voltar" de
   versão e o `lb build` falha no fim (o `build.sh` confere isso no início). Os scripts de download usam `wget`
   quando não há `curl`. A VPN do servidor (`wg0`, NetworkManager) não liga sozinha: `nmcli connection up wg0`.
