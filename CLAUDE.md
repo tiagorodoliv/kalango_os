@@ -43,9 +43,11 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     barra, dock sempre visível, tamanho (44/52/60 px) e apps da dock (`Theme.dock-apps`, ids por vírgula;
     `Apps.dock` = `Shell.dock-entries`). A área de trabalho ajusta a margem do labwc gerando
     `~/.config/labwc/rc.xml` (cópia do de /etc com a marca "Gerado pelo kalango-shell" e o `bottom` trocado;
-    sem a marca, nunca sobrescreve) + `labwc --reconfigure` (`src/shell/labwc.rs`). O labwc só recalcula uma janela
-    maximizada ao maximizá-la: quando a margem muda (e na 1ª vez de cada área de trabalho) o shell remaximiza as
-    janelas maximizadas 0,5 s depois (`labwc::refit_maximized_later` → `toplevels::Tracker::refit_maximized`). **O labwc só enxerga `~/.config/labwc` se a pasta já existir quando ele inicia**
+    sem a marca, nunca sobrescreve) + `labwc --reconfigure` (`src/shell/labwc.rs`). **O labwc 0.8 relê o `<margin>` no
+    reconfigure mas não recalcula a área útil** (só em mudança de monitor): quando a margem muda (e na 1ª vez de cada
+    área de trabalho) o shell roda `wlr-randr --output X --on` 0,5 s depois (`labwc::refit_maximized_later`); o
+    wlroots ignora os campos iguais (não pisca) e o labwc rearruma as janelas maximizadas. Janelas que ficam fora da
+    área útil (dock, faixa) precisam de `fixedPosition="yes"` na regra, senão essa rearrumação as empurra. **O labwc só enxerga `~/.config/labwc` se a pasta já existir quando ele inicia**
     (por isso o `kalango-session` faz `mkdir -p` antes do `exec labwc`). A dock vai embaixo/esquerda/direita
     (`Theme.dock-position`) e como dock flutuante ou barra de ponta a ponta (`Theme.dock-style`); as margens
     viram `bottom`/`left`/`right` no `<margin>`. Papel de parede: `Theme.wallpaper` (0 = circuitos, padrão
@@ -175,6 +177,29 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `labwc::ensure_trigger_rule`). O mouse encosta → `Shell.reveal-dock` abre `--dock --faixa=… --ocultar`; essa dock
   fecha sozinha 0,9 s depois de o mouse sair (`dock::install_autohide`, `Shell.dock-hovered` pela TouchArea em volta
   da dock). A posição da dock fica gravada no rc.xml mesmo escondida (é onde a faixa a abre). Margem = 0.
+- **Atualização não muda o visual (2026-11-17, pedido do Tiago):** opção nova que muda a aparência entra em
+  `appearance::LEGACY` com o valor do comportamento antigo; vale para quem já tem `aparencia.conf` sem a chave (só
+  instalação nova recebe o padrão novo). Ex.: `dock-botao-apps` → `oculto`.
+- **Integridade da interface (2026-11-17, "é software livre, mas mudar tem de ser claro e com root"):**
+  `src/shell/integrity.rs`: ao entrar, a área de trabalho compara os arquivos do pacote `kalango-shell` com o
+  `md5sums` do dpkg (MD5 próprio de `tools::codec`); mudou fora do apt e não foi aceito → aviso do zenity com a
+  lista, "Aceitar as mudanças" ou "Restaurar o original" pelo `pkexec /usr/local/sbin/kalango-integridade
+  aceitar|restaurar` (`org.kalango.integridade`, `auth_admin` sem lembrar). Aceitos em
+  `/var/lib/kalango/integridade/aceitos`. **Copiar o binário à mão (HP por SSH) dispara o aviso: aceitar lá.**
+  O pacote agora leva as políticas `org.kalango.*` e o `TimeoutStopSec=5s` do `xdg-document-portal` (reiniciar
+  ficava 90 s parado esperando ele).
+- **Rede na barra e no painel (2026-11-17), como no Ubuntu:** ícone pela rota padrão de menor métrica entre placas
+  físicas (`/proc/net/route`, sinal de `/proc/net/wireless`; `system::net_icon`, `Shell.net-icon`): cabo, Wi-Fi com
+  1–3 barras, Wi-Fi sem rede/desligado, sem rede. Sem placa Wi-Fi nunca mostra Wi-Fi; placa `unmanaged` (sem
+  driver/gerência, veth do Docker) é ignorada. Painel rápido: blocos em sequência, dois por linha
+  (`slot()` em `quick_settings.slint`): Cabeada (liga/desliga a placa, lista das conexões de cabo), Wi-Fi, VPN
+  (lista; `Device.connection-set`), Bluetooth, Estilo escuro.
+- **Thunar "Abrir terminal aqui":** o padrão do Debian usa `exo-open --launch TerminalEmulator`, que no Xfce 4.20
+  precisa do `xfce4-helpers` (não instalado) e falha calado; `shell::thunar` troca por `foot -D %f` no `uca.xml`.
+- **Compilar nesta máquina KalangOS (desktop do Tiago, RX 570, 2560×1080, só cabo):** Rust em `~/.cargo` e os
+  `-dev` que faltam extraídos sem root em `~/.local/kalango-build` (`. ~/.local/kalango-build/env.sh; cargo build
+  --profile vm`). O binário daqui roda no KalangOS. Teste `launcher::apps::programas_dos_fixados` falha onde não há
+  `htop`.
 - **Senhas e PIN (2026-11-16):** `/usr/local/lib/kalango/pam-kalango.sh ligar` (hook `0170` + postinst do pacote; prerm
   desfaz): desvia `/usr/share/pam-configs/unix` para `/usr/share/kalango/pam-unix.debian` (**fora** da pasta: o
   pam-auth-update lê todo arquivo de lá) e gera o nosso sem `obscure`, com `minlen=1` (o padrão do pam_unix é 6) e
