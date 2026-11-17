@@ -196,6 +196,17 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (lista; `Device.connection-set`), Bluetooth, Estilo escuro.
 - **Thunar "Abrir terminal aqui":** o padrão do Debian usa `exo-open --launch TerminalEmulator`, que no Xfce 4.20
   precisa do `xfce4-helpers` (não instalado) e falha calado; `shell::thunar` troca por `foot -D %f` no `uca.xml`.
+- **Proteção contra cascata (2026-11-17):** o `examples/snapshot`, rodado dentro da sessão (herdava
+  `KALANGO_SESSION=1`), se achava a área de trabalho e abria a dock com o próprio executável → dezenas de processos,
+  carga 20, artefatos de vídeo e travamento. Agora `session::is_native` exige também o binário do shell
+  (`is_shell_binary`: `kalango-shell`/`kalango_os`), a área de trabalho é única por sessão (`flock` em
+  `$XDG_RUNTIME_DIR/kalango-shell-area-de-trabalho.lock`, espera 5 s pela troca de monitor principal) e o snapshot
+  apaga as variáveis da sessão e sai se receber `--opção` do shell.
+- **XML do labwc: nunca `--` dentro de `<!-- -->`.** O comentário "kalango-shell --dock-gatilho" deixava o
+  `rc.xml` inválido e o labwc perdia as regras seguintes (dock escondida abria no meio, atrás das janelas). Teste
+  `labwc::rc_xml_gerado_e_bem_formado`. Trocar dock ↔ faixa fecha o processo antigo na hora (antes ficava aberto).
+- **Captura de tela sem grim:** `src` de um capturador wlr-screencopy mínimo no scratchpad da sessão de
+  2026-11-17 (wayland-client + png do projeto); compilar de novo se precisar.
 - **Compilar nesta máquina KalangOS (desktop do Tiago, RX 570, 2560×1080, só cabo):** Rust em `~/.cargo` e os
   `-dev` que faltam extraídos sem root em `~/.local/kalango-build` (`. ~/.local/kalango-build/env.sh; cargo build
   --profile vm`). O binário daqui roda no KalangOS. Teste `launcher::apps::programas_dos_fixados` falha onde não há
