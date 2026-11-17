@@ -95,6 +95,18 @@ export struct BtDevice {
     connected: bool,
 }
 
+/// Uma saída ou entrada de som do PipeWire.
+export struct SoundDevice {
+    /// Id do nó no PipeWire.
+    id: int,
+    /// "HDMI · 25UM58G", "Áudio interno"...
+    name: string,
+    /// Saída pelo monitor/TV (HDMI ou DisplayPort).
+    hdmi: bool,
+    /// É a padrão agora.
+    active: bool,
+}
+
 /// Um computador da rede local com pastas compartilhadas (achado pelo Avahi).
 export struct NetComputer {
     name: string,
@@ -254,6 +266,27 @@ export global Device {
 
     callback set-volume(float);
     callback set-muted(bool);
+
+    /// Saídas de som (alto-falantes, fone, HDMI do monitor...) e os nomes
+    /// delas na mesma ordem (para a lista suspensa); índice da padrão (-1).
+    in property <[SoundDevice]> sound-outputs: [];
+    in property <[string]> sound-output-names: [];
+    in property <int> sound-output-index: -1;
+    /// Entradas (microfones), do mesmo jeito.
+    in property <[SoundDevice]> sound-inputs: [];
+    in property <[string]> sound-input-names: [];
+    in property <int> sound-input-index: -1;
+    /// Torna padrão a saída ou entrada com esse id do PipeWire.
+    callback set-sound-default(int /* id */);
+    /// Teste de alto-falantes na saída padrão: "left", "right" ou "both".
+    callback sound-test(string);
+
+    /// Há uma entrada padrão (microfone).
+    in property <bool> mic-available: false;
+    in-out property <float> mic-volume: 0.5;
+    in-out property <bool> mic-muted: false;
+    callback set-mic-volume(float);
+    callback set-mic-muted(bool);
 
     // --- Brilho da tela (notebooks: /sys/class/backlight) ---
 

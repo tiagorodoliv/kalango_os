@@ -1569,3 +1569,39 @@ msgstr "Nenhum (só a memória)"
 
 msgid "Optional. Compressed memory (zram) is always on; a swap file only helps when programs use more memory than the computer has."
 msgstr "Opcional. A memória comprimida (zram) fica sempre ligada; um arquivo de swap só ajuda quando os programas usam mais memória do que o computador tem."
+
+msgid "OUTPUT"
+msgstr "SAÍDA"
+
+msgid "Output device"
+msgstr "Dispositivo de saída"
+
+msgid "Speakers, headphones or the monitor (HDMI)"
+msgstr "Alto-falantes, fone ou o monitor (HDMI)"
+
+msgid "INPUT"
+msgstr "ENTRADA"
+
+msgid "Input device"
+msgstr "Dispositivo de entrada"
+
+msgid "Input volume"
+msgstr "Volume da entrada"
+
+msgid "Mute microphone"
+msgstr "Silenciar o microfone"
+
+msgid "In use"
+msgstr "Em uso"
+
+msgid "Sound output"
+msgstr "Saída de som"
+
+msgid "Sound settings..."
+msgstr "Configurações de som..."
+
+msgid "Test speakers"
+msgstr "Testar alto-falantes"
+
+msgid "A voice plays on each side"
+msgstr "Uma voz toca em cada lado"

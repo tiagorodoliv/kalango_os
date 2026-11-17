@@ -48,8 +48,12 @@ component SliderRow inherits Rectangle {
     in-out property <float> value;
     /// Ícone clicável (o do volume liga/desliga o mudo).
     in property <bool> icon-clickable: false;
+    /// Setinha à direita (volume: escolher a saída de som).
+    in property <bool> has-details: false;
+    in property <bool> details-open: false;
     callback icon-clicked();
     callback changed(float);
+    callback details();
 
     height: 40px;
     Rectangle {
@@ -72,9 +76,26 @@ component SliderRow inherits Rectangle {
     }
     SliderBar {
         x: 46px;
-        width: parent.width - 52px;
+        width: parent.width - 52px - (root.has-details ? 40px : 0);
         value <=> root.value;
         changed(v) => { root.changed(v); }
+    }
+    if root.has-details: Rectangle {
+        x: parent.width - 36px;
+        width: 36px;
+        height: 36px;
+        border-radius: self.height / 2;
+        background: root.details-open ? Theme.accent-soft : details-touch.has-hover ? Theme.tile-hover : transparent;
+        Image {
+            source: root.details-open ? Icons.chevron-down : Icons.chevron-right;
+            colorize: root.details-open ? Theme.accent : Theme.text;
+            width: 16px;
+            height: 16px;
+        }
+        details-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { root.details(); }
+        }
     }
 }
 
@@ -189,6 +210,8 @@ component ConnRow inherits Rectangle {
     in property <string> name;
     in property <string> detail;
     in property <bool> active: false;
+    /// Texto à direita do item ativo.
+    in property <string> active-text: @tr("Connected");
     callback clicked();
 
     height: 38px;
@@ -213,7 +236,7 @@ component ConnRow inherits Rectangle {
     }
     Text {
         x: parent.width - self.width - 12px;
-        text: root.active ? @tr("Connected") : root.detail;
+        text: root.active ? root.active-text : root.detail;
         color: root.active ? Theme.accent : Theme.text-muted;
         font-size: 11.5px;
         vertical-alignment: center;
@@ -457,6 +480,9 @@ export component QuickSettings inherits Rectangle {
             if Device.sound-available: SliderRow {
                 icon: Device.muted || Device.volume <= 0.001 ? Icons.volume-x : Icons.volume;
                 icon-clickable: true;
+                has-details: Device.sound-outputs.length > 1;
+                details-open: root.open-list == "sound";
+                details => { root.open-list = root.open-list == "sound" ? "" : "sound"; }
                 value: Device.volume;
                 icon-clicked => {
                     Device.muted = !Device.muted;
@@ -469,6 +495,40 @@ export component QuickSettings inherits Rectangle {
                         Device.set-muted(false);
                     }
                     Device.set-volume(v);
+                }
+            }
+            // --- Saídas de som (setinha do volume), como no Ubuntu ---
+            if root.open-list == "sound": VerticalLayout {
+                spacing: 8px;
+                Text {
+                    text: @tr("Sound output");
+                    color: Theme.text-muted;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+                Rectangle {
+                    height: sound-list.preferred-height;
+                    border-radius: 12px;
+                    background: Theme.tile;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    sound-list := VerticalLayout {
+                        padding: 4px;
+                        for o in Device.sound-outputs: ConnRow {
+                            icon: o.hdmi ? Icons.monitor : Icons.volume;
+                            name: o.name;
+                            active: o.active;
+                            active-text: @tr("In use");
+                            clicked => { if (!o.active) { Device.set-sound-default(o.id); } }
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    LinkText {
+                        text: @tr("Sound settings...");
+                        clicked => { root.open-settings(5); }
+                    }
                 }
             }
             if Device.brightness-available: SliderRow {

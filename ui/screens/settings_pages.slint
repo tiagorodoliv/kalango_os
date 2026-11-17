@@ -1087,6 +1087,8 @@ export component NetworkPage inherits Rectangle {
 // ---------------------------------------------------------------------------
 
 export component SoundPage inherits Rectangle {
+    property <length> control: min(300px, self.width * 0.45);
+
     VerticalLayout {
         x: 0;
         y: Page.top;
@@ -1100,13 +1102,24 @@ export component SoundPage inherits Rectangle {
             text: @tr("The sound server (PipeWire) found no speakers or headphones.");
         }
 
+        if Device.sound-available: SectionLabel { text: @tr("OUTPUT"); }
         if Device.sound-available: Panel {
-            height: 3 * 67px;
+            height: 4 * 67px;
             VerticalLayout {
+                // Com mais de uma saída (ex.: placa-mãe e HDMI do monitor),
+                // a pessoa escolhe por onde sai o som.
                 Row {
-                    title: @tr("Output");
+                    title: @tr("Output device");
+                    subtitle: Device.sound-outputs.length > 1 ? @tr("Speakers, headphones or the monitor (HDMI)") : "";
                     divider: false;
-                    value: Device.sound-output;
+                    value: Device.sound-outputs.length > 1 ? "" : Device.sound-output;
+                    if Device.sound-outputs.length > 1: Dropdown {
+                        x: parent.width - self.width - 20px;
+                        width: root.control;
+                        options: Device.sound-output-names;
+                        selected: Device.sound-output-index;
+                        chosen(i) => { Device.set-sound-default(Device.sound-outputs[i].id); }
+                    }
                 }
                 Row {
                     title: "Volume";
@@ -1134,6 +1147,72 @@ export component SoundPage inherits Rectangle {
                         x: parent.width - self.width - 20px;
                         checked <=> Device.muted;
                         toggled(on) => { Device.set-muted(on); }
+                    }
+                }
+                // Teste direcional, como no Ubuntu: uma voz diz o lado de
+                // cada alto-falante (confere se esquerda/direita estão certos).
+                Row {
+                    title: @tr("Test speakers");
+                    subtitle: @tr("A voice plays on each side");
+                    HorizontalLayout {
+                        x: parent.width - self.width - 20px;
+                        width: self.preferred-width;
+                        height: 38px;
+                        spacing: 8px;
+                        PillButton {
+                            text: @tr("Left");
+                            clicked => { Device.sound-test("left"); }
+                        }
+                        PillButton {
+                            text: @tr("Right");
+                            clicked => { Device.sound-test("right"); }
+                        }
+                    }
+                }
+            }
+        }
+
+        if Device.sound-available && Device.sound-inputs.length > 0: SectionLabel { text: @tr("INPUT"); }
+        if Device.sound-available && Device.sound-inputs.length > 0: Panel {
+            height: (Device.mic-available ? 3 : 1) * 67px;
+            VerticalLayout {
+                Row {
+                    title: @tr("Input device");
+                    divider: false;
+                    value: Device.sound-inputs.length > 1 ? "" : Device.sound-input-names[0];
+                    if Device.sound-inputs.length > 1: Dropdown {
+                        x: parent.width - self.width - 20px;
+                        width: root.control;
+                        options: Device.sound-input-names;
+                        selected: Device.sound-input-index;
+                        chosen(i) => { Device.set-sound-default(Device.sound-inputs[i].id); }
+                    }
+                }
+                if Device.mic-available: Row {
+                    title: @tr("Input volume");
+                    SliderBar {
+                        x: parent.width - self.width - 72px;
+                        width: clamp(parent.width * 0.3, 100px, 240px);
+                        value <=> Device.mic-volume;
+                        changed(v) => { Device.set-mic-volume(v); }
+                    }
+                    Text {
+                        x: parent.width - self.width - 20px;
+                        width: 42px;
+                        text: Device.mic-muted ? @tr("muted") : round(Device.mic-volume * 100) + "%";
+                        color: Theme.text;
+                        font-family: Theme.mono;
+                        font-size: 13px;
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                    }
+                }
+                if Device.mic-available: Row {
+                    title: @tr("Mute microphone");
+                    Toggle {
+                        x: parent.width - self.width - 20px;
+                        checked <=> Device.mic-muted;
+                        toggled(on) => { Device.set-mic-muted(on); }
                     }
                 }
             }

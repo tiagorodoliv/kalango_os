@@ -95,6 +95,8 @@ libglib2.0-bin
 bluez
 libspa-0.2-bluetooth
 pipewire-audio
+# Sons do tema (retorno do volume, teste de alto-falantes nas Configurações → Som).
+sound-theme-freedesktop
 wireplumber
 pavucontrol
 

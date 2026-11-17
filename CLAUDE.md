@@ -37,7 +37,8 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     `~/.config/kalango/aparencia.conf` e os outros processos aplicam em <1 s (`src/settings/appearance.rs`).
     As outras páginas mexem no sistema de verdade (`src/settings/device.rs` + global `Device` em `ui/device.slint`,
     páginas em `ui/screens/settings_pages.slint`): Rede e Wi-Fi pelo `nmcli` (lista, liga/desliga, conecta com
-    senha), Som pelo `wpctl` (volume/mudo), Energia (bateria, suspender/reiniciar), Usuários (`passwd` no foot),
+    senha), Som pelo `wpctl` (volume/mudo; saída e entrada padrão por `wpctl status` + `set-default`, HDMI vira
+    "HDMI · <monitor>" pelo `alsa.name` do EDID; setinha do volume no painel rápido lista as saídas), Energia (bateria, suspender/reiniciar), Usuários (`passwd` no foot),
     Atualizações e Sobre o sistema (os-release, kernel, CPU, memória, disco). Bluetooth só tem aviso.
     **Barra de tarefas** (opções no `Theme`, gravadas no mesmo `aparencia.conf`): dia/segundos/CPU/bateria na
     barra, dock sempre visível, tamanho (44/52/60 px) e apps da dock (`Theme.dock-apps`, ids por vírgula;

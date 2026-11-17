@@ -1,7 +1,7 @@
 //! Dados reais do computador para as Configurações (global `Device`).
 //!
 //! - Rede e Wi-Fi: NetworkManager pelo `nmcli` (lista, liga/desliga, conecta).
-//! - Som: PipeWire/WirePlumber pelo `wpctl` (volume e mudo da saída padrão).
+//! - Som: PipeWire/WirePlumber pelo `wpctl` (saída e entrada padrão, volume e mudo).
 //! - Energia: bateria do `/sys`, suspender/reiniciar pelo `systemctl`.
 //! - Brilho da tela: `/sys/class/backlight`, ajustado pelo logind
 //!   (`SetBrightness`, sem precisar de root).
@@ -22,7 +22,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use slint::{ComponentHandle, Model, ModelRc, SharedString, Timer, TimerMode, VecModel, Weak};
 
-use crate::{AppWindow, Device, InfoItem, Mode, NetConnection, VpnConnection, WifiNetwork};
+use crate::{AppWindow, Device, InfoItem, Mode, NetConnection, SoundDevice, VpnConnection, WifiNetwork};
 
 /// Intervalo entre as leituras de rede, som e bateria (Configurações e painel rápido).
 const INTERVAL: Duration = Duration::from_secs(3);
@@ -204,6 +204,95 @@ pub fn parse_wpctl_description(text: &str) -> Option<String> {
     })
 }
 
+/// Uma saída ou entrada de som do PipeWire (linha de `wpctl status`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct AudioNode {
+    /// Id do nó no PipeWire (para `wpctl set-default`).
+    pub id: u32,
+    pub name: String,
+    /// É a padrão agora (marcada com `*`).
+    pub default: bool,
+}
+
+/// Lê as saídas (Sinks) e entradas (Sources) da seção "Audio" de
+/// `wpctl status` (rodado com `LC_ALL=C`).
+///
+/// Linhas como `│  *   37. Built-in Audio Analog Stereo [vol: 0.65]`: o `*`
+/// marca a padrão e o `[vol: ...]` do fim sai do nome. A seção "Video" (e o
+/// que vier depois) é ignorada.
+pub fn parse_wpctl_status(text: &str) -> (Vec<AudioNode>, Vec<AudioNode>) {
+    let (mut sinks, mut sources) = (Vec::new(), Vec::new());
+    let mut in_audio = false;
+    // 0 = outra subseção, 1 = Sinks, 2 = Sources.
+    let mut part = 0;
+    for line in text.lines() {
+        if !line.starts_with(|c: char| c.is_whitespace() || "│├└".contains(c)) {
+            in_audio = line.trim() == "Audio";
+            part = 0;
+            continue;
+        }
+        if !in_audio {
+            continue;
+        }
+        let item = line.trim_start_matches(|c: char| c.is_whitespace() || "│├└─".contains(c));
+        if let Some(head) = item.strip_suffix(':') {
+            part = match head {
+                "Sinks" => 1,
+                "Sources" => 2,
+                _ => 0,
+            };
+            continue;
+        }
+        if part == 0 {
+            continue;
+        }
+        let (default, item) = match item.strip_prefix('*') {
+            Some(rest) => (true, rest.trim_start()),
+            None => (false, item),
+        };
+        let Some((id, name)) = item.split_once(". ") else { continue };
+        let Ok(id) = id.trim().parse() else { continue };
+        let name = match name.rfind(" [vol:") {
+            Some(i) => &name[..i],
+            None => name,
+        };
+        let node = AudioNode { id, name: name.trim().to_string(), default };
+        if part == 1 { sinks.push(node) } else { sources.push(node) }
+    }
+    (sinks, sources)
+}
+
+/// Nome curto de uma saída a partir do `wpctl inspect` dela.
+///
+/// HDMI/DisplayPort viram "HDMI · <monitor>" (o `alsa.name` traz o nome do
+/// monitor lido do EDID: "25UM58G"), em vez de "Ellesmere HDMI Audio [Radeon
+/// RX 470/480 / 570/580/590] Digital Stereo (HDMI 4)". O resto fica com o
+/// `node.description`.
+pub fn audio_node_label(inspect: &str) -> Option<String> {
+    let value = |key: &str| {
+        inspect.lines().find_map(|l| {
+            let l = l.trim().trim_start_matches('*').trim();
+            let v = l.strip_prefix(key)?.strip_prefix(" = ")?;
+            Some(v.trim_matches('"').to_string())
+        })
+    };
+    let description = value("node.description");
+    let profile = value("device.profile.description").unwrap_or_default();
+    let port = if profile.contains("HDMI") {
+        Some("HDMI")
+    } else if profile.contains("DisplayPort") {
+        Some("DisplayPort")
+    } else {
+        None
+    };
+    match (port, value("alsa.name")) {
+        (Some(port), Some(monitor)) if !monitor.is_empty() && !monitor.contains("HDMI") => {
+            Some(format!("{port} · {monitor}"))
+        }
+        _ => description,
+    }
+}
+
 /// Valor de uma chave de `/etc/os-release` (sem aspas).
 /// Codinome da série da versão (planta do sertão), da tabela `distro/codinomes`
 /// embutida no binário: "0.1.1" → "Mandacaru".
@@ -289,11 +378,12 @@ pub fn is_admin(groups: &str) -> bool {
 /// Roda um comando e devolve a saída padrão (`None` se não existe ou falhou).
 ///
 /// O `nmcli` roda com `LC_ALL=C`: os estados ("connected") viriam traduzidos
-/// e a leitura depende deles. O `wpctl` mantém o idioma da sessão, porque o
-/// nome da saída de som aparece na tela.
+/// e a leitura depende deles; o `wpctl status` também (títulos das seções).
+/// O `wpctl inspect` mantém o idioma da sessão, porque o nome da saída de som
+/// aparece na tela.
 pub(crate) fn output(program: &str, args: &[&str]) -> Option<String> {
     let mut cmd = Command::new(program);
-    if program == "nmcli" {
+    if program == "nmcli" || (program == "wpctl" && args.first() == Some(&"status")) {
         cmd.env("LC_ALL", "C");
     }
     let out = cmd
@@ -499,6 +589,11 @@ struct Snapshot {
     /// Conexões salvas de rede (cabo e Wi-Fi) e VPNs (painel rápido).
     connections: Option<(Vec<crate::settings::netconfig::SavedConnection>, Vec<crate::settings::netconfig::SavedConnection>)>,
     sound: Option<(f32, bool, String)>,
+    /// Saídas e entradas de som (`wpctl status`), com o nome para a tela.
+    sinks: Vec<AudioNode>,
+    sources: Vec<AudioNode>,
+    /// Volume e mudo da entrada padrão (microfone).
+    mic: Option<(f32, bool)>,
     battery: Option<(u32, bool)>,
 }
 
@@ -547,6 +642,12 @@ fn read_snapshot(scan: Scan) -> Snapshot {
             .and_then(|t| parse_wpctl_description(&t))
             .unwrap_or_else(|| tr("Default output", "Saída padrão").into());
         s.sound = Some((vol, muted, name));
+        if let Some(text) = output("wpctl", &["status"]) {
+            let (sinks, sources) = parse_wpctl_status(&text);
+            s.sinks = sinks.into_iter().map(|n| AudioNode { name: node_label(n.id, &n.name), ..n }).collect();
+            s.sources = sources.into_iter().map(|n| AudioNode { name: node_label(n.id, &n.name), ..n }).collect();
+        }
+        s.mic = output("wpctl", &["get-volume", "@DEFAULT_AUDIO_SOURCE@"]).and_then(|t| parse_wpctl_volume(&t));
     }
     if let Some(path) = crate::common::system::battery_path() {
         let cap = fs::read_to_string(path.join("capacity")).ok().and_then(|c| c.trim().parse().ok());
@@ -555,6 +656,60 @@ fn read_snapshot(scan: Scan) -> Snapshot {
         s.battery = cap.map(|c| (c, charging));
     }
     s
+}
+
+/// Nome para a tela de um nó de som, guardado por id (o `wpctl inspect` só
+/// roda na primeira vez que o nó aparece, não a cada leitura).
+fn node_label(id: u32, fallback: &str) -> String {
+    use std::collections::HashMap;
+    use std::sync::{Mutex, OnceLock};
+    static CACHE: OnceLock<Mutex<HashMap<u32, String>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(Default::default);
+    if let Some(name) = cache.lock().unwrap().get(&id) {
+        return name.clone();
+    }
+    let name = output("wpctl", &["inspect", &id.to_string()])
+        .and_then(|t| audio_node_label(&t))
+        .unwrap_or_else(|| fallback.to_string());
+    cache.lock().unwrap().insert(id, name.clone());
+    name
+}
+
+/// Lista de saídas/entradas para a UI: os itens e o índice da padrão (-1).
+fn sound_model(nodes: Vec<AudioNode>) -> (ModelRc<SoundDevice>, ModelRc<SharedString>, i32) {
+    let index = nodes.iter().position(|n| n.default).map_or(-1, |i| i as i32);
+    let names: Vec<SharedString> = nodes.iter().map(|n| n.name.as_str().into()).collect();
+    let items: Vec<SoundDevice> = nodes
+        .into_iter()
+        .map(|n| SoundDevice {
+            id: n.id as i32,
+            hdmi: n.name.contains("HDMI") || n.name.contains("DisplayPort"),
+            name: n.name.into(),
+            active: n.default,
+        })
+        .collect();
+    (ModelRc::from(Rc::new(VecModel::from(items))), ModelRc::from(Rc::new(VecModel::from(names))), index)
+}
+
+/// Sons do tema freedesktop (`sound-theme-freedesktop`).
+const SOUNDS: &str = "/usr/share/sounds/freedesktop/stereo";
+/// Espera depois do último movimento do volume antes do som de retorno
+/// (arrastar o slider não vira uma rajada de sons).
+const VOLUME_SOUND_DELAY: Duration = Duration::from_millis(150);
+
+/// Toca um som do tema na saída padrão pelo `pw-play`.
+///
+/// `channel` ("FL", "FR"...) põe o som (mono) só naquele canal: é o teste
+/// de alto-falantes. Sem o arquivo (tema não instalado), não faz nada.
+fn play_sound(name: &str, channel: Option<&str>) {
+    let path = format!("{SOUNDS}/{name}.oga");
+    if !std::path::Path::new(&path).exists() {
+        return;
+    }
+    match channel {
+        Some(ch) => spawn_detached("pw-play", &["--channel-map", ch, &path]),
+        None => spawn_detached("pw-play", &[&path]),
+    }
 }
 
 /// Estado compartilhado entre a UI e as threads de leitura.
@@ -656,6 +811,19 @@ fn apply(ui: &AppWindow, s: Snapshot, hold_volume: bool, rescan: bool) {
             if !hold_volume {
                 d.set_volume(vol);
                 d.set_muted(muted);
+            }
+            let (items, names, index) = sound_model(s.sinks);
+            d.set_sound_outputs(items);
+            d.set_sound_output_names(names);
+            d.set_sound_output_index(index);
+            let (items, names, index) = sound_model(s.sources);
+            d.set_sound_inputs(items);
+            d.set_sound_input_names(names);
+            d.set_sound_input_index(index);
+            d.set_mic_available(s.mic.is_some());
+            if let (Some((v, m)), false) = (s.mic, hold_volume) {
+                d.set_mic_volume(v);
+                d.set_mic_muted(m);
             }
         }
         None => d.set_sound_available(false),
@@ -814,17 +982,60 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
 
     {
         let shared = shared.clone();
+        // Som de retorno ao mexer no volume (como no GNOME), um só quando o
+        // slider para. O `wpctl set-volume` roda antes, então o som já sai no
+        // volume novo.
+        let feedback = Rc::new(Timer::default());
         d.on_set_volume(move |v| {
             shared.volume_touched.store(now_ms(), Ordering::SeqCst);
             let v = format!("{:.2}", v.clamp(0.0, 1.0));
             spawn_detached("wpctl", &["set-volume", "@DEFAULT_AUDIO_SINK@", &v]);
+            feedback.start(TimerMode::SingleShot, VOLUME_SOUND_DELAY, || {
+                play_sound("audio-volume-change", None);
+            });
         });
     }
+    // Teste de alto-falantes: uma voz em cada lado ("front left/right").
+    d.on_sound_test(|side| match side.as_str() {
+        "left" => play_sound("audio-channel-front-left", Some("FL")),
+        "right" => play_sound("audio-channel-front-right", Some("FR")),
+        _ => play_sound("audio-test-signal", None),
+    });
     {
         let shared = shared.clone();
         d.on_set_muted(move |m| {
             shared.volume_touched.store(now_ms(), Ordering::SeqCst);
             spawn_detached("wpctl", &["set-mute", "@DEFAULT_AUDIO_SINK@", if m { "1" } else { "0" }]);
+        });
+    }
+    {
+        let shared = shared.clone();
+        d.on_set_mic_volume(move |v| {
+            shared.volume_touched.store(now_ms(), Ordering::SeqCst);
+            let v = format!("{:.2}", v.clamp(0.0, 1.0));
+            spawn_detached("wpctl", &["set-volume", "@DEFAULT_AUDIO_SOURCE@", &v]);
+        });
+    }
+    {
+        let shared = shared.clone();
+        d.on_set_mic_muted(move |m| {
+            shared.volume_touched.store(now_ms(), Ordering::SeqCst);
+            spawn_detached("wpctl", &["set-mute", "@DEFAULT_AUDIO_SOURCE@", if m { "1" } else { "0" }]);
+        });
+    }
+    {
+        // Saída/entrada padrão (HDMI, fone, alto-falantes...). O WirePlumber
+        // guarda a escolha para os próximos logins e leva junto o som que já
+        // está tocando.
+        let weak = ui.as_weak();
+        let shared = shared.clone();
+        d.on_set_sound_default(move |id| {
+            let weak = weak.clone();
+            let shared = shared.clone();
+            std::thread::spawn(move || {
+                let _ = output("wpctl", &["set-default", &id.to_string()]);
+                refresh_from_thread(weak, shared);
+            });
         });
     }
     {
@@ -988,6 +1199,38 @@ mod tests {
         assert_eq!(parse_wpctl_volume("erro"), None);
         let inspect = "id 52, type PipeWire:Interface:Node\n  * node.description = \"Áudio interno\"\n";
         assert_eq!(parse_wpctl_description(inspect).as_deref(), Some("Áudio interno"));
+    }
+
+    #[test]
+    fn le_saidas_e_entradas_do_wpctl_status() {
+        let text = "PipeWire 'pipewire-0' [1.4.2, tiago@desktop, cookie:1]\n \
+ └─ Clients:\n        33. WirePlumber                         [1.4.2, tiago@desktop, pid:1238]\n\n\
+Audio\n ├─ Devices:\n │      48. Ellesmere HDMI Audio [Radeon RX 470/480 / 570/580/590] [alsa]\n │  \n\
+ ├─ Sinks:\n │  *   37. Built-in Audio Digital Stereo (IEC958) [vol: 0.65]\n\
+ │      56. Ellesmere HDMI Audio [Radeon RX 470/480 / 570/580/590] Digital Stereo (HDMI 4) [vol: 0.40]\n │  \n\
+ ├─ Sources:\n │      46. Built-in Audio Analog Stereo        [vol: 1.00]\n │  \n ├─ Filters:\n │  \n └─ Streams:\n\n\
+Video\n ├─ Devices:\n ├─ Sinks:\n │      90. Câmera\n";
+        let (sinks, sources) = parse_wpctl_status(text);
+        assert_eq!(sinks.len(), 2);
+        assert_eq!(sinks[0], AudioNode { id: 37, name: "Built-in Audio Digital Stereo (IEC958)".into(), default: true });
+        assert_eq!(sinks[1].id, 56);
+        assert_eq!(sinks[1].name, "Ellesmere HDMI Audio [Radeon RX 470/480 / 570/580/590] Digital Stereo (HDMI 4)");
+        assert!(!sinks[1].default);
+        assert_eq!(sources, vec![AudioNode { id: 46, name: "Built-in Audio Analog Stereo".into(), default: false }]);
+    }
+
+    #[test]
+    fn nome_curto_da_saida_hdmi() {
+        let hdmi = "id 56\n    alsa.name = \"25UM58G\"\n    device.profile.description = \"Digital Stereo (HDMI 4)\"\n  \
+* node.description = \"Ellesmere HDMI Audio Digital Stereo (HDMI 4)\"\n";
+        assert_eq!(audio_node_label(hdmi).as_deref(), Some("HDMI · 25UM58G"));
+        // Sem o nome do monitor (alsa.name genérico): a descrição inteira.
+        let sem = "    alsa.name = \"HDMI 0\"\n    device.profile.description = \"Digital Stereo (HDMI)\"\n  \
+* node.description = \"Placa HDMI\"\n";
+        assert_eq!(audio_node_label(sem).as_deref(), Some("Placa HDMI"));
+        let interno = "    alsa.name = \"ALC892 Analog\"\n    device.profile.description = \"Analog Stereo\"\n  \
+* node.description = \"Áudio interno\"\n";
+        assert_eq!(audio_node_label(interno).as_deref(), Some("Áudio interno"));
     }
 
     #[test]
