@@ -81,6 +81,19 @@ const DOCK_CORNERS: [&str; 3] = ["retos", "arredondados", "pilula"];
 /// Botão do menu de programas no arquivo (índice = `dock_apps_button`).
 const DOCK_APPS_BUTTON: [&str; 3] = ["inicio", "fim", "oculto"];
 
+/// Opções que chegaram numa atualização e mudam o visual, com o valor que
+/// mantém a interface como era antes delas.
+///
+/// Uma atualização não muda a aparência de quem já usa o KalangOS: se o
+/// `aparencia.conf` existe e não tem a chave, vale o valor daqui (o
+/// comportamento antigo), e a pessoa liga a novidade nas Configurações se
+/// quiser. Só quem instala do zero (sem arquivo) recebe os padrões novos.
+/// Toda opção nova que muda o que aparece na tela entra nesta lista.
+const LEGACY: &[(&str, &str)] = &[
+    // 0.1.1-2: botão do menu de programas na dock (padrão novo: no fim).
+    ("dock-botao-apps", "oculto"),
+];
+
 /// Folga entre a dock solta e a borda da tela, em px lógicos (o mesmo de
 /// `Theme.dock-gap` em ui/theme.slint).
 pub const DOCK_GAP: u32 = 8;
@@ -362,9 +375,18 @@ impl Prefs {
 
     /// Lê o texto do arquivo por cima de `base`; chaves ausentes ou inválidas
     /// mantêm o valor de `base`.
+    ///
+    /// Num arquivo que já tem alguma opção, as chaves de [`LEGACY`] que faltam
+    /// valem o valor antigo (a atualização não muda o visual sozinha).
     pub fn parse(text: &str, base: &Prefs) -> Prefs {
         let mut p = base.clone();
-        for line in text.lines() {
+        let keys: Vec<&str> = text.lines().filter_map(|l| l.split_once('=')).map(|(k, _)| k.trim()).collect();
+        let legacy: Vec<String> = if keys.is_empty() {
+            Vec::new()
+        } else {
+            LEGACY.iter().filter(|(k, _)| !keys.contains(k)).map(|(k, v)| format!("{k}={v}")).collect()
+        };
+        for line in legacy.iter().map(String::as_str).chain(text.lines()) {
             let Some((key, value)) = line.split_once('=') else {
                 continue;
             };
@@ -745,5 +767,15 @@ mod tests {
         assert_eq!((p.dock_apps_button, p.dock_detached), (2, true));
         // Valor desconhecido mantém o padrão (no fim).
         assert_eq!(Prefs::parse("dock-botao-apps=meio\n", &padrao()).dock_apps_button, 1);
+    }
+
+    #[test]
+    fn atualizacao_nao_muda_o_visual() {
+        // Arquivo de antes do botão: continua sem o botão.
+        assert_eq!(Prefs::parse("destaque=2\ndock-tamanho=52\n", &padrao()).dock_apps_button, 2);
+        // Quem escolheu, fica com a escolha.
+        assert_eq!(Prefs::parse("destaque=2\ndock-botao-apps=inicio\n", &padrao()).dock_apps_button, 0);
+        // Sem arquivo (instalação nova): padrão novo.
+        assert_eq!(Prefs::parse("", &padrao()).dock_apps_button, 1);
     }
 }
