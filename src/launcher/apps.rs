@@ -201,13 +201,19 @@ pub fn desktop_icon(app: &DesktopApp) -> Option<PathBuf> {
         .or_else(|| desktop::find_icon(&app.icon, &dirs))
 }
 
+/// Prefixo dos ids de janelas sem `.desktop` conhecido (`window:<app_id>`).
+///
+/// Fica aqui, e não no `shell::taskbar` (só Linux), para o menu compilar
+/// também no macOS do protótipo.
+pub const WINDOW_PREFIX: &str = "window:";
+
 /// Item de um app do sistema (`desktop:<caminho>`) ou de uma janela sem app
 /// conhecido (`window:<app_id>`), guardado depois da primeira vez.
 pub fn extra_entry(id: &str) -> Option<AppEntry> {
     if let Some(e) = ENTRIES.with_borrow(|m| m.get(id).cloned()) {
         return Some(e);
     }
-    let entry = if let Some(app_id) = id.strip_prefix(crate::shell::taskbar::WINDOW_PREFIX) {
+    let entry = if let Some(app_id) = id.strip_prefix(WINDOW_PREFIX) {
         // Sem `.desktop`: ícone com o nome do app_id, se o tema tiver, ou a inicial.
         let fake = DesktopApp {
             path: PathBuf::new(),

@@ -28,8 +28,9 @@ use crate::shell::session::Mode;
 use crate::shell::toplevels::{Tracker, Window};
 use crate::{AppEntry, AppWindow, Apps, DockMenu, DockMenuWindow, Shell, Theme};
 
-/// Prefixo dos ids de janelas sem `.desktop` conhecido.
-pub const WINDOW_PREFIX: &str = "window:";
+/// Prefixo dos ids de janelas sem `.desktop` conhecido (definido no
+/// `launcher::apps`, que também existe fora do Linux).
+pub use crate::launcher::apps::WINDOW_PREFIX;
 
 /// `app_id` das janelas de cada app do catálogo (sem diferenciar maiúsculas).
 const CATALOG: [(&str, &[&str]); 10] = [
