@@ -1461,3 +1461,43 @@ msgstr "Tempo Unix"
 
 msgid "Unsigned"
 msgstr "Sem sinal"
+
+#: ui/screens/settings_pages.slint
+msgid "Centered, floating away from the edge"
+msgstr "Centralizada, solta da borda"
+
+#: ui/screens/settings_pages.slint
+msgid "Floating"
+msgstr "Solta da borda"
+
+#: ui/screens/settings_pages.slint
+msgid "Only in the Dock style"
+msgstr "Só no estilo Dock"
+
+#: ui/screens/settings_pages.slint
+msgid "A gap between the dock and the edge, like Ubuntu"
+msgstr "Um espaço entre a dock e a borda, como no Ubuntu"
+
+#: ui/screens/settings_pages.slint
+msgid "Show apps button"
+msgstr "Botão de aplicativos"
+
+#: ui/screens/settings_pages.slint
+msgid "Opens the app menu, like Ubuntu's grid"
+msgstr "Abre o menu de programas, como a grade do Ubuntu"
+
+#: ui/screens/settings_pages.slint
+msgid "Start"
+msgstr "No começo"
+
+#: ui/screens/settings_pages.slint
+msgid "End"
+msgstr "No fim"
+
+#: ui/screens/settings_pages.slint
+msgid "Hidden"
+msgstr "Escondido"
+
+#: ui/components/dock.slint
+msgid "Show apps"
+msgstr "Mostrar aplicativos"

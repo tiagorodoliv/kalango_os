@@ -54,30 +54,37 @@ pub struct DockSpec {
     pub thickness: f32,
     /// Apps da dock (sem contar as Configurações).
     pub count: usize,
+    /// Botão do menu de programas visível (mais um item, no começo ou no fim).
+    pub apps_button: bool,
+    /// Folga até a borda da tela (dock solta, `Theme.dock-gap`); 0 = encostada.
+    pub gap: f32,
 }
 
 /// Janela da dock na tela: posição e tamanho exatos da dock (na barra, a
-/// borda inteira), encostada na borda. `screen` em px lógicos.
+/// borda inteira), encostada na borda ou a `gap` dela. `screen` em px lógicos.
 pub fn geometry(screen: (u32, u32), spec: DockSpec, bar_height: u32) -> crate::shell::labwc::DockGeometry {
     let (w, h) = (screen.0 as f32, screen.1 as f32);
     let side = h - bar_height as f32;
     let pad = (spec.thickness - spec.item) / 2.0;
-    // Comprimento: apps + separador (17 px) + Configurações + respiro.
-    let run = spec.count as f32 * (spec.item + 8.0) + 17.0 + spec.item;
+    // Comprimento: apps + separador (17 px) + Configurações [+ botão do menu
+    // de programas, um passo a mais] + respiro. Mesma conta de `run` em
+    // ui/components/dock.slint.
+    let step = spec.item + 8.0;
+    let run = spec.count as f32 * step + 17.0 + spec.item + if spec.apps_button { step } else { 0.0 };
     let edge = if spec.position == 0 { w } else { side };
     let along = if spec.bar { edge } else { (run + 2.0 * pad).min(edge) };
     let t = spec.thickness.round() as u32;
     let along_px = along.round() as u32;
     match spec.position {
         1 | 2 => crate::shell::labwc::DockGeometry {
-            x: if spec.position == 1 { 0 } else { (w - spec.thickness).round() as i32 },
+            x: if spec.position == 1 { spec.gap.round() as i32 } else { (w - spec.thickness - spec.gap).round() as i32 },
             y: bar_height as i32 + ((side - along) / 2.0).round() as i32,
             width: t,
             height: along_px,
         },
         _ => crate::shell::labwc::DockGeometry {
             x: ((w - along) / 2.0).round() as i32,
-            y: (h - spec.thickness).round() as i32,
+            y: (h - spec.thickness - spec.gap).round() as i32,
             width: along_px,
             height: t,
         },
@@ -126,6 +133,8 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             thickness: theme.get_dock_thickness(),
             // Fixados + abertos que não estão fixados.
             count: ui.global::<crate::Apps>().get_dock().row_count() + shell.get_running_extra().row_count(),
+            apps_button: theme.get_dock_apps_button() != 2,
+            gap: theme.get_dock_gap(),
         };
         // No monitor principal (com vários monitores, a origem dele).
         let (ox, oy) = crate::shell::outputs::primary_origin();
@@ -181,7 +190,7 @@ mod tests {
     #[test]
     fn janela_do_tamanho_da_dock() {
         // 5 apps, botão de 36 px, dock (respiro 9): 5×44 + 17 + 36 + 18 = 291.
-        let spec = DockSpec { position: 0, bar: false, item: 36.0, thickness: 54.0, count: 5 };
+        let spec = DockSpec { position: 0, bar: false, item: 36.0, thickness: 54.0, count: 5, apps_button: false, gap: 0.0 };
         let g = geometry((1366, 768), spec, 35);
         assert_eq!((g.x, g.y, g.width, g.height), (538, 714, 291, 54));
         // Barra: a borda inteira.
@@ -191,5 +200,17 @@ mod tests {
         let g = geometry((1366, 768), DockSpec { position: 1, ..spec }, 35);
         assert_eq!((g.x, g.width, g.height), (0, 54, 291));
         assert_eq!(g.y, 35 + ((733 - 291) as f32 / 2.0).round() as i32);
+    }
+
+    #[test]
+    fn botao_de_programas_e_dock_solta() {
+        let spec = DockSpec { position: 0, bar: false, item: 36.0, thickness: 54.0, count: 5, apps_button: true, gap: 8.0 };
+        // Mais um passo (36 + 8) no comprimento e 8 px acima da borda.
+        let g = geometry((1366, 768), spec, 35);
+        assert_eq!((g.width, g.height), (335, 54));
+        assert_eq!((g.x, g.y), (516, 768 - 54 - 8));
+        // Nas laterais, afastada da borda pela folga.
+        assert_eq!(geometry((1366, 768), DockSpec { position: 1, ..spec }, 35).x, 8);
+        assert_eq!(geometry((1366, 768), DockSpec { position: 2, ..spec }, 35).x, 1366 - 54 - 8);
     }
 }

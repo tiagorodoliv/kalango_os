@@ -83,6 +83,20 @@ fn main() {
     ui.set_screen(Screen::Desktop);
     save(&window, &out.join("desktop.png"));
 
+    // Dock solta da borda (como no Ubuntu), com o botão de programas no fim e
+    // depois no começo.
+    {
+        let theme = ui.global::<Theme>();
+        theme.set_dock_detached(true);
+        save(&window, &out.join("desktop_dock_solta.png"));
+        theme.set_dock_apps_button(0);
+        theme.set_dock_position(1);
+        save(&window, &out.join("desktop_dock_solta_esquerda.png"));
+        theme.set_dock_detached(false);
+        theme.set_dock_apps_button(1);
+        theme.set_dock_position(0);
+    }
+
     ui.set_launcher_open(true);
     save(&window, &out.join("menu_apps.png"));
     ui.set_launcher_open(false);

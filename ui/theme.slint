@@ -49,6 +49,13 @@ export global Theme {
     /// Estilo: 0 = dock flutuante centralizada, 1 = barra encostada na borda,
     /// ocupando a largura (ou altura) toda, como uma barra de tarefas.
     in-out property <int> dock-style: 0;
+    /// Dock solta da borda, como no Ubuntu com o "modo painel" desligado:
+    /// fica a `dock-gap` da borda e com os quatro cantos arredondados. Só no
+    /// estilo dock (0); a barra continua encostada.
+    in-out property <bool> dock-detached: false;
+    /// Botão do menu de programas (grade de 9 pontos) na dock:
+    /// 0 = no começo, 1 = no fim (padrão, como no Ubuntu), 2 = escondido.
+    in-out property <int> dock-apps-button: 1;
     /// Transparência do fundo da dock: 0 (opaca) a 0.8.
     in-out property <float> dock-transparency: 0;
     /// Ícones da dock: 0 = planos, 1 = 3D (ladrilho em relevo, sombra e
@@ -138,6 +145,9 @@ export global Theme {
     out property <length> dock-item: clamp(dock-size, 16, 72) * 1px;
     /// Espessura da dock (o botão mais o respiro dos dois lados).
     out property <length> dock-thickness: dock-item + (dock-style == 1 ? 12px : 18px);
+    /// Folga entre a dock e a borda da tela (dock solta, `dock-detached`).
+    /// Mesmo valor de `DOCK_GAP` em src/settings/appearance.rs.
+    out property <length> dock-gap: dock-detached && dock-style == 0 ? 8px : 0px;
     /// Lado do ícone dentro do botão da dock.
     /// (Proporção dos tamanhos antigos: 44 → 20, 52 → 24, 60 → 28.)
     out property <length> dock-icon: max(12px, round(clamp(dock-size, 16, 72) * 6 / 13) * 1px);

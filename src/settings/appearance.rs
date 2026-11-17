@@ -52,6 +52,10 @@ pub struct Prefs {
     pub dock_icon_transparency: f32,
     /// Cantos da dock: 0 = retos, 1 = arredondados, 2 = pílula.
     pub dock_corners: i32,
+    /// Dock solta da borda ([`DOCK_GAP`] px), como no Ubuntu; só no estilo dock.
+    pub dock_detached: bool,
+    /// Botão do menu de programas: 0 = no começo, 1 = no fim, 2 = escondido.
+    pub dock_apps_button: i32,
     /// 0 = circuitos; 1 em diante, os modelos de [`crate::shell::wallpaper::MODELS`];
     /// [`crate::shell::wallpaper::CUSTOM`] = imagem própria (`wallpaper_file`).
     pub wallpaper: i32,
@@ -74,6 +78,12 @@ const DOCK_STYLES: [&str; 2] = ["dock", "barra"];
 const DOCK_ICONS: [&str; 3] = ["plano", "3d", "ladrilho"];
 /// Cantos da dock no arquivo (índice = `dock_corners`).
 const DOCK_CORNERS: [&str; 3] = ["retos", "arredondados", "pilula"];
+/// Botão do menu de programas no arquivo (índice = `dock_apps_button`).
+const DOCK_APPS_BUTTON: [&str; 3] = ["inicio", "fim", "oculto"];
+
+/// Folga entre a dock solta e a borda da tela, em px lógicos (o mesmo de
+/// `Theme.dock-gap` em ui/theme.slint).
+pub const DOCK_GAP: u32 = 8;
 
 /// As 6 cores de destaque (mesma ordem de `Theme.accents` em ui/theme.slint).
 pub const ACCENTS: [&str; 6] = ["#3dd6f5", "#a78bfa", "#7ea6f7", "#5fd38d", "#e8b04b", "#f28b95"];
@@ -227,6 +237,8 @@ impl Prefs {
             dock_icon_style: t.get_dock_icon_style(),
             dock_icon_transparency: t.get_dock_icon_transparency(),
             dock_corners: t.get_dock_corners(),
+            dock_detached: t.get_dock_detached(),
+            dock_apps_button: t.get_dock_apps_button(),
             blur: t.get_blur(),
             dock_always_visible: t.get_dock_always_visible(),
             reduce_motion: t.get_reduce_motion(),
@@ -256,6 +268,8 @@ impl Prefs {
         t.set_dock_icon_style(self.dock_icon_style);
         t.set_dock_icon_transparency(self.dock_icon_transparency);
         t.set_dock_corners(self.dock_corners);
+        t.set_dock_detached(self.dock_detached);
+        t.set_dock_apps_button(self.dock_apps_button);
         t.set_blur(self.blur);
         t.set_dock_always_visible(self.dock_always_visible);
         t.set_reduce_motion(self.reduce_motion);
@@ -275,23 +289,29 @@ impl Prefs {
     }
 
     /// Margens que o labwc reserva para a dock na borda dela: a espessura da
-    /// dock (botão + respiro de 9 px de cada lado; 6 px na barra), que fica
-    /// encostada na borda. Com a dock escondida, nenhuma (os apps maximizados
-    /// ocupam a tela toda).
+    /// dock (botão + respiro de 9 px de cada lado; 6 px na barra), mais a
+    /// folga quando ela está solta da borda. Com a dock escondida, nenhuma
+    /// (os apps maximizados ocupam a tela toda).
     pub fn dock_margins(&self) -> crate::shell::labwc::Margins {
         let mut m = crate::shell::labwc::Margins::default();
         if !self.dock_always_visible {
             return m;
         }
         let item = clamp_dock_size(self.dock_size) as u32;
-        // A dock encosta na borda (sem folga): a margem é só a espessura dela.
-        let size = if self.dock_style == 1 { item + 12 } else { item + 18 };
+        // Encostada na borda, a margem é só a espessura; solta, mais a folga
+        // (a mesma do lado de fora, para as janelas não colarem nela).
+        let size = if self.dock_style == 1 { item + 12 } else { item + 18 + self.dock_gap() };
         match self.dock_position {
             1 => m.left = size,
             2 => m.right = size,
             _ => m.bottom = size,
         }
         m
+    }
+
+    /// Folga da dock até a borda (0 se encostada ou no estilo barra).
+    pub fn dock_gap(&self) -> u32 {
+        if self.dock_detached && self.dock_style == 0 { DOCK_GAP } else { 0 }
     }
 
     /// Texto do arquivo (`chave=valor`, uma por linha).
@@ -309,6 +329,7 @@ impl Prefs {
              barra-data={}\nbarra-segundos={}\nbarra-cpu={}\nbarra-bateria={}\n\
              dock-tamanho={}\ndock-apps={}\ndock-posicao={}\ndock-estilo={}\ndock-transparencia={}\n\
              dock-icones={}\ndock-icones-transparencia={}\ndock-cantos={}\n\
+             dock-solta={}\ndock-botao-apps={}\n\
              papel-de-parede={}\npapel-de-parede-arquivo={}\nicones={}\nbotoes-janela={}\nbotoes-janela-lado={}\n",
             self.accent_index,
             mode,
@@ -328,6 +349,8 @@ impl Prefs {
             DOCK_ICONS[self.dock_icon_style.clamp(0, 2) as usize],
             self.dock_icon_transparency,
             DOCK_CORNERS[self.dock_corners.clamp(0, 2) as usize],
+            self.dock_detached,
+            DOCK_APPS_BUTTON[self.dock_apps_button.clamp(0, 2) as usize],
             crate::shell::wallpaper::name(self.wallpaper),
             self.wallpaper_file,
             ICON_FAMILIES[self.icon_theme.clamp(0, 2) as usize],
@@ -373,6 +396,12 @@ impl Prefs {
                 "dock-icones" => {
                     if let Some(i) = DOCK_ICONS.iter().position(|s| *s == value) {
                         p.dock_icon_style = i as i32;
+                    }
+                }
+                "dock-solta" => p.dock_detached = value.parse().unwrap_or(p.dock_detached),
+                "dock-botao-apps" => {
+                    if let Some(i) = DOCK_APPS_BUTTON.iter().position(|s| *s == value) {
+                        p.dock_apps_button = i as i32;
                     }
                 }
                 "dock-cantos" => {
@@ -577,6 +606,8 @@ mod tests {
             dock_icon_style: 0,
             dock_icon_transparency: 0.0,
             dock_corners: 1,
+            dock_detached: false,
+            dock_apps_button: 1,
             blur: true,
             dock_always_visible: true,
             reduce_motion: false,
@@ -606,6 +637,8 @@ mod tests {
             dock_icon_style: 1,
             dock_icon_transparency: 0.2,
             dock_corners: 2,
+            dock_detached: true,
+            dock_apps_button: 0,
             blur: false,
             dock_always_visible: false,
             reduce_motion: true,
@@ -690,5 +723,27 @@ mod tests {
         assert_eq!(p.dock_margins(), Margins { bottom: 0, left: 0, right: 72 });
         p.dock_always_visible = false;
         assert_eq!(p.dock_margins(), Margins::default());
+    }
+
+    #[test]
+    fn dock_solta_da_borda() {
+        use crate::shell::labwc::Margins;
+        let mut p = padrao();
+        p.dock_detached = true;
+        // 52 + 18 de respiro + 8 de folga.
+        assert_eq!(p.dock_margins(), Margins { bottom: 78, left: 0, right: 0 });
+        // No estilo barra a folga não vale: continua encostada.
+        p.dock_style = 1;
+        assert_eq!(p.dock_gap(), 0);
+        assert_eq!(p.dock_margins().bottom, 64);
+    }
+
+    #[test]
+    fn botao_do_menu_de_programas() {
+        assert_eq!(padrao().dock_apps_button, 1);
+        let p = Prefs::parse("dock-botao-apps=oculto\ndock-solta=true\n", &padrao());
+        assert_eq!((p.dock_apps_button, p.dock_detached), (2, true));
+        // Valor desconhecido mantém o padrão (no fim).
+        assert_eq!(Prefs::parse("dock-botao-apps=meio\n", &padrao()).dock_apps_button, 1);
     }
 }

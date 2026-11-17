@@ -2878,7 +2878,7 @@ export component TaskbarPage inherits Rectangle {
 
             SectionLabel { text: "DOCK"; }
             Panel {
-                height: 8 * 67px;
+                height: 10 * 67px;
                 VerticalLayout {
                     Row {
                         title: @tr("Position");
@@ -2892,12 +2892,32 @@ export component TaskbarPage inherits Rectangle {
                     }
                     Row {
                         title: @tr("Style");
-                        subtitle: Theme.dock-style == 1 ? @tr("Bar along the edge, end to end") : @tr("Centered, touching the edge");
+                        subtitle: Theme.dock-style == 1 ? @tr("Bar along the edge, end to end")
+                            : Theme.dock-detached ? @tr("Centered, floating away from the edge") : @tr("Centered, touching the edge");
                         Segmented {
                             x: parent.width - self.width - 20px;
                             options: ["Dock", @tr("Bar")];
                             selected: Theme.dock-style;
                             chosen(i) => { Theme.dock-style = i; }
+                        }
+                    }
+                    // Como o Ubuntu com o "modo painel" desligado: a dock fica
+                    // solta da borda, com os quatro cantos arredondados.
+                    Row {
+                        title: @tr("Floating");
+                        subtitle: Theme.dock-style == 1 ? @tr("Only in the Dock style")
+                            : @tr("A gap between the dock and the edge, like Ubuntu");
+                        Toggle { x: parent.width - self.width - 20px; checked <=> Theme.dock-detached; }
+                    }
+                    // Grade de 9 pontos que abre o menu de programas.
+                    Row {
+                        title: @tr("Show apps button");
+                        subtitle: @tr("Opens the app menu, like Ubuntu's grid");
+                        Segmented {
+                            x: parent.width - self.width - 20px;
+                            options: [@tr("Start"), @tr("End"), @tr("Hidden")];
+                            selected: Theme.dock-apps-button;
+                            chosen(i) => { Theme.dock-apps-button = i; }
                         }
                     }
                     Row {

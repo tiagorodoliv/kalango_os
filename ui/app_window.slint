@@ -139,6 +139,12 @@ export component AppWindow inherits Window {
     /// Clique num app da dock: na sessão real o Rust decide (foca, minimiza
     /// ou abre); no protótipo, abre.
     function dock-launch(id: string) {
+        // Botão da grade de 9 pontos: abre/fecha o menu de programas, como a
+        // pílula da barra.
+        if (id == "apps-menu") {
+            root.toggle-launcher();
+            return;
+        }
         if (Shell.native) {
             Shell.dock-click(id);
         } else {
@@ -331,8 +337,8 @@ export component AppWindow inherits Window {
             // Com a dock em janela própria (sempre por cima), esta não aparece.
             if !root.launcher-open && !Shell.dock-external: dock-zone := TouchArea {
                 property <int> pos: Theme.dock-position;
-                // Encostada na borda da tela (sem folga).
-                property <length> gap: 0;
+                // Encostada na borda, ou solta dela (`Theme.dock-gap`, como no Ubuntu).
+                property <length> gap: Theme.dock-gap;
                 property <length> zone: Theme.dock-thickness + self.gap + 22px;
                 property <bool> show: Theme.dock-always-visible || self.has-hover;
                 x: self.pos == 2 ? parent.width - self.zone : 0;
