@@ -16,12 +16,25 @@ else
 	echo 'SHELL=/bin/zsh' >> /etc/default/useradd
 fi
 
-# Calamares (calamares-settings-debian)
+# Calamares (calamares-settings-debian). Desde o Calamares 3.3 o shell vem
+# SÓ de `user:` → `shell:`; a chave antiga `userShell` é ignorada (o 3.3.14 do
+# trixie criava o usuário com /bin/bash e o prompt do Kali nunca aparecia na
+# instalação limpa). A antiga fica também, para versões anteriores.
 USERS=/etc/calamares/modules/users.conf
 if [ -f "$USERS" ]; then
 	if grep -q '^userShell:' "$USERS"; then
 		sed -i 's|^userShell:.*|userShell: /bin/zsh|' "$USERS"
 	else
 		echo 'userShell: /bin/zsh' >> "$USERS"
+	fi
+	if grep -q '^user:' "$USERS"; then
+		# Já existe o mapa `user:` (só ele tem a chave shell indentada).
+		if grep -q '^[[:space:]]\+shell:' "$USERS"; then
+			sed -i 's|^\([[:space:]]\+\)shell:.*|\1shell: /bin/zsh|' "$USERS"
+		else
+			sed -i 's|^user:.*|user:\n  shell: /bin/zsh|' "$USERS"
+		fi
+	else
+		printf 'user:\n  shell: /bin/zsh\n' >> "$USERS"
 	fi
 fi
