@@ -21,6 +21,35 @@ component BarIcon inherits Rectangle {
     }
 }
 
+/// Ícone de rede da barra (`Shell.net-icon`): cabo, Wi-Fi com a força do
+/// sinal (o desenho todo apagado e as barras que valem por cima) ou sem rede.
+component NetIcon inherits Rectangle {
+    in property <string> kind;
+    in property <color> tint: Theme.text;
+    property <length> size: 15px;
+    property <bool> wifi: root.kind == "wifi-0" || root.kind == "wifi-1" || root.kind == "wifi-2" || root.kind == "wifi-3";
+    width: root.size;
+    // Wi-Fi: desenho inteiro apagado ao fundo (só ele em "wifi-0").
+    if root.wifi && root.kind != "wifi-3": Image {
+        source: Icons.wifi;
+        colorize: root.tint.with-alpha(0.3);
+        width: root.size;
+        height: root.size;
+    }
+    Image {
+        source: root.kind == "ethernet" ? Icons.ethernet
+            : root.kind == "wifi-3" ? Icons.wifi
+            : root.kind == "wifi-2" ? Icons.wifi-2
+            : root.kind == "wifi-1" ? Icons.wifi-1
+            : root.kind == "wifi-off" ? Icons.wifi-off
+            : root.kind == "wifi-0" ? @image-url("")
+            : Icons.ethernet-off;
+        colorize: root.kind == "ethernet-off" || root.kind == "wifi-off" ? root.tint.with-alpha(0.6) : root.tint;
+        width: root.size;
+        height: root.size;
+    }
+}
+
 export component TopBar inherits Rectangle {
     /// Launcher aberto: a pílula fica preenchida com o destaque.
     in property <bool> launcher-open: false;
@@ -171,7 +200,7 @@ export component TopBar inherits Rectangle {
                 padding-right: 10px;
                 spacing: 12px;
                 property <color> fg: root.quick-open ? Theme.accent : Theme.text;
-                BarIcon { icon: Icons.wifi; tint: status-row.fg; }
+                NetIcon { kind: Shell.net-icon; tint: status-row.fg; }
                 BarIcon { icon: Icons.volume; tint: status-row.fg; }
                 // Sem bateria (desktop, VM) o Rust manda "--": o indicador some.
                 if Theme.bar-show-battery && Shell.battery != "--": HorizontalLayout {

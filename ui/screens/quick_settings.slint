@@ -183,6 +183,47 @@ component PowerItem inherits Rectangle {
     }
 }
 
+/// Uma conexão salva nas listas do painel (cabo, VPN): clique liga/desliga.
+component ConnRow inherits Rectangle {
+    in property <image> icon;
+    in property <string> name;
+    in property <string> detail;
+    in property <bool> active: false;
+    callback clicked();
+
+    height: 38px;
+    border-radius: 8px;
+    background: touch.has-hover ? Theme.tile-hover : transparent;
+    Image {
+        x: 12px;
+        source: root.icon;
+        colorize: root.active ? Theme.accent : Theme.text-muted;
+        width: 16px;
+        height: 16px;
+    }
+    Text {
+        x: 40px;
+        width: parent.width - 40px - 90px;
+        text: root.name;
+        color: Theme.text;
+        font-size: 13.5px;
+        font-weight: root.active ? 600 : 400;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    Text {
+        x: parent.width - self.width - 12px;
+        text: root.active ? @tr("Connected") : root.detail;
+        color: root.active ? Theme.accent : Theme.text-muted;
+        font-size: 11.5px;
+        vertical-alignment: center;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
 /// O painel: ocupa a janela inteira (o fundo transparente fecha ao clicar)
 /// e desenha o card no canto superior direito, logo abaixo da barra.
 export component QuickSettings inherits Rectangle {
@@ -201,6 +242,101 @@ export component QuickSettings inherits Rectangle {
     in-out property <bool> wifi-open: false;
     /// Rede escolhida na lista, esperando a senha.
     in-out property <string> wifi-selected: "";
+    /// Lista aberta pela setinha de outro bloco: "wired", "vpn" ou "".
+    property <string> open-list: "";
+
+    // Blocos do painel em sequência, dois por linha; `c-*` = posição em que
+    // cada um termina (0 ou 1 bloco de cada tipo).
+    property <bool> show-network: !Device.wired-present && !Device.wifi-present;
+    property <int> c-wired: Device.wired-present ? 1 : 0;
+    property <int> c-wifi: root.c-wired + (Device.wifi-present ? 1 : 0);
+    property <int> c-net: root.c-wifi + (root.show-network ? 1 : 0);
+    property <int> c-vpn: root.c-net + (Device.vpns.length > 0 ? 1 : 0);
+    property <int> c-bt: root.c-vpn + (Device.bt-available ? 1 : 0);
+    property <int> c-dark: root.c-bt + 1;
+    property <int> rows: Math.ceil(root.c-dark / 2);
+
+    /// Qual bloco fica na posição `i` ("" = nenhum).
+    pure function slot(i: int) -> string {
+        return i < root.c-wired ? "wired" : i < root.c-wifi ? "wifi" : i < root.c-net ? "network"
+            : i < root.c-vpn ? "vpn" : i < root.c-bt ? "bt" : i < root.c-dark ? "dark" : "";
+    }
+    pure function tile-icon(k: string) -> image {
+        return k == "wired" ? (Device.wired-connected ? Icons.ethernet : Icons.ethernet-off)
+            : k == "wifi" ? (Device.wifi-enabled ? Icons.wifi : Icons.wifi-off)
+            : k == "network" ? Icons.globe
+            : k == "vpn" ? Icons.shield
+            : k == "bt" ? Icons.bluetooth
+            : Icons.moon;
+    }
+    pure function tile-title(k: string) -> string {
+        return k == "wired" ? @tr("Wired") : k == "wifi" ? "Wi-Fi" : k == "network" ? @tr("Network")
+            : k == "vpn" ? "VPN" : k == "bt" ? "Bluetooth" : @tr("Dark style");
+    }
+    pure function tile-subtitle(k: string) -> string {
+        return k == "wired" ? (!Device.network-ready ? "" : Device.wired-connected ? Device.wired-name
+                : Device.wired-unplugged ? @tr("Cable unplugged") : @tr("Disconnected"))
+            : k == "wifi" ? (!Device.network-ready ? "" : !Device.wifi-enabled ? @tr("Off")
+                : Device.wifi-name != "" ? Device.wifi-name : @tr("Not connected"))
+            : k == "network" ? (Device.network-available ? Device.network-status : "")
+            : k == "vpn" ? (Device.vpn-active != "" ? Device.vpn-active : @tr("Off"))
+            : k == "bt" ? (!Device.bt-powered ? @tr("Off") : Device.bt-connected != "" ? Device.bt-connected : @tr("On"))
+            : "";
+    }
+    pure function tile-on(k: string) -> bool {
+        return k == "wired" ? Device.wired-connected : k == "wifi" ? Device.wifi-enabled
+            : k == "network" ? Device.network-available : k == "vpn" ? Device.vpn-active != ""
+            : k == "bt" ? Device.bt-powered : !Theme.is-light;
+    }
+    pure function tile-has-details(k: string) -> bool {
+        return k == "wired" || k == "wifi" || k == "vpn" || k == "bt";
+    }
+    pure function tile-open(k: string) -> bool {
+        return k == "wifi" ? root.wifi-open : (k == "wired" || k == "vpn") && root.open-list == k;
+    }
+    function tile-toggled(k: string) {
+        if (k == "wired") {
+            // Sem cabo não há o que ligar: leva às Configurações de rede.
+            if (Device.wired-unplugged) {
+                root.open-settings(0);
+            } else {
+                Device.set-wired(!Device.wired-connected);
+            }
+        } else if (k == "wifi") {
+            Device.wifi-enabled = !Device.wifi-enabled;
+            Device.set-wifi(Device.wifi-enabled);
+        } else if (k == "network") {
+            root.open-settings(0);
+        } else if (k == "vpn") {
+            // Liga a primeira VPN salva ou desliga a que está ligada.
+            if (Device.vpn-active != "") {
+                Device.connection-set(Device.vpn-active, false);
+            } else if (Device.vpns.length > 0) {
+                Device.connection-set(Device.vpns[0].name, true);
+            }
+        } else if (k == "bt") {
+            Device.bt-powered = !Device.bt-powered;
+            Device.set-bt(Device.bt-powered);
+        } else {
+            Theme.mode = Theme.is-light ? ThemeMode.glass : ThemeMode.light;
+        }
+    }
+    function tile-details(k: string) {
+        Device.network-message = "";
+        if (k == "wifi") {
+            root.open-list = "";
+            root.wifi-open = !root.wifi-open;
+            root.wifi-selected = "";
+            if (root.wifi-open && Device.wifi-enabled) {
+                Device.rescan();
+            }
+        } else if (k == "wired" || k == "vpn") {
+            root.wifi-open = false;
+            root.open-list = root.open-list == k ? "" : k;
+        } else if (k == "bt") {
+            root.open-settings(1);
+        }
+    }
 
     // Clique fora do card fecha.
     TouchArea {
@@ -344,77 +480,118 @@ export component QuickSettings inherits Rectangle {
                 }
             }
 
-            // --- Botões liga/desliga ---
-            HorizontalLayout {
-                spacing: 10px;
-                if Device.wifi-present: Tile {
-                    horizontal-stretch: 1;
-                    icon: Icons.wifi;
-                    title: "Wi-Fi";
-                    subtitle: !Device.network-ready ? ""
-                        : !Device.wifi-enabled ? @tr("Off")
-                        : Device.wifi-name != "" ? Device.wifi-name : @tr("Not connected");
-                    on: Device.wifi-enabled;
-                    has-details: true;
-                    details-open: root.wifi-open;
-                    toggled => {
-                        Device.wifi-enabled = !Device.wifi-enabled;
-                        Device.set-wifi(Device.wifi-enabled);
-                    }
-                    details => {
-                        root.wifi-open = !root.wifi-open;
-                        root.wifi-selected = "";
-                        if (root.wifi-open && Device.wifi-enabled) {
-                            Device.rescan();
-                        }
-                    }
-                }
-                // Sem Wi-Fi (cabo, VM): só mostra a conexão e leva às Configurações.
-                if !Device.wifi-present: Tile {
-                    horizontal-stretch: 1;
-                    icon: Icons.globe;
-                    title: @tr("Network");
-                    subtitle: Device.network-available ? Device.network-status : "";
-                    on: Device.network-available;
-                    toggled => { root.open-settings(0); }
-                }
-                if Device.bt-available: Tile {
-                    horizontal-stretch: 1;
-                    icon: Icons.bluetooth;
-                    title: "Bluetooth";
-                    subtitle: !Device.bt-powered ? @tr("Off")
-                        : Device.bt-connected != "" ? Device.bt-connected : @tr("On");
-                    on: Device.bt-powered;
-                    has-details: true;
-                    toggled => {
-                        Device.bt-powered = !Device.bt-powered;
-                        Device.set-bt(Device.bt-powered);
-                    }
-                    details => { root.open-settings(1); }
-                }
-                if !Device.bt-available: Tile {
-                    horizontal-stretch: 1;
-                    icon: Icons.moon;
-                    title: @tr("Dark style");
-                    on: !Theme.is-light;
-                    toggled => {
-                        Theme.mode = Theme.is-light ? ThemeMode.glass : ThemeMode.light;
-                    }
-                }
-            }
-            // Com Bluetooth, o estilo escuro desce para a segunda linha.
-            if Device.bt-available: HorizontalLayout {
+            // --- Botões liga/desliga, como no Ubuntu: dois por linha, só os
+            // que existem nesta máquina (ver `slot`). ---
+            for r in root.rows: HorizontalLayout {
                 spacing: 10px;
                 Tile {
                     horizontal-stretch: 1;
-                    icon: Icons.moon;
-                    title: @tr("Dark style");
-                    on: !Theme.is-light;
-                    toggled => {
-                        Theme.mode = Theme.is-light ? ThemeMode.glass : ThemeMode.light;
+                    icon: root.tile-icon(root.slot(r * 2));
+                    title: root.tile-title(root.slot(r * 2));
+                    subtitle: root.tile-subtitle(root.slot(r * 2));
+                    on: root.tile-on(root.slot(r * 2));
+                    has-details: root.tile-has-details(root.slot(r * 2));
+                    details-open: root.tile-open(root.slot(r * 2));
+                    toggled => { root.tile-toggled(root.slot(r * 2)); }
+                    details => { root.tile-details(root.slot(r * 2)); }
+                }
+                if root.slot(r * 2 + 1) != "": Tile {
+                    horizontal-stretch: 1;
+                    icon: root.tile-icon(root.slot(r * 2 + 1));
+                    title: root.tile-title(root.slot(r * 2 + 1));
+                    subtitle: root.tile-subtitle(root.slot(r * 2 + 1));
+                    on: root.tile-on(root.slot(r * 2 + 1));
+                    has-details: root.tile-has-details(root.slot(r * 2 + 1));
+                    details-open: root.tile-open(root.slot(r * 2 + 1));
+                    toggled => { root.tile-toggled(root.slot(r * 2 + 1)); }
+                    details => { root.tile-details(root.slot(r * 2 + 1)); }
+                }
+                if root.slot(r * 2 + 1) == "": Rectangle { horizontal-stretch: 1; }
+            }
+
+            // --- Conexões cabeadas salvas (setinha do bloco "Cabeada") ---
+            if root.open-list == "wired": VerticalLayout {
+                spacing: 8px;
+                Text {
+                    text: @tr("Wired connections");
+                    color: Theme.text-muted;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+                Rectangle {
+                    height: wired-list.preferred-height;
+                    border-radius: 12px;
+                    background: Theme.tile;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    wired-list := VerticalLayout {
+                        padding: 4px;
+                        // Só as de cabo (a lista também tem as de Wi-Fi).
+                        for c in Device.connections: Rectangle {
+                            height: c.kind == "ethernet" ? 38px : 0;
+                            if c.kind == "ethernet": ConnRow {
+                                icon: Icons.ethernet;
+                                name: c.name;
+                                active: c.active;
+                                clicked => { Device.connection-set(c.name, !c.active); }
+                            }
+                        }
                     }
                 }
-                Rectangle { horizontal-stretch: 1; }
+                if Device.network-message != "": Text {
+                    text: Device.network-message;
+                    color: Theme.text-muted;
+                    font-size: 12.5px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    LinkText {
+                        text: @tr("Network settings...");
+                        clicked => { root.open-settings(0); }
+                    }
+                }
+            }
+
+            // --- VPNs salvas (setinha do bloco "VPN") ---
+            if root.open-list == "vpn": VerticalLayout {
+                spacing: 8px;
+                Text {
+                    text: "VPN";
+                    color: Theme.text-muted;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+                Rectangle {
+                    height: vpn-list.preferred-height;
+                    border-radius: 12px;
+                    background: Theme.tile;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    vpn-list := VerticalLayout {
+                        padding: 4px;
+                        for v in Device.vpns: ConnRow {
+                            icon: Icons.shield;
+                            name: v.name;
+                            detail: v.kind;
+                            active: v.active;
+                            clicked => { Device.connection-set(v.name, !v.active); }
+                        }
+                    }
+                }
+                if Device.network-message != "": Text {
+                    text: Device.network-message;
+                    color: Theme.text-muted;
+                    font-size: 12.5px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    LinkText {
+                        text: @tr("VPN settings...");
+                        clicked => { root.open-settings(0); }
+                    }
+                }
             }
 
             // --- Redes Wi-Fi (como o menu do Wi-Fi do macOS) ---

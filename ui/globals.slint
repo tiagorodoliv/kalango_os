@@ -154,6 +154,9 @@ export global Shell {
     in property <int> battery-level: 0;
     /// Ligada na tomada (carregando ou cheia): o ícone mostra o raio.
     in property <bool> battery-charging: false;
+    /// Ícone de rede da barra pela conexão principal (`src/common/system.rs`):
+    /// "ethernet", "ethernet-off", "wifi-0" a "wifi-3" ou "wifi-off".
+    in property <string> net-icon: "ethernet-off";
     /// Gravando num pendrive (`src/shell/usb.rs`): a barra pede para não remover.
     in property <bool> usb-writing: false;
     /// "Identificar" monitores: número e nome do monitor desta janela.

@@ -22,7 +22,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use slint::{ComponentHandle, Model, ModelRc, SharedString, Timer, TimerMode, VecModel, Weak};
 
-use crate::{AppWindow, Device, InfoItem, Mode, WifiNetwork};
+use crate::{AppWindow, Device, InfoItem, Mode, NetConnection, VpnConnection, WifiNetwork};
 
 /// Intervalo entre as leituras de rede, som e bateria (Configurações e painel rápido).
 const INTERVAL: Duration = Duration::from_secs(3);
@@ -126,42 +126,66 @@ fn wifi_radio_on() -> bool {
         .all(|e| read(e.path().join("soft")) == "0" && read(e.path().join("hard")) == "0")
 }
 
-/// Resumo dos dispositivos de rede, de `nmcli -t -f TYPE,STATE,CONNECTION device`.
-#[derive(Clone, Debug, PartialEq)]
+/// Resumo dos dispositivos de rede, de
+/// `nmcli -t -f TYPE,STATE,CONNECTION,DEVICE device`.
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct NetStatus {
     /// Frase para a tela ("Conectado por cabo", "Conectado a Casa"...).
     pub summary: String,
-    /// Existe uma placa Wi-Fi.
+    /// Existe uma placa Wi-Fi com driver (o NetworkManager a gerencia).
     pub wifi_present: bool,
+    /// Existe uma placa de rede cabeada gerenciada.
+    pub wired_present: bool,
+    /// O cabo está conectado (com conexão ativa).
+    pub wired_connected: bool,
+    /// Sem cabo na placa (estado "unavailable").
+    pub wired_unplugged: bool,
+    /// Nome da conexão cabeada ativa ("Wired connection 1").
+    pub wired_name: String,
+    /// Placa cabeada ("enp12s0"), para ligar/desligar.
+    pub wired_device: String,
 }
 
 pub fn parse_devices(text: &str) -> NetStatus {
-    let mut wired = None;
+    let mut s = NetStatus::default();
     let mut wifi = None;
-    let mut wifi_present = false;
     for line in text.lines() {
         let f = split_terse(line);
         if f.len() < 3 {
             continue;
         }
+        // Placa sem driver ativo ou que o NetworkManager não usa (veth do
+        // Docker, por exemplo): não aparece.
+        if f[1] == "unmanaged" {
+            continue;
+        }
         let connected = f[1] == "connected" || f[1].starts_with("connected ");
         match f[0].as_str() {
             "wifi" => {
-                wifi_present = true;
+                s.wifi_present = true;
                 if connected {
                     wifi = Some(f[2].clone());
                 }
             }
-            "ethernet" if connected => wired = Some(f[2].clone()),
+            "ethernet" => {
+                // A primeira placa cabeada conectada vale (senão, a primeira).
+                if !s.wired_present || (connected && !s.wired_connected) {
+                    s.wired_present = true;
+                    s.wired_connected = connected;
+                    s.wired_unplugged = f[1] == "unavailable";
+                    s.wired_name = if connected { f[2].clone() } else { String::new() };
+                    s.wired_device = f.get(3).cloned().unwrap_or_default();
+                }
+            }
             _ => {}
         }
     }
-    let summary = match (wifi, wired) {
-        (Some(ssid), _) => format!("{} {ssid}", tr("Connected to Wi-Fi", "Conectado ao Wi-Fi")),
-        (None, Some(_)) => tr("Connected by cable", "Conectado por cabo").to_string(),
-        (None, None) => tr("Not connected", "Sem conexão").to_string(),
+    s.summary = match (&wifi, s.wired_connected) {
+        (_, true) => tr("Connected by cable", "Conectado por cabo").to_string(),
+        (Some(ssid), false) => format!("{} {ssid}", tr("Connected to Wi-Fi", "Conectado ao Wi-Fi")),
+        (None, false) => tr("Not connected", "Sem conexão").to_string(),
     };
-    NetStatus { summary, wifi_present }
+    s
 }
 
 /// Lê `wpctl get-volume`: "Volume: 0.40" ou "Volume: 0.40 [MUTED]".
@@ -455,6 +479,8 @@ struct Snapshot {
     networks: Vec<Net>,
     /// Perfis Wi-Fi salvos (redes que dá para esquecer).
     saved: Vec<String>,
+    /// Conexões salvas de rede (cabo e Wi-Fi) e VPNs (painel rápido).
+    connections: Option<(Vec<crate::settings::netconfig::SavedConnection>, Vec<crate::settings::netconfig::SavedConnection>)>,
     sound: Option<(f32, bool, String)>,
     battery: Option<(u32, bool)>,
 }
@@ -472,7 +498,7 @@ enum Scan {
 
 fn read_snapshot(scan: Scan) -> Snapshot {
     let mut s = Snapshot::default();
-    if let Some(dev) = output("nmcli", &["-t", "-f", "TYPE,STATE,CONNECTION", "device"]) {
+    if let Some(dev) = output("nmcli", &["-t", "-f", "TYPE,STATE,CONNECTION,DEVICE", "device"]) {
         let status = parse_devices(&dev);
         s.wifi_enabled = output("nmcli", &["radio", "wifi"]).is_some_and(|t| t.trim() == "enabled");
         if status.wifi_present && s.wifi_enabled {
@@ -489,9 +515,11 @@ fn read_snapshot(scan: Scan) -> Snapshot {
             ) {
                 s.networks = parse_wifi_list(&list);
             }
-            if let Some(text) = output("nmcli", &["-t", "-f", "NAME,TYPE", "connection", "show"]) {
-                s.saved = parse_saved_wifi(&text);
-            }
+        }
+        // Um nmcli só: redes Wi-Fi salvas, conexões de cabo e VPNs.
+        if let Some(text) = output("nmcli", &["-t", "-f", "NAME,TYPE,ACTIVE", "connection", "show"]) {
+            s.saved = parse_saved_wifi(&text);
+            s.connections = Some(crate::settings::netconfig::parse_connections(&text));
         }
         s.network = Some(status);
     }
@@ -565,8 +593,26 @@ fn apply(ui: &AppWindow, s: Snapshot, hold_volume: bool, rescan: bool) {
             d.set_network_status(net.summary.into());
             d.set_wifi_present(net.wifi_present);
             d.set_wifi_enabled(s.wifi_enabled);
+            d.set_wired_present(net.wired_present);
+            d.set_wired_connected(net.wired_connected);
+            d.set_wired_unplugged(net.wired_unplugged);
+            d.set_wired_name(net.wired_name.into());
+            d.set_wired_device(net.wired_device.into());
         }
         None => d.set_network_available(false),
+    }
+    if let Some((nets, vpns)) = s.connections {
+        let nets: Vec<NetConnection> = nets
+            .into_iter()
+            .map(|(name, kind, active)| NetConnection { name: name.into(), kind: kind.into(), active })
+            .collect();
+        let vpns: Vec<VpnConnection> = vpns
+            .into_iter()
+            .map(|(name, kind, active)| VpnConnection { name: name.into(), kind: kind.into(), active })
+            .collect();
+        d.set_connections(ModelRc::from(Rc::new(VecModel::from(nets))));
+        d.set_vpn_active(vpns.iter().find(|v| v.active).map(|v| v.name.clone()).unwrap_or_default());
+        d.set_vpns(ModelRc::from(Rc::new(VecModel::from(vpns))));
     }
     let active = s.networks.iter().find(|n| n.active).map(|n| n.ssid.clone()).unwrap_or_default();
     d.set_wifi_name(active.into());
@@ -777,6 +823,46 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         });
     }
     {
+        // Bloco "Cabeada" do painel: liga/desliga a placa pelo NetworkManager.
+        let weak = ui.as_weak();
+        let shared = shared.clone();
+        d.on_set_wired(move |on| {
+            let Some(ui) = weak.upgrade() else { return };
+            let dev = ui.global::<Device>().get_wired_device().to_string();
+            if dev.is_empty() {
+                return;
+            }
+            let weak = weak.clone();
+            let shared = shared.clone();
+            std::thread::spawn(move || {
+                let _ = output("nmcli", &["device", if on { "connect" } else { "disconnect" }, &dev]);
+                refresh_from_thread(weak, shared);
+            });
+        });
+    }
+    {
+        // Listas do painel (cabo e VPN): ativa ou desativa uma conexão salva.
+        let weak = ui.as_weak();
+        let shared = shared.clone();
+        d.on_connection_set(move |name, on| {
+            let weak = weak.clone();
+            let shared = shared.clone();
+            std::thread::spawn(move || {
+                let ok = output("nmcli", &["connection", if on { "up" } else { "down" }, "id", &name]).is_some();
+                if !ok && on {
+                    let msg = format!("{} {name}", tr("Could not connect:", "Não foi possível conectar:"));
+                    let w = weak.clone();
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if let Some(ui) = w.upgrade() {
+                            ui.global::<Device>().set_network_message(msg.into());
+                        }
+                    });
+                }
+                refresh_from_thread(weak, shared);
+            });
+        });
+    }
+    {
         let weak = ui.as_weak();
         let shared = shared.clone();
         d.on_rescan(move || refresh(weak.clone(), shared.clone(), true));
@@ -859,11 +945,16 @@ mod tests {
 
     #[test]
     fn resume_dispositivos() {
-        let s = parse_devices("ethernet:connected:Wired connection 1\nloopback:connected (externally):lo\n");
-        assert_eq!(s, NetStatus { summary: tr("Connected by cable", "Conectado por cabo").into(), wifi_present: false });
-        let s = parse_devices("wifi:connected:Casa\nethernet:unavailable:\n");
+        let s = parse_devices("ethernet:connected:Wired connection 1:enp12s0\nloopback:connected (externally):lo:lo\n");
+        assert_eq!(s.summary, tr("Connected by cable", "Conectado por cabo"));
+        assert!(!s.wifi_present && s.wired_present && s.wired_connected);
+        assert_eq!((s.wired_name.as_str(), s.wired_device.as_str()), ("Wired connection 1", "enp12s0"));
+        let s = parse_devices("wifi:connected:Casa:wlan0\nethernet:unavailable::eth0\n");
         assert_eq!(s.summary, format!("{} Casa", tr("Connected to Wi-Fi", "Conectado ao Wi-Fi")));
-        assert!(s.wifi_present);
+        assert!(s.wifi_present && s.wired_unplugged && !s.wired_connected);
+        // Placa sem driver/gerência (veth do Docker, Wi-Fi sem firmware): some.
+        let s = parse_devices("wifi:unmanaged::wlan0\nethernet:unmanaged::veth1\n");
+        assert!(!s.wifi_present && !s.wired_present);
         assert_eq!(parse_devices("wifi:disconnected:\n").summary, tr("Not connected", "Sem conexão"));
     }
 

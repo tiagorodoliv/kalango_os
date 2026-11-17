@@ -128,6 +128,20 @@ export global Device {
     in property <[WifiNetwork]> networks;
     /// Nome da rede Wi-Fi conectada ("" sem conexão).
     in property <string> wifi-name: "";
+    /// Existe uma placa de rede cabeada (gerenciada pelo NetworkManager).
+    in property <bool> wired-present: false;
+    /// O cabo está conectado, com conexão ativa.
+    in property <bool> wired-connected: false;
+    /// Sem cabo na placa.
+    in property <bool> wired-unplugged: false;
+    /// Conexão cabeada ativa ("Wired connection 1").
+    in property <string> wired-name: "";
+    /// Placa cabeada ("enp12s0").
+    in property <string> wired-device: "";
+    /// Liga/desliga a placa cabeada (bloco "Cabeada" do painel rápido).
+    callback set-wired(bool);
+    /// Ativa ou desativa uma conexão salva (cabo ou VPN) pelo nome.
+    callback connection-set(string /* nome */, bool /* ligar */);
     /// Conectando ou procurando redes.
     in property <bool> network-busy: false;
     /// Resultado da última ação ("Conectado a Casa", "Senha incorreta"...).
@@ -180,6 +194,8 @@ export global Device {
     /// O plugin do OpenVPN está instalado.
     in property <bool> openvpn-available: false;
     in property <[VpnConnection]> vpns: [];
+    /// VPN ligada agora ("" = nenhuma), para o bloco do painel rápido.
+    in property <string> vpn-active: "";
     /// VPN ligando/desligando ("" = nenhuma).
     in property <string> vpn-busy: "";
     in-out property <string> vpn-message: "";

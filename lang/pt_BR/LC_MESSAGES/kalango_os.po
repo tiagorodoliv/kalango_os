@@ -1537,3 +1537,22 @@ msgstr "Os PINs não conferem"
 #: ui/screens/login.slint
 msgid "Password or PIN"
 msgstr "Senha ou PIN"
+
+# Painel rápido: blocos de rede como no Ubuntu (2026-11-17)
+msgid "Wired"
+msgstr "Cabeada"
+
+msgid "Cable unplugged"
+msgstr "Cabo desconectado"
+
+msgid "Disconnected"
+msgstr "Desconectada"
+
+msgid "Wired connections"
+msgstr "Conexões cabeadas"
+
+msgid "Network settings..."
+msgstr "Configurações de rede..."
+
+msgid "VPN settings..."
+msgstr "Configurações de VPN..."
