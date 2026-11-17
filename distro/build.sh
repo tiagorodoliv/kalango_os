@@ -11,12 +11,13 @@
 #       distro/build.sh --so-shell  (só compila o kalango-shell e monta o .deb)
 # Saída: distro/out/kalango-os-<versão>.iso (versão lida do Cargo.toml)
 #
-# Variável opcional: KALANGO_MIRROR (espelho Debian, ex.: http://ftp.br.debian.org/debian/)
+# Variáveis opcionais: KALANGO_MIRROR (espelho Debian, ex.: http://ftp.br.debian.org/debian/) e
+# KALANGO_REVISAO (revisão do pacote kalango-shell da ISO; use a mesma publicada no apt)
 set -eu
 
-# Reexecuta como root mantendo o espelho escolhido.
+# Reexecuta como root mantendo o espelho e a revisão do pacote escolhidos.
 if [ "$(id -u)" -ne 0 ]; then
-	exec sudo KALANGO_MIRROR="${KALANGO_MIRROR:-}" "$0" "$@"
+	exec sudo KALANGO_MIRROR="${KALANGO_MIRROR:-}" KALANGO_REVISAO="${KALANGO_REVISAO:-1}" "$0" "$@"
 fi
 
 DISTRO=$(cd "$(dirname "$0")" && pwd)
