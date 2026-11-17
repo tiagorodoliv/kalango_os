@@ -220,7 +220,11 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Vec<Timer> {
         shell.set_identify_name(new.primary.0.clone().into());
         if primary_moved {
             // A área de trabalho precisa ir para outro monitor: abre outra
-            // (a regra com o MoveTo novo vale ao mapear) e sai.
+            // (a regra com o MoveTo novo vale ao mapear) e sai. Com o
+            // supervisor, ele mesmo abre a outra (código de recarga).
+            if crate::shell::update::supervised() {
+                std::process::exit(crate::shell::update::RELOAD_CODE);
+            }
             let _ = Command::new(own_exe()).stdin(Stdio::null()).spawn();
             let _ = slint::quit_event_loop();
             return;

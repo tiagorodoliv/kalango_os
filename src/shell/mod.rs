@@ -13,6 +13,7 @@
 //! - [`labwc`]: ajustes do compositor feitos pelo shell (margens, dock, menus);
 //! - [`usb`]: grava logo nos pendrives e avisa na barra enquanto grava;
 //! - [`thunar`]: "Definir como papel de parede" no botão direito do Thunar;
+//! - [`update`]: recarrega a interface depois de uma atualização, sem reiniciar;
 //! - [`integrity`]: avisa (e pede o administrador) quando os arquivos da interface
 //!   mudaram fora de uma atualização.
 
@@ -30,6 +31,7 @@ pub mod taskbar;
 pub mod thunar;
 #[cfg(target_os = "linux")]
 pub mod toplevels;
+pub mod update;
 pub mod usb;
 pub mod wallpaper;
 #[cfg(target_os = "linux")]

@@ -71,12 +71,11 @@ pub fn parse_status(line: &str) -> Option<(f32, String)> {
     }
 }
 
-/// Atualizar estes pacotes pede reiniciar o computador (o kalango-shell só
-/// troca de versão numa sessão nova).
+/// Atualizar estes pacotes pede reiniciar o computador: o kernel e a base
+/// que todo processo usa. O kalango-shell não está aqui: a área de trabalho
+/// se recarrega sozinha, sem fechar os apps (`shell::update`).
 pub fn needs_reboot(packages: &[Package]) -> bool {
-    packages.iter().any(|p| {
-        p.name.starts_with("linux-image") || matches!(p.name.as_str(), "libc6" | "systemd" | "dbus" | "dbus-daemon" | "kalango-shell")
-    })
+    packages.iter().any(|p| p.name.starts_with("linux-image") || matches!(p.name.as_str(), "libc6" | "systemd" | "dbus" | "dbus-daemon"))
 }
 
 fn read(program: &str, args: &[&str]) -> String {

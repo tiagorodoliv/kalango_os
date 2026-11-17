@@ -21,6 +21,10 @@
 # Também leva as políticas do polkit (org.kalango.*) e o limite de 5 s para o
 # xdg-document-portal parar ao sair (antes a tela ficava 90 s parada).
 #
+# O preinst guarda o binário em uso em /var/lib/kalango/shell-anterior, para o
+# supervisor (kalango-shell-sessao) voltar a ele se a versão nova não abrir; o
+# postinst põe o supervisor no autostart do labwc e não pede mais para reiniciar.
+#
 # Saída: PASTA_DE_SAIDA/kalango-shell_<versão>_amd64.deb
 set -eu
 
@@ -135,12 +139,45 @@ if [ "$1" = configure ]; then
 	fi
 fi
 
-if [ "$1" = configure ] && [ -n "${2:-}" ]; then
-	echo "*** KalangOS atualizado: reinicie (ou saia e entre) para usar a versão nova ***" >/run/reboot-required
+if [ "$1" = configure ]; then
+	# A área de trabalho sob o supervisor (kalango-shell-sessao: reabre se
+	# cair, volta para a versão anterior se a nova não abrir). O autostart do
+	# labwc é da ISO; só a linha exata do padrão é trocada.
+	AUTO=/etc/xdg/labwc/autostart
+	if [ -f "$AUTO" ]; then
+		sed -i 's|^systemd-cat -t kalango-shell kalango-shell &$|systemd-cat -t kalango-shell kalango-shell-sessao \&|' "$AUTO"
+	fi
 fi
+# Sem pedido de reiniciar: a área de trabalho percebe a versão nova e oferece
+# recarregar a interface sem fechar os apps (src/shell/update.rs).
 exit 0
 POST
 chmod 0755 "$P/DEBIAN/postinst"
+# Antes de trocar: guarda o binário em uso como versão anterior, que o
+# supervisor (kalango-shell-sessao) usa se a versão nova não abrir.
+cat >"$P/DEBIAN/preinst" <<'PRE'
+#!/bin/sh
+set -e
+if [ "$1" = upgrade ] && [ -x /usr/local/bin/kalango-shell ]; then
+	ANT=/var/lib/kalango/shell-anterior
+	mkdir -p "$ANT"
+	cp -p /usr/local/bin/kalango-shell "$ANT/kalango-shell.novo"
+	mv "$ANT/kalango-shell.novo" "$ANT/kalango-shell"
+	echo "${2:-}" >"$ANT/versao"
+fi
+exit 0
+PRE
+chmod 0755 "$P/DEBIAN/preinst"
+# Ao remover de vez (purge), apaga a versão anterior guardada.
+cat >"$P/DEBIAN/postrm" <<'POSTRM'
+#!/bin/sh
+set -e
+if [ "$1" = purge ]; then
+	rm -rf /var/lib/kalango/shell-anterior
+fi
+exit 0
+POSTRM
+chmod 0755 "$P/DEBIAN/postrm"
 # Ao remover o pacote, o PAM volta ao do Debian (o script ainda existe no prerm).
 cat >"$P/DEBIAN/prerm" <<'PRERM'
 #!/bin/sh

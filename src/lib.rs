@@ -102,6 +102,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     if mode == Mode::Desktop && native {
         shell::thunar::ensure_wallpaper_action();
         shell::integrity::start();
+        shell::update::start();
     }
     users::install(&ui, mode);
     shell::calendar::install(&ui, mode);

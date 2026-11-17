@@ -5,4 +5,4 @@ xdg-user-dirs-update
 # Janela de senha do administrador (polkit): a Loja instala apps por ela.
 lxpolkit &
 # Saída do shell vai para o journal: journalctl -t kalango-shell
-systemd-cat -t kalango-shell kalango-shell &
+systemd-cat -t kalango-shell kalango-shell-sessao &

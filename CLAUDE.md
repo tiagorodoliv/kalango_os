@@ -202,6 +202,16 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (`is_shell_binary`: `kalango-shell`/`kalango_os`), a área de trabalho é única por sessão (`flock` em
   `$XDG_RUNTIME_DIR/kalango-shell-area-de-trabalho.lock`, espera 5 s pela troca de monitor principal) e o snapshot
   apaga as variáveis da sessão e sai se receber `--opção` do shell.
+- **Atualizar sem reiniciar e voltar sozinho (2026-11-17):** o autostart do labwc roda o supervisor
+  `/usr/local/bin/kalango-shell-sessao` (o postinst troca a linha nos sistemas já instalados): reabre a área de
+  trabalho se cair; código 75 = recarregar (atualização ou monitor principal trocado: `update::RELOAD_CODE`);
+  3 quedas de menos de 30 s → versão anterior que o **preinst** guarda em `/var/lib/kalango/shell-anterior`
+  (`KALANGO_SHELL_ANTERIOR=1` → aviso), e só volta à instalada quando ela muda; para quando o labwc sai. A área de
+  trabalho vê o próprio binário trocado (`/proc/self/exe` "(deleted)", `src/shell/update.rs`) e pergunta
+  "Recarregar agora" (zenity): fecha o Alt+Tab antigo e sai com 75 (sem supervisor, `exec`); dock/fundos novos
+  fecham os antigos. O kalango-shell saiu de `updates::needs_reboot` e o postinst não grava mais
+  `/run/reboot-required`. Testar o supervisor: `KALANGO_SESSAO_ATUAL=`/`KALANGO_SESSAO_ANTERIOR=` com scripts falsos.
+  No HP: matar a área de trabalho basta (o supervisor reabre com o binário novo).
 - **XML do labwc: nunca `--` dentro de `<!-- -->`.** O comentário "kalango-shell --dock-gatilho" deixava o
   `rc.xml` inválido e o labwc perdia as regras seguintes (dock escondida abria no meio, atrás das janelas). Teste
   `labwc::rc_xml_gerado_e_bem_formado`. Trocar dock ↔ faixa fecha o processo antigo na hora (antes ficava aberto).

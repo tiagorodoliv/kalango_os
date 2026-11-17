@@ -1,0 +1,87 @@
+#!/bin/sh
+# Supervisor da área de trabalho do KalangOS (barra, dock e fundo).
+#
+# O labwc o inicia pelo autostart no lugar do kalango-shell. Ele:
+#   - reabre a área de trabalho se ela cair (antes a sessão ficava sem barra
+#     e sem dock até sair e entrar de novo);
+#   - recarrega a interface quando ela pede (código de saída 75: atualização
+#     instalada ou monitor principal trocado), sem fechar os apps;
+#   - se a versão instalada cair 3 vezes seguidas logo ao iniciar (menos de
+#     30 s cada), abre a versão anterior, que o pacote guarda em
+#     /var/lib/kalango/shell-anterior (preinst), e a interface avisa;
+#   - para quando o labwc termina (fim da sessão) ou quando a área de
+#     trabalho sai normalmente (código 0).
+#
+# A saída de cada execução vai para o journal (journalctl -t kalango-shell).
+
+# Substituíveis só para testar o supervisor com executáveis falsos.
+ATUAL=${KALANGO_SESSAO_ATUAL:-kalango-shell}
+ANTERIOR=${KALANGO_SESSAO_ANTERIOR:-/var/lib/kalango/shell-anterior/kalango-shell}
+# Quedas seguidas para trocar de versão e intervalo que conta como "logo ao iniciar".
+LIMITE=3
+RAPIDA=30
+
+# Avisa a área de trabalho que ela está sob este supervisor (pede o código 75
+# em vez de abrir outra cópia de si mesma).
+export KALANGO_SUPERVISIONADO=1
+
+registrar() {
+	logger -t kalango-shell-sessao "$*"
+}
+
+# Data de modificação do binário instalado (muda quando o apt instala outro).
+assinatura() {
+	caminho=$(command -v "$ATUAL" 2>/dev/null) || return 0
+	stat -c %Y "$caminho" 2>/dev/null
+}
+
+# A sessão acabou: o labwc não existe mais.
+labwc_saiu() {
+	[ -n "${LABWC_PID:-}" ] && ! kill -0 "$LABWC_PID" 2>/dev/null
+}
+
+usar=$ATUAL
+quedas=0
+caiu_em=
+while :; do
+	inicio=$(date +%s)
+	"$usar"
+	codigo=$?
+	labwc_saiu && exit 0
+	case $codigo in
+	0) exit 0 ;;
+	75)
+		# Recarregar. Na versão anterior, só volta para a instalada se o
+		# apt instalou outra desde a queda; senão (ex.: monitor principal
+		# trocado) recarrega a própria anterior.
+		registrar "recarregando a interface"
+		if [ "$usar" = "$ANTERIOR" ] && [ "$(assinatura)" = "$caiu_em" ]; then
+			continue
+		fi
+		usar=$ATUAL
+		unset KALANGO_SHELL_ANTERIOR
+		quedas=0
+		continue
+		;;
+	esac
+	duracao=$(($(date +%s) - inicio))
+	if [ "$duracao" -lt "$RAPIDA" ]; then
+		quedas=$((quedas + 1))
+	else
+		quedas=1
+	fi
+	registrar "a área de trabalho ($usar) saiu com o código $codigo depois de ${duracao}s (queda $quedas)"
+	if [ "$quedas" -ge "$LIMITE" ]; then
+		if [ "$usar" = "$ATUAL" ] && [ -x "$ANTERIOR" ]; then
+			registrar "a versão instalada não abre; usando a anterior ($ANTERIOR)"
+			usar=$ANTERIOR
+			caiu_em=$(assinatura)
+			export KALANGO_SHELL_ANTERIOR=1
+			quedas=0
+		else
+			registrar "a área de trabalho não abre; desistindo"
+			exit 1
+		fi
+	fi
+	sleep 1
+done
