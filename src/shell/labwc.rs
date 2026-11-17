@@ -125,8 +125,13 @@ pub fn replace_action(xml: &str, identifier: &str, action: &str, attrs: &str) ->
 /// Troca a posição e o tamanho (`MoveTo` e `ResizeTo`) da regra da janela
 /// da dock (`kalango-dock`). `None` se o `rc.xml` não tem a regra.
 pub fn replace_dock_geometry(xml: &str, g: DockGeometry) -> Option<String> {
-    let xml = replace_action(xml, "kalango-dock", "ResizeTo", &format!("width=\"{}\" height=\"{}\"", g.width, g.height))?;
-    replace_action(&xml, "kalango-dock", "MoveTo", &format!("x=\"{}\" y=\"{}\"", g.x, g.y))
+    replace_geometry(xml, "kalango-dock", g)
+}
+
+/// Troca `ResizeTo` e `MoveTo` da regra da janela `identifier`.
+fn replace_geometry(xml: &str, identifier: &str, g: DockGeometry) -> Option<String> {
+    let xml = replace_action(xml, identifier, "ResizeTo", &format!("width=\"{}\" height=\"{}\"", g.width, g.height))?;
+    replace_action(&xml, identifier, "MoveTo", &format!("x=\"{}\" y=\"{}\"", g.x, g.y))
 }
 
 /// Põe as margens só no monitor principal (`<margin output="eDP-1" ...>`):
@@ -179,6 +184,8 @@ pub struct DockGeometry {
 struct Wanted {
     margins: Option<Margins>,
     dock: Option<DockGeometry>,
+    /// Faixa da dock escondida (`kalango-dock-gatilho`, `src/shell/dock.rs`).
+    dock_trigger: Option<DockGeometry>,
     /// Monitor principal (nome e origem): margens e área de trabalho nele.
     primary: Option<(String, i32, i32)>,
     /// Monitores extras (nome e origem) com janela de fundo.
@@ -208,6 +215,37 @@ pub fn set_dock_margins(margins: Margins) {
 /// sistema. Devolve se o `rc.xml` ficou como pedido (a dock pode ser aberta).
 pub fn set_dock_geometry(position: Option<DockGeometry>) -> bool {
     update(|w| w.dock = position)
+}
+
+/// Posição e tamanho da faixa da dock escondida (`None` = sem faixa). Devolve
+/// se o `rc.xml` ficou como pedido (a faixa pode ser aberta).
+pub fn set_dock_trigger(position: Option<DockGeometry>) -> bool {
+    update(|w| w.dock_trigger = position)
+}
+
+/// Regra da faixa da dock escondida. Fica aqui (e não só no rc.xml do
+/// sistema) porque quem atualiza só pelo apt tem o rc.xml de uma ISO antiga.
+const TRIGGER_RULE: &str = r#"    <!-- Faixa da dock escondida (kalango-shell --dock-gatilho): 2 px na borda,
+         sempre por cima; o mouse encosta e a dock aparece. Posição trocada pelo shell. -->
+    <windowRule identifier="kalango-dock-gatilho"
+                serverDecoration="no"
+                skipTaskbar="yes"
+                skipWindowSwitcher="yes"
+                fixedPosition="yes">
+      <action name="ToggleAlwaysOnTop"/>
+      <action name="ToggleOmnipresent"/>
+      <action name="ResizeTo" width="1" height="1" />
+      <action name="MoveTo" x="0" y="0" />
+    </windowRule>
+"#;
+
+/// Põe a regra da faixa da dock escondida no rc.xml, se ainda não houver.
+fn ensure_trigger_rule(xml: &str) -> Option<String> {
+    if xml.contains("<windowRule identifier=\"kalango-dock-gatilho\"") {
+        return Some(xml.to_string());
+    }
+    let at = xml.rfind("</windowRules>")?;
+    Some(format!("{}{TRIGGER_RULE}  {}", xml[..at].trim_end_matches(' '), &xml[at..]))
 }
 
 /// Tema dos botões das janelas e a ordem deles na barra de título (`None` =
@@ -262,6 +300,9 @@ fn build(system_xml: &str, w: &Wanted) -> Option<String> {
     }
     if let Some(g) = w.dock {
         xml = replace_dock_geometry(&xml, g)?;
+    }
+    if let Some(g) = w.dock_trigger {
+        xml = replace_geometry(&ensure_trigger_rule(&xml)?, "kalango-dock-gatilho", g)?;
     }
     if let Some((name, layout)) = &w.window_theme {
         xml = set_theme(&xml, name, layout)?;
@@ -436,6 +477,23 @@ mod tests {
         // Um monitor só: sem output na margem.
         let one = build(xml, &Wanted { primary: Some(("eDP-1".into(), 0, 0)), ..Default::default() }).unwrap();
         assert!(!one.contains("<margin output="));
+    }
+
+    #[test]
+    fn regra_da_faixa_da_dock_escondida() {
+        // rc.xml de uma ISO antiga (sem a regra): o shell acrescenta.
+        let xml = "<windowRules>\n<windowRule identifier=\"kalango-dock\"><action name=\"ResizeTo\" width=\"1\" height=\"1\" /><action name=\"MoveTo\" x=\"0\" y=\"0\" /></windowRule>\n</windowRules>";
+        let w = Wanted { dock_trigger: Some(DockGeometry { x: 450, y: 766, width: 466, height: 2 }), ..Wanted::default() };
+        let out = build(xml, &w).unwrap();
+        assert!(out.contains("identifier=\"kalango-dock-gatilho\""));
+        assert!(out.contains("<action name=\"MoveTo\" x=\"450\" y=\"766\" />"));
+        assert!(out.contains("<action name=\"ResizeTo\" width=\"466\" height=\"2\" />"));
+        // A regra da dock continua igual e a da faixa não se repete.
+        assert!(out.contains("identifier=\"kalango-dock\"><action name=\"ResizeTo\" width=\"1\""));
+        assert_eq!(build(&out, &w).unwrap().matches("kalango-dock-gatilho\"").count(), 1);
+        // O rc.xml do sistema (ISO nova) já tem a regra.
+        let system = include_str!("../../distro/config/includes.chroot/etc/xdg/labwc/rc.xml");
+        assert!(build(system, &w).unwrap().contains("x=\"450\" y=\"766\""));
     }
 
     #[test]

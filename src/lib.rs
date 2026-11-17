@@ -138,7 +138,7 @@ pub fn renderer_for(
         // página Aparência, alta, travava no renderer de software).
         _ if hardware_gl => Some("femtovg"),
         // A dock em janela própria só abre com placa de vídeo (src/shell/dock.rs).
-        _ if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Calendar | Mode::Dock | Mode::Switcher | Mode::DockMenu) => {
+        _ if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Calendar | Mode::Dock | Mode::DockTrigger | Mode::Switcher | Mode::DockMenu) => {
             Some("femtovg")
         }
         _ => Some("software"),
@@ -294,7 +294,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
         return Ok(());
     }
     let (ui, mut timers) = build_mode(mode)?;
-    if let (Mode::Dock, Some((w, h))) = (mode, session::strip_from_args(std::env::args())) {
+    if let (Mode::Dock | Mode::DockTrigger, Some((w, h))) = (mode, session::strip_from_args(std::env::args())) {
         let shell = ui.global::<Shell>();
         shell.set_dock_strip_width(w as f32);
         shell.set_dock_strip_height(h as f32);
@@ -310,6 +310,13 @@ pub fn run() -> Result<(), slint::PlatformError> {
             });
             timers.push(t);
         }
+    }
+    // Dock escondida: a faixa abre a dock; a dock aberta por ela some sozinha.
+    if mode == Mode::DockTrigger {
+        timers.extend(dock::install_trigger(&ui));
+    }
+    if mode == Mode::Dock && session::hides_on_leave(std::env::args()) {
+        timers.extend(dock::install_autohide(&ui));
     }
     // Menu de apps e painel rápido: já no tamanho da tela (ver
     // `outputs::primary_size`).

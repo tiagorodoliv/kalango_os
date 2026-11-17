@@ -166,6 +166,12 @@ export global Shell {
     /// Tamanho da janela da dock (`--faixa=LxA`).
     in property <length> dock-strip-width: 1440px;
     in property <length> dock-strip-height: 70px;
+    /// Dock escondida: o mouse encostou na faixa da borda (`--dock-gatilho`)
+    /// e a dock deve aparecer por cima das janelas (`src/shell/dock.rs`).
+    callback reveal-dock();
+    /// Dock em janela própria: o mouse está em cima dela (a dock aberta pela
+    /// faixa some sozinha quando ele sai).
+    in-out property <bool> dock-hovered: false;
     /// Áreas de trabalho (`src/shell/workspaces.rs`): quantas há (0 = sem
     /// indicador) e a ativa (a partir de 0).
     in property <int> workspace-count: 3;

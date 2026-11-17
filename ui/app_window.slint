@@ -62,6 +62,9 @@ export enum ShellMode {
     quick-settings,
     /// Só a dock, em janela própria sempre por cima (`--dock`, src/shell/dock.rs).
     dock,
+    /// Só a faixa invisível na borda da dock escondida (`--dock-gatilho`): o
+    /// mouse encosta nela e a dock aparece por cima das janelas.
+    dock-trigger,
     /// Só o papel de parede de um monitor extra (`--fundo=`, src/shell/outputs.rs).
     fundo,
     /// Só o calendário do relógio, sobre fundo transparente (`--calendario`).
@@ -80,18 +83,19 @@ export component AppWindow inherits Window {
     // Referência do layout em px lógicos; no dispositivo (feature kms)
     // a janela ocupa a tela inteira automaticamente.
     // A dock em janela própria tem o tamanho dela (`--faixa=LxA`).
-    preferred-width: root.mode == ShellMode.dock ? Shell.dock-strip-width : root.mode == ShellMode.calculator ? 740px : 1440px;
-    preferred-height: root.mode == ShellMode.dock ? Shell.dock-strip-height : root.mode == ShellMode.calculator ? 540px : 900px;
-    min-width: root.mode == ShellMode.dock ? 0 : root.mode == ShellMode.calculator ? 460px : 1100px;
-    min-height: root.mode == ShellMode.dock ? 0 : root.mode == ShellMode.calculator ? 480px : 720px;
+    property <bool> dock-window: root.mode == ShellMode.dock || root.mode == ShellMode.dock-trigger;
+    preferred-width: root.dock-window ? Shell.dock-strip-width : root.mode == ShellMode.calculator ? 740px : 1440px;
+    preferred-height: root.dock-window ? Shell.dock-strip-height : root.mode == ShellMode.calculator ? 540px : 900px;
+    min-width: root.dock-window ? 0 : root.mode == ShellMode.calculator ? 460px : 1100px;
+    min-height: root.dock-window ? 0 : root.mode == ShellMode.calculator ? 480px : 720px;
     // O launcher, o painel rápido e a dock são camadas transparentes por cima
     // dos apps (a dock: os cantos arredondados mostram o que está atrás).
-    background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings || root.mode == ShellMode.calendar || root.mode == ShellMode.dock
+    background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings || root.mode == ShellMode.calendar || root.dock-window
         || ((root.mode == ShellMode.settings || root.mode == ShellMode.calculator) && Shell.rounded-window)
         || root.mode == ShellMode.switcher || root.mode == ShellMode.dock-menu
         ? transparent : Theme.background;
     // A dock é uma janela comum (não tela cheia): sem moldura nenhuma.
-    no-frame: root.mode == ShellMode.dock;
+    no-frame: root.dock-window;
     default-font-family: Theme.sans;
 
     in property <ShellMode> mode: ShellMode.desktop;
@@ -499,14 +503,29 @@ export component AppWindow inherits Window {
 
         // Dock em janela própria: a faixa inteira é a janela; a dock fica
         // encostada na borda da tela e centralizada.
-        if root.mode == ShellMode.dock: Dock {
-            shadow: false;
-            bar-length: Theme.dock-position == 0 ? root.width : root.height;
-            x: Theme.dock-position == 0 ? (root.width - self.width) / 2
-                : Theme.dock-position == 1 ? 0 : root.width - self.width;
-            y: Theme.dock-position == 0 ? root.height - self.height : (root.height - self.height) / 2;
-            launch(id) => { root.dock-launch(id); }
-            menu(id, offset) => { Shell.dock-menu(id, offset); }
+        // A área de toque em volta guarda se o mouse está em cima (a dock
+        // aberta pela faixa da dock escondida some quando ele sai).
+        if root.mode == ShellMode.dock: dock-hover := TouchArea {
+            changed has-hover => { Shell.dock-hovered = self.has-hover; }
+            Dock {
+                shadow: false;
+                bar-length: Theme.dock-position == 0 ? root.width : root.height;
+                x: Theme.dock-position == 0 ? (root.width - self.width) / 2
+                    : Theme.dock-position == 1 ? 0 : root.width - self.width;
+                y: Theme.dock-position == 0 ? root.height - self.height : (root.height - self.height) / 2;
+                launch(id) => { root.dock-launch(id); }
+                menu(id, offset) => { Shell.dock-menu(id, offset); }
+            }
+        }
+        // Dock escondida: faixa transparente na borda; o mouse encosta e a
+        // dock aparece (o Rust abre a janela dela por cima das outras).
+        if root.mode == ShellMode.dock-trigger: TouchArea {
+            changed has-hover => {
+                Shell.dock-hovered = self.has-hover;
+                if (self.has-hover) {
+                    Shell.reveal-dock();
+                }
+            }
         }
 
         if root.mode == ShellMode.switcher: SwitcherView { }

@@ -10,14 +10,23 @@
 //! posição (`MoveTo`) depende do tamanho da tela e da dock: o shell a grava no
 //! `~/.config/labwc/rc.xml` antes de abrir a janela, e abre outra quando muda.
 //!
+//! Dock escondida ("Sempre visível" desligado), como no Ubuntu: em vez da dock
+//! fica na borda uma faixa transparente de [`TRIGGER`] px (`--dock-gatilho`,
+//! app_id `kalango-dock-gatilho`), sempre por cima. O mouse encosta nela e a
+//! faixa abre a dock (`--dock --ocultar`) por cima das janelas, no lugar de
+//! sempre; a dock some sozinha quando o mouse sai dela ([`install_autohide`]).
+//! Uma janela Wayland não sabe onde está o mouse fora dela: por isso a faixa.
+//!
 //! Precisa de transparência (cantos arredondados, a faixa ao lado da dock),
 //! que no Wayland só o renderer OpenGL tem: só com uma placa de vídeo de
-//! verdade (`hardware_gl`). Sem ela (VM, máquina sem aceleração), e com a
-//! dock escondida (aparece ao chegar com o mouse na borda), a dock continua
-//! desenhada na área de trabalho, como antes.
+//! verdade (`hardware_gl`). Sem ela (VM, máquina sem aceleração), a dock
+//! continua desenhada na área de trabalho, como antes (escondida, ela fica
+//! atrás das janelas).
 
+use std::cell::Cell;
 use std::process::{Child, Command, Stdio};
-use std::time::Duration;
+use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 use slint::{ComponentHandle, Model, Timer, TimerMode};
 
@@ -91,12 +100,47 @@ pub fn geometry(screen: (u32, u32), spec: DockSpec, bar_height: u32) -> crate::s
     }
 }
 
-/// Abre a janela da dock com o tamanho dela.
-fn spawn(width: u32, height: u32) -> Option<Child> {
-    let exe = std::env::current_exe().ok().filter(|p| p.exists()).unwrap_or_else(|| "kalango-shell".into());
-    Command::new(exe)
-        .args(["--dock", &format!("--faixa={width}x{height}")])
-        .stdin(Stdio::null())
+/// Espessura da faixa da dock escondida, em px lógicos.
+pub const TRIGGER: u32 = 2;
+
+/// Faixa da dock escondida: [`TRIGGER`] px na borda da tela, do comprimento da
+/// dock (`dock` = janela da dock). `screen` em px lógicos; `origin` = canto do
+/// monitor principal.
+pub fn trigger_strip(screen: (u32, u32), origin: (i32, i32), position: i32, dock: crate::shell::labwc::DockGeometry) -> crate::shell::labwc::DockGeometry {
+    let t = TRIGGER;
+    match position {
+        1 => crate::shell::labwc::DockGeometry { x: origin.0, y: dock.y, width: t, height: dock.height },
+        2 => crate::shell::labwc::DockGeometry { x: origin.0 + (screen.0 - t) as i32, y: dock.y, width: t, height: dock.height },
+        _ => crate::shell::labwc::DockGeometry { x: dock.x, y: origin.1 + (screen.1 - t) as i32, width: dock.width, height: t },
+    }
+}
+
+/// O que a área de trabalho mantém aberto na borda.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Edge {
+    /// A dock, sempre visível (reserva a margem).
+    Dock,
+    /// A faixa da dock escondida (a dock abre por cima quando o mouse encosta).
+    Trigger,
+}
+
+/// O próprio executável (o caminho de quem está rodando).
+fn own_exe() -> std::path::PathBuf {
+    std::env::current_exe().ok().filter(|p| p.exists()).unwrap_or_else(|| "kalango-shell".into())
+}
+
+/// Abre a janela da dock (ou a faixa da dock escondida) com o tamanho dela.
+fn spawn(edge: Edge, g: crate::shell::labwc::DockGeometry, dock: crate::shell::labwc::DockGeometry) -> Option<Child> {
+    let mut cmd = Command::new(own_exe());
+    match edge {
+        Edge::Dock => cmd.args(["--dock".to_string(), format!("--faixa={}x{}", g.width, g.height)]),
+        Edge::Trigger => cmd.args([
+            "--dock-gatilho".to_string(),
+            format!("--faixa={}x{}", g.width, g.height),
+            format!("--dock-faixa={}x{}", dock.width, dock.height),
+        ]),
+    };
+    cmd.stdin(Stdio::null())
         .spawn()
         .map_err(|e| eprintln!("kalango-shell: falha ao abrir a dock: {e}"))
         .ok()
@@ -109,8 +153,8 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         return None;
     }
     let weak = ui.as_weak();
-    // Posição e tamanho da janela aberta agora e o processo dela.
-    let mut current: Option<crate::shell::labwc::DockGeometry> = None;
+    // O que está aberto agora (dock ou faixa, a posição dela e a da dock) e o processo.
+    let mut current: Option<(Edge, crate::shell::labwc::DockGeometry, crate::shell::labwc::DockGeometry)> = None;
     let mut child: Option<Child> = None;
     // Janelas antigas: a nova as fecha depois de aparecer (session::claim_instance).
     let mut retired: Vec<Child> = Vec::new();
@@ -138,9 +182,14 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         };
         // No monitor principal (com vários monitores, a origem dele).
         let (ox, oy) = crate::shell::outputs::primary_origin();
-        let wanted = (theme.get_dock_always_visible() && screen.0 > 0 && failures < 3).then(|| {
+        let wanted = (screen.0 > 0 && failures < 3).then(|| {
             let g = geometry(screen, spec, theme.get_bar_height() as u32);
-            crate::shell::labwc::DockGeometry { x: g.x + ox, y: g.y + oy, ..g }
+            let dock = crate::shell::labwc::DockGeometry { x: g.x + ox, y: g.y + oy, ..g };
+            if theme.get_dock_always_visible() {
+                (Edge::Dock, dock, dock)
+            } else {
+                (Edge::Trigger, trigger_strip(screen, (ox, oy), spec.position, dock), dock)
+            }
         });
 
         // A janela caiu: abre de novo (até 3 vezes; depois desiste e a dock
@@ -166,19 +215,85 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             }
             current = wanted;
             match wanted {
-                Some(g) => {
-                    // Posição e tamanho no rc.xml antes de abrir (a regra vale
-                    // ao mapear a janela).
-                    if crate::shell::labwc::set_dock_geometry(Some(g)) {
-                        child = spawn(g.width, g.height);
+                Some((edge, g, dock)) => {
+                    // Posições e tamanhos no rc.xml antes de abrir (as regras
+                    // valem ao mapear a janela). A da dock fica gravada também
+                    // com ela escondida: é onde a faixa a abre.
+                    let trigger = (edge == Edge::Trigger).then_some(g);
+                    if crate::shell::labwc::set_dock_geometry(Some(dock))
+                        && crate::shell::labwc::set_dock_trigger(trigger)
+                    {
+                        child = spawn(edge, g, dock);
                     }
                 }
                 None => {
                     crate::shell::labwc::set_dock_geometry(None);
+                    crate::shell::labwc::set_dock_trigger(None);
                 }
             }
         }
         shell.set_dock_external(child.is_some());
+    });
+    Some(timer)
+}
+
+/// Faixa da dock escondida (`--dock-gatilho`): o mouse encostou → abre a dock
+/// (`--dock --ocultar`, do tamanho de `--dock-faixa=`) se ela não está aberta.
+///
+/// Além do aviso na hora em que o mouse entra, um timer confere a cada 300 ms:
+/// com a dock solta da borda, o mouse pode ficar parado na faixa depois de a
+/// dock sumir, e entrar de novo não aconteceria. O timer devolvido precisa
+/// ficar vivo.
+pub fn install_trigger(ui: &AppWindow) -> Option<Timer> {
+    let (w, h) = crate::shell::session::dock_strip_from_args(std::env::args())?;
+    let shell = ui.global::<Shell>();
+    // Faixa: o mouse em cima dela (o mesmo `dock-hovered` da dock).
+    let last = Rc::new(Cell::new(None::<Instant>));
+    let reveal = {
+        let last = last.clone();
+        move || {
+            // Uma vez por segundo no máximo (a dock leva um instante para abrir).
+            if last.get().is_some_and(|t| t.elapsed() < Duration::from_millis(1000)) || crate::shell::session::dock_running() {
+                return;
+            }
+            last.set(Some(Instant::now()));
+            let _ = Command::new(own_exe())
+                .args(["--dock".to_string(), format!("--faixa={w}x{h}"), "--ocultar".to_string()])
+                .stdin(Stdio::null())
+                .spawn();
+        }
+    };
+    shell.on_reveal_dock(reveal.clone());
+    let weak = ui.as_weak();
+    let timer = Timer::default();
+    timer.start(TimerMode::Repeated, Duration::from_millis(300), move || {
+        if weak.upgrade().is_some_and(|ui| ui.global::<Shell>().get_dock_hovered()) {
+            reveal();
+        }
+    });
+    Some(timer)
+}
+
+/// Dock aberta pela faixa (`--dock --ocultar`): fecha sozinha 0,9 s depois de
+/// o mouse sair dela, ou em 2,5 s se ele nem chegou a entrar. O timer
+/// devolvido precisa ficar vivo.
+pub fn install_autohide(ui: &AppWindow) -> Option<Timer> {
+    let weak = ui.as_weak();
+    let start = Instant::now();
+    let mut seen = false;
+    let mut last_hover = start;
+    let timer = Timer::default();
+    timer.start(TimerMode::Repeated, Duration::from_millis(150), move || {
+        let Some(ui) = weak.upgrade() else { return };
+        if ui.global::<Shell>().get_dock_hovered() {
+            seen = true;
+            last_hover = Instant::now();
+            return;
+        }
+        let gone = if seen { last_hover.elapsed() > Duration::from_millis(900) } else { start.elapsed() > Duration::from_millis(2500) };
+        if gone {
+            let _ = slint::quit_event_loop();
+        }
     });
     Some(timer)
 }
@@ -205,6 +320,12 @@ mod tests {
     #[test]
     fn botao_de_programas_e_dock_solta() {
         let spec = DockSpec { position: 0, bar: false, item: 36.0, thickness: 54.0, count: 5, apps_button: true, gap: 8.0 };
+        // Faixa da dock escondida: 2 px na borda, do comprimento da dock.
+        let dock = geometry((1366, 768), spec, 35);
+        let t = trigger_strip((1366, 768), (0, 0), 0, dock);
+        assert_eq!((t.x, t.y, t.width, t.height), (dock.x, 766, dock.width, 2));
+        let t = trigger_strip((1366, 768), (2560, 0), 2, dock);
+        assert_eq!((t.x, t.width), (2560 + 1364, 2));
         // Mais um passo (36 + 8) no comprimento e 8 px acima da borda.
         let g = geometry((1366, 768), spec, 35);
         assert_eq!((g.width, g.height), (335, 54));

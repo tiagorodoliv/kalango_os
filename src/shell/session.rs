@@ -33,6 +33,9 @@ pub enum Mode {
     QuickSettings,
     /// Dock em janela própria, sempre por cima das janelas (`src/shell/dock.rs`).
     Dock,
+    /// Faixa invisível na borda da dock escondida (`--dock-gatilho`): o mouse
+    /// encosta nela e a dock aparece por cima das janelas, como no Ubuntu.
+    DockTrigger,
     /// Papel de parede de um monitor extra (`--fundo=<saída>`, `src/shell/outputs.rs`).
     Fundo,
     /// Alt+Tab (`--alternar`, `src/shell/switcher.rs`): um processo que fica
@@ -58,6 +61,7 @@ impl Mode {
                 "--greeter" => mode = Mode::Greeter,
                 "--quick-settings" => mode = Mode::QuickSettings,
                 "--dock" => mode = Mode::Dock,
+                "--dock-gatilho" => mode = Mode::DockTrigger,
                 a if a.starts_with("--fundo=") => mode = Mode::Fundo,
                 a if a == "--alternar" || a.starts_with("--alternar=") => mode = Mode::Switcher,
                 a if a.starts_with("--menu-dock=") => mode = Mode::DockMenu,
@@ -79,6 +83,7 @@ impl Mode {
             Mode::Greeter => "kalango-greeter",
             Mode::QuickSettings => "kalango-quick-settings",
             Mode::Dock => "kalango-dock",
+            Mode::DockTrigger => "kalango-dock-gatilho",
             // O de verdade leva a saída: ver `fundo_app_id`.
             Mode::Fundo => "kalango-fundo",
             Mode::Switcher => "kalango-alternar",
@@ -97,6 +102,7 @@ impl Mode {
             Mode::Greeter => Some("--greeter"),
             Mode::QuickSettings => Some("--quick-settings"),
             Mode::Dock => Some("--dock"),
+            Mode::DockTrigger => Some("--dock-gatilho"),
             Mode::Calendar => Some("--calendario"),
             Mode::Calculator => Some("--calculadora"),
             Mode::Fundo | Mode::Switcher | Mode::DockMenu => None,
@@ -111,6 +117,7 @@ impl Mode {
             Mode::Greeter => ShellMode::Greeter,
             Mode::QuickSettings => ShellMode::QuickSettings,
             Mode::Dock => ShellMode::Dock,
+            Mode::DockTrigger => ShellMode::DockTrigger,
             Mode::Fundo => ShellMode::Fundo,
             Mode::Switcher => ShellMode::Switcher,
             Mode::DockMenu => ShellMode::DockMenu,
@@ -328,6 +335,29 @@ pub fn strip_from_args<I: IntoIterator<Item = String>>(args: I) -> Option<(u32, 
     })
 }
 
+/// Dock aberta pela faixa da dock escondida (`--ocultar`): some sozinha
+/// quando o mouse sai dela.
+pub fn hides_on_leave<I: IntoIterator<Item = String>>(args: I) -> bool {
+    args.into_iter().any(|a| a == "--ocultar")
+}
+
+/// Tamanho da dock que a faixa abre (`--dock-faixa=495x46`), em px lógicos.
+pub fn dock_strip_from_args<I: IntoIterator<Item = String>>(args: I) -> Option<(u32, u32)> {
+    args.into_iter().find_map(|a| {
+        let (w, h) = a.strip_prefix("--dock-faixa=")?.split_once('x')?;
+        Some((w.parse().ok()?, h.parse().ok()?))
+    })
+}
+
+/// Diz se a dock (`kalango-dock`) está aberta agora (pidfile vivo).
+pub fn dock_running() -> bool {
+    let Some(dir) = std::env::var_os("XDG_RUNTIME_DIR") else { return false };
+    fs::read_to_string(Path::new(&dir).join(format!("{}.pid", Mode::Dock.app_id())))
+        .ok()
+        .and_then(|s| s.trim().parse::<u32>().ok())
+        .is_some_and(is_shell_process)
+}
+
 /// Arquivo com a página pedida às Configurações que já estão abertas.
 fn page_request_file() -> Option<PathBuf> {
     std::env::var_os("XDG_RUNTIME_DIR").map(|d| Path::new(&d).join("kalango-settings.pagina"))
@@ -410,7 +440,7 @@ pub fn claim_instance(mode: Mode) -> bool {
         .and_then(|s| s.trim().parse::<u32>().ok())
     {
         if pid != me && is_shell_process(pid) {
-            if mode == Mode::Dock {
+            if matches!(mode, Mode::Dock | Mode::DockTrigger) {
                 // A dock nova (outro tamanho, mais um app aberto) só tira a
                 // antiga depois de aparecer: sem piscar.
                 std::thread::spawn(move || {
@@ -424,7 +454,7 @@ pub fn claim_instance(mode: Mode) -> bool {
                 let _ = fs::remove_file(&pidfile);
             }
             // A dock, o fundo e o menu da dock novos substituem os antigos.
-            if !matches!(mode, Mode::Dock | Mode::Fundo | Mode::DockMenu) {
+            if !matches!(mode, Mode::Dock | Mode::DockTrigger | Mode::Fundo | Mode::DockMenu) {
                 return false;
             }
         }
@@ -505,6 +535,10 @@ mod tests {
         assert_eq!(strip_from_args(args(&["x", "--dock", "--faixa=1366x54"])), Some((1366, 54)));
         assert_eq!(strip_from_args(args(&["x", "--dock"])), None);
         assert_eq!(Mode::from_args(args(&["x", "--dock"])), Mode::Dock);
+        assert_eq!(Mode::from_args(args(&["x", "--dock-gatilho", "--faixa=495x2"])), Mode::DockTrigger);
+        assert_eq!(dock_strip_from_args(args(&["x", "--dock-gatilho", "--faixa=495x2", "--dock-faixa=495x46"])), Some((495, 46)));
+        assert!(hides_on_leave(args(&["x", "--dock", "--faixa=1x1", "--ocultar"])));
+        assert!(!hides_on_leave(args(&["x", "--dock"])));
     }
 
     #[test]

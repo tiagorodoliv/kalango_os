@@ -700,7 +700,7 @@ fn refresh_from_thread(weak: Weak<AppWindow>, shared: Arc<Shared>) {
 /// (`--quick-settings`), que também liga o brilho da tela. O timer devolvido precisa
 /// ficar vivo.
 pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
-    if matches!(mode, Mode::Launcher | Mode::Greeter | Mode::Dock | Mode::Fundo) {
+    if matches!(mode, Mode::Launcher | Mode::Greeter | Mode::Dock | Mode::DockTrigger | Mode::Fundo) {
         return None;
     }
     let d = ui.global::<Device>();
