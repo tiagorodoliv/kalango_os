@@ -29,17 +29,28 @@ pub struct Window {
     /// Em foco.
     pub active: bool,
     pub minimized: bool,
+    /// Maximizada (ocupa a área livre entre as margens da barra e da dock).
+    pub maximized: bool,
 }
 
-/// Estados do protocolo (array de u32 em bytes nativos).
-fn parse_states(bytes: &[u8]) -> (bool, bool) {
+/// Estados de uma janela no protocolo.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct States {
+    active: bool,
+    minimized: bool,
+    maximized: bool,
+}
+
+/// Estados do protocolo (array de u32 em bytes nativos): 0 = maximizada,
+/// 1 = minimizada, 2 = em foco, 3 = tela cheia.
+fn parse_states(bytes: &[u8]) -> States {
     let states: Vec<u32> = bytes
         .as_chunks::<4>()
         .0
         .iter()
         .map(|c| u32::from_ne_bytes(*c))
         .collect();
-    (states.contains(&2), states.contains(&1))
+    States { active: states.contains(&2), minimized: states.contains(&1), maximized: states.contains(&0) }
 }
 
 struct Entry {
@@ -137,12 +148,13 @@ impl Dispatch<ZwlrForeignToplevelHandleV1, ()> for State {
                         Event::Title { title } => e.info.title = title,
                         Event::AppId { app_id } => e.info.app_id = app_id,
                         Event::State { state: bytes } => {
-                            let (active, minimized) = parse_states(&bytes);
-                            if active && !e.info.active {
+                            let st = parse_states(&bytes);
+                            if st.active && !e.info.active {
                                 e.used = now;
                             }
-                            e.info.active = active;
-                            e.info.minimized = minimized;
+                            e.info.active = st.active;
+                            e.info.minimized = st.minimized;
+                            e.info.maximized = st.maximized;
                         }
                         Event::Done => publish = true,
                         _ => {}
@@ -219,6 +231,21 @@ impl Tracker {
     pub fn close(&self, id: u32) {
         self.with_handle(id, |h, _| h.close());
     }
+
+    /// Maximiza de novo as janelas maximizadas, para caberem nas margens
+    /// atuais do labwc. O labwc só recalcula a área de uma janela maximizada
+    /// ao maximizá-la: sem isso, mudar a margem da dock (tamanho, "solta da
+    /// borda", esconder) deixava as janelas abertas por trás da dock ou sem
+    /// ocupar a tela toda. As minimizadas ficam como estão.
+    pub fn refit_maximized(&self) {
+        if let Ok(inner) = self.inner.lock() {
+            for e in inner.list.iter().filter(|e| e.info.maximized && !e.info.minimized) {
+                e.handle.unset_maximized();
+                e.handle.set_maximized();
+            }
+        }
+        let _ = self.conn.flush();
+    }
 }
 
 #[cfg(test)]
@@ -228,9 +255,9 @@ mod tests {
     #[test]
     fn estados_do_protocolo() {
         let bytes: Vec<u8> = [0u32, 2].iter().flat_map(|v| v.to_ne_bytes()).collect();
-        assert_eq!(parse_states(&bytes), (true, false));
+        assert_eq!(parse_states(&bytes), States { active: true, minimized: false, maximized: true });
         let bytes: Vec<u8> = [1u32].iter().flat_map(|v| v.to_ne_bytes()).collect();
-        assert_eq!(parse_states(&bytes), (false, true));
-        assert_eq!(parse_states(&[]), (false, false));
+        assert_eq!(parse_states(&bytes), States { minimized: true, ..States::default() });
+        assert_eq!(parse_states(&[]), States::default());
     }
 }

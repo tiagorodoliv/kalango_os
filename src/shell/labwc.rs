@@ -273,6 +273,9 @@ fn build(system_xml: &str, w: &Wanted) -> Option<String> {
     Some(xml)
 }
 
+/// Já reajustou as janelas maximizadas ao abrir (ver [`sync`]).
+static REFIT_ON_START: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 /// Gera (ou apaga) a cópia do `rc.xml` do usuário com o que o shell quer e
 /// pede ao labwc para reler. Devolve se a cópia ficou como pedida.
 fn sync() -> bool {
@@ -295,9 +298,19 @@ fn sync() -> bool {
         eprintln!("kalango-shell: o rc.xml do sistema não tem o que o shell precisa trocar");
         return false;
     };
+    // Margem que o labwc usa agora (a do arquivo do usuário ou a do sistema)
+    // e a nova: se mudar, as janelas maximizadas precisam se reajustar.
+    let margins_before = margins_of(current.as_deref().unwrap_or(&system_xml));
+    // Na primeira vez neste processo também: janelas que ficaram com a margem
+    // velha (ex.: a área de trabalho reiniciada depois de uma atualização).
+    let first = !REFIT_ON_START.swap(true, std::sync::atomic::Ordering::Relaxed);
+    let margins_changed = first || margins_before != margins_of(&xml);
     // Igual ao sistema: sem cópia (atualizações do rc.xml do sistema valem).
     let wanted = (xml != system_xml).then(|| with_mark(&xml));
     if wanted == current {
+        if first {
+            refit_maximized_later();
+        }
         return true;
     }
     let result = match &wanted {
@@ -315,7 +328,29 @@ fn sync() -> bool {
         .arg("--reconfigure")
         .stdin(Stdio::null())
         .status();
+    if margins_changed {
+        refit_maximized_later();
+    }
     true
+}
+
+/// Depois que o labwc reler a margem nova, maximiza de novo as janelas que
+/// estavam maximizadas: assim elas ficam rentes à dock (ou na tela toda, com
+/// a dock escondida) sem a pessoa ter de desmaximizar e maximizar cada uma.
+///
+/// O `labwc --reconfigure` só manda o sinal e volta na hora; a espera de
+/// meio segundo dá tempo de ele aplicar a configuração. Roda numa thread com
+/// uma conexão Wayland própria, para não segurar a interface.
+fn refit_maximized_later() {
+    #[cfg(target_os = "linux")]
+    std::thread::spawn(|| {
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        if let Some(tracker) = crate::shell::toplevels::Tracker::start(|_| {}) {
+            tracker.refit_maximized();
+            // Dá tempo de os pedidos saírem antes de a conexão fechar.
+            std::thread::sleep(std::time::Duration::from_millis(200));
+        }
+    });
 }
 
 /// Marca do `menu.xml` gerado pelo shell.

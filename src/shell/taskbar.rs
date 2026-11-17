@@ -424,7 +424,7 @@ mod tests {
     }
 
     fn win(id: u32, minimized: bool) -> Window {
-        Window { id, app_id: "foot".into(), title: String::new(), active: false, minimized }
+        Window { id, app_id: "foot".into(), title: String::new(), active: false, minimized, maximized: false }
     }
 
     #[test]
