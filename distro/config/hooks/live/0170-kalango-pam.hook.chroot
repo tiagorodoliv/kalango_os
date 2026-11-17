@@ -1,0 +1,8 @@
+#!/bin/sh
+# KalangOS: senhas de qualquer tamanho (como no Ubuntu) e PIN de login e
+# desbloqueio. Tudo em /usr/local/lib/kalango/pam-kalango.sh, que o postinst do
+# pacote kalango-shell também roda (sistemas que só atualizam pelo apt). Aqui
+# roda de novo porque o users.conf do Calamares pode ter sido instalado depois
+# do kalango-shell.
+set -e
+sh /usr/local/lib/kalango/pam-kalango.sh ligar

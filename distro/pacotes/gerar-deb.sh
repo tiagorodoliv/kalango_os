@@ -12,7 +12,8 @@
 # ~/.zshrc no estilo do Kali (/usr/share/kalango/zshrc). O postinst põe o
 # .zshrc no /etc/skel, deixa o zsh como shell de quem for criado depois e,
 # UMA vez por máquina, passa para o zsh quem ainda está no bash (quem voltar
-# para o bash depois não é forçado de novo).
+# para o bash depois não é forçado de novo). Também liga o PAM do KalangOS
+# (pam-kalango.sh: senhas de qualquer tamanho e PIN) e o desfaz no prerm.
 #
 # Uso: distro/pacotes/gerar-deb.sh BINARIO PASTA_DE_SAIDA
 #   BINARIO: o kalango-shell compilado contra o trixie (build.sh, testar-vm.sh)
@@ -72,6 +73,9 @@ cat >"$P/DEBIAN/postinst" <<'POST'
 set -e
 
 if [ "$1" = configure ]; then
+	# Senhas de qualquer tamanho e PIN de login/desbloqueio (PAM).
+	sh /usr/local/lib/kalango/pam-kalango.sh ligar
+
 	ZSHRC=/usr/share/kalango/zshrc
 	# /etc/skel/.zshrc: só se não existe ou ainda é um dos nossos (primeira
 	# linha "# ~/.zshrc do Kalang..."); um feito pelo administrador fica.
@@ -112,6 +116,16 @@ fi
 exit 0
 POST
 chmod 0755 "$P/DEBIAN/postinst"
+# Ao remover o pacote, o PAM volta ao do Debian (o script ainda existe no prerm).
+cat >"$P/DEBIAN/prerm" <<'PRERM'
+#!/bin/sh
+set -e
+if [ "$1" = remove ] && [ -x /usr/local/lib/kalango/pam-kalango.sh ]; then
+	sh /usr/local/lib/kalango/pam-kalango.sh desligar
+fi
+exit 0
+PRERM
+chmod 0755 "$P/DEBIAN/prerm"
 
 mkdir -p "$SAIDA"
 dpkg-deb --root-owner-group -Zxz --build "$P" "$SAIDA/kalango-shell_${VERSAO}_amd64.deb" >/dev/null

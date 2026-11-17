@@ -1,0 +1,148 @@
+#!/bin/sh
+# KalangOS: PIN de login e desbloqueio, como o PIN do Windows Hello.
+#
+# O PIN é opcional e por pessoa: de 4 a 12 dígitos, vale na tela de login
+# (greetd) e no desbloqueio (gtklock, swaylock), nunca para sudo/pkexec (lá
+# continua a senha). Guardado como hash SHA-512 (crypt) em
+# /var/lib/kalango/pin/<usuário>, arquivo da própria pessoa (0600) numa pasta
+# 1733 (cada um cria o seu, ninguém lista nem apaga o dos outros).
+#
+# Depois de 5 PINs errados seguidos o PIN fica bloqueado até a pessoa entrar
+# uma vez com a senha (contador em <usuário>.falhas): sem isso daria para
+# tentar todos os PINs na tela de bloqueio.
+#
+# Usos:
+#   kalango-pin verificar   pam_exec (expose_authtok): PIN na entrada padrão
+#                           terminado por \0; PAM_USER = a conta. 0 = certo.
+#   kalango-pin senha-ok    pam_exec depois do pam_unix: zera as tentativas.
+#   kalango-pin definir     Configurações: "senha\0pin\0" na entrada padrão.
+#                           0 ok, 2 PIN inválido, 3 senha errada, 4 erro.
+#   kalango-pin remover     Configurações: apaga o PIN de quem chamou.
+#   kalango-pin estado      imprime "sem", "ativo" ou "bloqueado".
+#
+# Configurado por /usr/local/lib/kalango/pam-kalango.sh.
+
+# O pam_exec não passa PATH.
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+umask 077
+
+DIR=/var/lib/kalango/pin
+MAX=5
+
+# Nome de conta seguro para virar nome de arquivo.
+conta_valida() {
+	case "$1" in
+	'' | */* | .*) return 1 ;;
+	esac
+	id -u -- "$1" >/dev/null 2>&1
+}
+
+# Arquivo do PIN de uma conta, se for mesmo dela (não link, dono certo).
+arquivo_do_pin() {
+	arq=$DIR/$1
+	[ -f "$arq" ] && [ ! -L "$arq" ] || return 1
+	[ "$(stat -c %u -- "$arq")" = "$(id -u -- "$1")" ] || return 1
+	echo "$arq"
+}
+
+# Tentativas erradas registradas (arquivo ausente ou estranho = 0).
+falhas_de() {
+	n=$(head -c 8 -- "$1.falhas" 2>/dev/null)
+	case "$n" in
+	'' | *[!0-9]*) echo 0 ;;
+	*) echo "$n" ;;
+	esac
+}
+
+case "${1:-}" in
+verificar)
+	conta_valida "${PAM_USER:-}" || exit 1
+	arq=$(arquivo_do_pin "$PAM_USER") || exit 1
+	n=$(falhas_de "$arq")
+	[ "$n" -lt "$MAX" ] || exit 1
+	# Confere no perl (crypt da libc, o mesmo do /etc/shadow). Saída 2 = não
+	# parece um PIN (é a senha): não conta como tentativa errada.
+	PIN_ARQ=$arq perl -e '
+		local $/; my $s = <STDIN> // ""; $s =~ s/\0.*//s;
+		exit 2 unless $s =~ /\A[0-9]{4,12}\z/;
+		open(my $f, "<", $ENV{PIN_ARQ}) or exit 1;
+		my $h = <$f> // ""; $h =~ s/\s+\z//;
+		exit 1 unless $h =~ /\A\$6\$/;
+		exit(crypt($s, $h) eq $h ? 0 : 1);
+	'
+	rc=$?
+	case $rc in
+	0)
+		rm -f -- "$arq.falhas"
+		exit 0
+		;;
+	1)
+		echo $((n + 1)) >"$arq.falhas"
+		# Na tela de login o greetd roda como root: o arquivo fica da pessoa,
+		# para a tela de bloqueio (que roda como ela) poder atualizar.
+		[ "$(id -u)" = 0 ] && chown "$(id -u -- "$PAM_USER")" "$arq.falhas"
+		chmod 600 "$arq.falhas"
+		exit 1
+		;;
+	*) exit 1 ;;
+	esac
+	;;
+senha-ok)
+	conta_valida "${PAM_USER:-}" || exit 0
+	arq=$(arquivo_do_pin "$PAM_USER") || exit 0
+	rm -f -- "$arq.falhas"
+	exit 0
+	;;
+definir)
+	eu=$(id -un)
+	[ -d "$DIR" ] || exit 4
+	# Tudo no perl: separa senha e PIN, confere a senha pelo unix_chkpwd (o
+	# ajudante do pam_unix, que só confere a conta de quem chama) e grava o
+	# hash com sal aleatório, trocando o arquivo de uma vez.
+	EU=$eu PIN_DIR=$DIR perl -e '
+		local $/; my $in = <STDIN> // "";
+		my ($senha, $pin) = split /\0/, $in, 3;
+		$senha //= ""; $pin //= "";
+		exit 2 unless $pin =~ /\A[0-9]{4,12}\z/;
+		open(my $c, "|-", "/usr/sbin/unix_chkpwd", $ENV{EU}, "nullok") or exit 4;
+		print $c $senha, "\0"; close($c);
+		exit 3 if $? != 0;
+		open(my $r, "<", "/dev/urandom") or exit 4;
+		read($r, my $bytes, 16) == 16 or exit 4;
+		my @c = ("a".."z", "A".."Z", "0".."9", ".", "/");
+		my $sal = join "", map { $c[ord($_) % 64] } split //, $bytes;
+		my $hash = crypt($pin, "\$6\$$sal\$");
+		exit 4 unless defined $hash && $hash =~ /\A\$6\$/;
+		my $arq = "$ENV{PIN_DIR}/$ENV{EU}";
+		my $tmp = "$arq.novo";
+		unlink $tmp;
+		open(my $f, ">", $tmp) or exit 4;
+		print $f "$hash\n"; close($f) or exit 4;
+		chmod 0600, $tmp;
+		rename($tmp, $arq) or exit 4;
+		unlink "$arq.falhas";
+		exit 0;
+	'
+	exit $?
+	;;
+remover)
+	eu=$(id -un)
+	rm -f -- "$DIR/$eu" "$DIR/$eu.falhas"
+	exit 0
+	;;
+estado)
+	eu=$(id -un)
+	if ! arq=$(arquivo_do_pin "$eu"); then
+		echo sem
+	elif [ "$(falhas_de "$arq")" -ge "$MAX" ]; then
+		echo bloqueado
+	else
+		echo ativo
+	fi
+	;;
+*)
+	echo "uso: kalango-pin verificar|senha-ok|definir|remover|estado" >&2
+	exit 2
+	;;
+esac
