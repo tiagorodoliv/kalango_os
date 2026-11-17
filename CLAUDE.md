@@ -359,6 +359,12 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (`KALANGO_REPO_DESTINO`); o VPS só serve estático (`distro/repo/nginx-kalangos.conf`; VPS com aaPanel, acesso em `CLAUDE.local.md`,
   arquivos em `/www/wwwroot/kalangos.easysmartcontroll.com/apt`, certbot webroot; não mexer nos outros sites).
   Publicado `0.1.0-3` em 2026-11-15 (o HP o viu pela internet). Guia: `distro/repo/LEIAME.md`.
+  **ISO pública (2026-11-17):** `https://kalangos.org/download/kalango-os-0.1.1.iso` (+ `.sha256`; pasta
+  `/www/wwwroot/kalangos.org/download`, que o `publicar.sh` do site não apaga), com o `kalango-shell 0.1.1-5`, o
+  mesmo arquivo publicado no apt. **Cada ISO leva uma revisão nova** (`KALANGO_REVISAO=N distro/build.sh`) e o
+  `.deb` de `distro/out` é publicado junto: mesma versão com outro conteúdo faz o apt da ISO tentar "voltar" de
+  versão e o `lb build` falha no fim (o `build.sh` confere isso no início). Os scripts de download usam `wget`
+  quando não há `curl`. A VPN do servidor (`wg0`, NetworkManager) não liga sozinha: `nmcli connection up wg0`.
   Testado no HP: 0.1.0-1 → 0.1.0-2 pelo apt, com aviso de reiniciar (`/run/reboot-required`). Bugs e dicas: GitHub
   Issues (modelos em `.github/ISSUE_TEMPLATE`) + Discussions (ligar nas configurações do repositório).
 - Identidade: `/usr/lib/os-release` = "KalangOS" (`ID=kalango`, `ID_LIKE=debian`, protegido de atualização do
