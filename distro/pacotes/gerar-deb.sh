@@ -7,6 +7,13 @@
 # dpkg é dono desses arquivos e uma versão nova no repositório apt os troca
 # pela página Atualizações. Os arquivos de /etc continuam só na ISO.
 #
+# O terminal também vai no pacote, para quem só atualiza pelo apt (instalado
+# por uma ISO antiga): os temas do foot (/usr/share/kalango/terminal) e o
+# ~/.zshrc no estilo do Kali (/usr/share/kalango/zshrc). O postinst põe o
+# .zshrc no /etc/skel, deixa o zsh como shell de quem for criado depois e,
+# UMA vez por máquina, passa para o zsh quem ainda está no bash (quem voltar
+# para o bash depois não é forçado de novo).
+#
 # Uso: distro/pacotes/gerar-deb.sh BINARIO PASTA_DE_SAIDA
 #   BINARIO: o kalango-shell compilado contra o trixie (build.sh, testar-vm.sh)
 #   KALANGO_REVISAO=N: revisão do pacote (padrão 1) → versão <Cargo.toml>-N
@@ -35,6 +42,11 @@ for d in usr/local/bin usr/local/sbin usr/local/lib/kalango; do
 	done
 done
 install -D -m 0755 "$INC/usr/lib/systemd/system-sleep/kalango-radios" "$P/usr/lib/systemd/system-sleep/kalango-radios"
+# Terminal: temas do foot e o .zshrc do Kali (o /etc/skel é do postinst, para
+# não virar conffile nem brigar com a cópia que a ISO já deixa lá).
+mkdir -p "$P/usr/share/kalango/terminal"
+cp -p "$INC/usr/share/kalango/terminal/"*.ini "$P/usr/share/kalango/terminal/"
+install -D -m 0644 "$INC/etc/skel/.zshrc" "$P/usr/share/kalango/zshrc"
 # Sem escrita para grupo/outros (as cópias do repositório vêm com 775/664).
 chmod -R go-w "$P"
 
@@ -46,7 +58,7 @@ Architecture: amd64
 Maintainer: KalangOS <repo@kalangos.easysmartcontroll.com>
 Section: x11
 Priority: optional
-Depends: labwc, libc6
+Depends: labwc, libc6, foot, zsh, zsh-autosuggestions, zsh-syntax-highlighting, fonts-droid-fallback
 Installed-Size: $(du -sk "$P/usr" | cut -f1)
 Homepage: https://github.com/tiagorodoliv/kalango_os
 Description: Interface do KalangOS (barra, dock, menu e Configurações)
@@ -58,6 +70,42 @@ CTRL
 cat >"$P/DEBIAN/postinst" <<'POST'
 #!/bin/sh
 set -e
+
+if [ "$1" = configure ]; then
+	ZSHRC=/usr/share/kalango/zshrc
+	# /etc/skel/.zshrc: só se não existe ou ainda é um dos nossos (primeira
+	# linha "# ~/.zshrc do Kalang..."); um feito pelo administrador fica.
+	if [ ! -f /etc/skel/.zshrc ] || head -n 1 /etc/skel/.zshrc | grep -q '^# ~/.zshrc do Kalang'; then
+		install -m 0644 "$ZSHRC" /etc/skel/.zshrc
+	fi
+	# Usuários criados depois (adduser, useradd) já nascem no zsh (como o hook 0140 da ISO).
+	if [ -f /etc/adduser.conf ]; then
+		sed -i 's|^#\?DSHELL=.*|DSHELL=/bin/zsh|' /etc/adduser.conf
+	fi
+	if grep -q '^SHELL=' /etc/default/useradd 2>/dev/null; then
+		sed -i 's|^SHELL=.*|SHELL=/bin/zsh|' /etc/default/useradd
+	else
+		echo 'SHELL=/bin/zsh' >>/etc/default/useradd
+	fi
+	# Uma vez por máquina: pessoas (UID 1000–59999) ganham o .zshrc que falta e
+	# quem está no bash passa para o zsh. A marca impede repetir a troca.
+	MARCA=/var/lib/kalango/terminal-zsh
+	if [ ! -e "$MARCA" ] && [ -x /bin/zsh ]; then
+		getent passwd | while IFS=: read -r nome _ uid gid _ casa shell; do
+			[ "$uid" -ge 1000 ] && [ "$uid" -lt 60000 ] || continue
+			[ -d "$casa" ] || continue
+			if [ ! -e "$casa/.zshrc" ]; then
+				install -m 0644 -o "$uid" -g "$gid" "$ZSHRC" "$casa/.zshrc"
+			fi
+			case "$shell" in
+				/bin/bash | /usr/bin/bash) usermod -s /bin/zsh "$nome" ;;
+			esac
+		done
+		mkdir -p "${MARCA%/*}"
+		date -Iseconds >"$MARCA"
+	fi
+fi
+
 if [ "$1" = configure ] && [ -n "${2:-}" ]; then
 	echo "*** KalangOS atualizado: reinicie (ou saia e entre) para usar a versão nova ***" >/run/reboot-required
 fi
