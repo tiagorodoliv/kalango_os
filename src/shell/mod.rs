@@ -12,11 +12,14 @@
 //! - [`wallpaper`]: papel de parede da área de trabalho;
 //! - [`labwc`]: ajustes do compositor feitos pelo shell (margens, dock, menus);
 //! - [`usb`]: grava logo nos pendrives e avisa na barra enquanto grava;
-//! - [`thunar`]: "Definir como papel de parede" no botão direito do Thunar.
+//! - [`thunar`]: "Definir como papel de parede" no botão direito do Thunar;
+//! - [`integrity`]: avisa (e pede o administrador) quando os arquivos da interface
+//!   mudaram fora de uma atualização.
 
 pub mod calendar;
 pub mod dock;
 pub mod greeter;
+pub mod integrity;
 pub mod labwc;
 pub mod outputs;
 pub mod session;

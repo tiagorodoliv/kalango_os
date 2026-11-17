@@ -1,0 +1,48 @@
+#!/bin/sh
+# Integridade da interface do KalangOS (src/shell/integrity.rs), como root pelo
+# pkexec (política org.kalango.integridade: senha do administrador sempre).
+#
+#   kalango-integridade aceitar    grava o MD5 atual dos arquivos do pacote
+#                                  kalango-shell que mudaram fora do apt: o
+#                                  aviso só volta se mudarem de novo
+#   kalango-integridade restaurar  reinstala o kalango-shell pelo apt e
+#                                  esquece as mudanças aceitas
+#
+# O KalangOS é software livre: mudar o sistema é permitido, desde que seja
+# claro e autorizado pelo administrador.
+set -eu
+
+ACEITOS=/var/lib/kalango/integridade/aceitos
+MD5SUMS=/var/lib/dpkg/info/kalango-shell.md5sums
+
+case "${1:-}" in
+aceitar)
+	[ -f "$MD5SUMS" ] || { echo "kalango-shell não está instalado pelo dpkg" >&2; exit 1; }
+	mkdir -p "${ACEITOS%/*}"
+	chmod 0755 "${ACEITOS%/*}"
+	novo=$(mktemp "$ACEITOS.XXXXXX")
+	# Uma linha por arquivo diferente do pacote: "md5  /caminho" ou "ausente  /caminho".
+	while read -r soma caminho; do
+		arq="/$caminho"
+		if [ ! -e "$arq" ]; then
+			printf 'ausente  %s\n' "$arq"
+		else
+			agora=$(md5sum <"$arq" | cut -d' ' -f1)
+			[ "$agora" = "$soma" ] || printf '%s  %s\n' "$agora" "$arq"
+		fi
+	done <"$MD5SUMS" >"$novo"
+	chmod 0644 "$novo"
+	mv "$novo" "$ACEITOS"
+	logger -t kalango-integridade "mudanças aceitas por ${PKEXEC_UID:-?}: $(wc -l <"$ACEITOS") arquivo(s)"
+	;;
+restaurar)
+	export DEBIAN_FRONTEND=noninteractive
+	apt-get install -y -q --reinstall kalango-shell
+	rm -f "$ACEITOS"
+	logger -t kalango-integridade "arquivos originais restaurados por ${PKEXEC_UID:-?}"
+	;;
+*)
+	echo "uso: kalango-integridade aceitar|restaurar" >&2
+	exit 1
+	;;
+esac
