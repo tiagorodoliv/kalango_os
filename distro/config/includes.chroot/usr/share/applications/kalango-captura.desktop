@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Screenshot
+Name[pt_BR]=Captura de tela
+GenericName=Screenshot and screen recording
+GenericName[pt_BR]=Captura e gravação da tela
+Comment=Take a picture or record a video of the screen or of an area (Print key)
+Comment[pt_BR]=Tira foto ou grava vídeo da tela ou de uma área (tecla Print)
+Exec=kalango-shell --captura
+Icon=applets-screenshooter
+Terminal=false
+Categories=Utility;Graphics;
+Keywords=print;screenshot;captura;tela;gravar;record;video;vídeo;
+StartupWMClass=kalango-captura

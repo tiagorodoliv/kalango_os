@@ -159,6 +159,9 @@ export global Shell {
     in property <string> net-icon: "ethernet-off";
     /// Gravando num pendrive (`src/shell/usb.rs`): a barra pede para não remover.
     in property <bool> usb-writing: false;
+    /// Gravando a tela (`wf-recorder` aberto pela captura, src/shell/capture.rs):
+    /// aviso no centro da barra; Print para.
+    in property <bool> recording: false;
     /// "Identificar" monitores: número e nome do monitor desta janela.
     in property <bool> identify-visible: false;
     in property <int> identify-number: 1;

@@ -195,6 +195,15 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   driver/gerência, veth do Docker) é ignorada. Painel rápido: blocos em sequência, dois por linha
   (`slot()` em `quick_settings.slint`): Cabeada (liga/desliga a placa, lista das conexões de cabo), Wi-Fi, VPN
   (lista; `Device.connection-set`), Bluetooth, Estilo escuro.
+- **Captura de tela (2026-11-17), como no Ubuntu:** `src/shell/capture.rs` + `ui/screens/capture.slint` (global
+  `Capture`). Print = `kalango-shell --captura` (ferramenta em tela cheia transparente, regra `kalango-captura`:
+  área arrastando ou tela inteira, foto ou vídeo); Shift+Print = `--captura=tela` (foto na hora, sem janela);
+  Ctrl+Shift+Alt+R = `--captura=video`. Foto pelo `grim` (Imagens/Capturas de tela + `wl-copy`), vídeo pelo
+  `wf-recorder` (Vídeos/Gravações de tela) num processo próprio anotado em `$XDG_RUNTIME_DIR/kalango-gravacao`;
+  com gravação rodando, qualquer atalho a para (SIGINT). Avisos vão para a barra pelo arquivo
+  `$XDG_RUNTIME_DIR/kalango-aviso` (a área de trabalho lê a cada 1 s; `Shell.recording` = "Gravando a tela").
+  Sistemas de ISO antiga recebem atalhos e regra pelo `rc.xml` do usuário (`labwc::ensure_capture`); o pacote
+  depende de grim, wf-recorder e wl-clipboard.
 - **Thunar "Abrir terminal aqui":** o padrão do Debian usa `exo-open --launch TerminalEmulator`, que no Xfce 4.20
   precisa do `xfce4-helpers` (não instalado) e falha calado; `shell::thunar` troca por `foot -D %f` no `uca.xml`.
 - **Proteção contra cascata (2026-11-17):** o `examples/snapshot`, rodado dentro da sessão (herdava

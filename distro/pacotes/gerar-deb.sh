@@ -54,6 +54,9 @@ install -D -m 0755 "$INC/usr/lib/systemd/system-sleep/kalango-radios" "$P/usr/li
 # quem só atualiza pelo apt também recebe as novas.
 mkdir -p "$P/usr/share/polkit-1/actions"
 cp -p "$INC/usr/share/polkit-1/actions/"org.kalango.*.policy "$P/usr/share/polkit-1/actions/"
+# Captura de tela no menu de apps ("Todos os apps"; tecla Print).
+install -D -m 0644 "$INC/usr/share/applications/kalango-captura.desktop" \
+	"$P/usr/share/applications/kalango-captura.desktop"
 # Sair/reiniciar sem esperar 90 s pelo portal de documentos do Flatpak.
 install -D -m 0644 "$INC/usr/lib/systemd/user/xdg-document-portal.service.d/50-kalango.conf" \
 	"$P/usr/lib/systemd/user/xdg-document-portal.service.d/50-kalango.conf"
@@ -73,7 +76,8 @@ Architecture: amd64
 Maintainer: KalangOS <repo@kalangos.org>
 Section: x11
 Priority: optional
-Depends: labwc, libc6, foot, zsh, zsh-autosuggestions, zsh-syntax-highlighting, fonts-droid-fallback
+Depends: labwc, libc6, foot, zsh, zsh-autosuggestions, zsh-syntax-highlighting, fonts-droid-fallback, grim, wf-recorder, wl-clipboard
+Recommends: sound-theme-freedesktop
 Installed-Size: $(du -sk "$P/usr" | cut -f1)
 Homepage: https://github.com/tiagorodoliv/kalango_os
 Description: Interface do KalangOS (barra, dock, menu e Configurações)

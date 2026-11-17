@@ -48,6 +48,8 @@ pub enum Mode {
     Calendar,
     /// Calculadora com ferramentas de programador (`--calculadora`, `src/tools/`).
     Calculator,
+    /// Captura de tela (`--captura`, `src/shell/capture.rs`).
+    Capture,
 }
 
 impl Mode {
@@ -67,6 +69,7 @@ impl Mode {
                 a if a.starts_with("--menu-dock=") => mode = Mode::DockMenu,
                 "--calendario" => mode = Mode::Calendar,
                 "--calculadora" => mode = Mode::Calculator,
+                a if a == "--captura" || a.starts_with("--captura=") => mode = Mode::Capture,
                 _ => {}
             }
         }
@@ -90,6 +93,7 @@ impl Mode {
             Mode::DockMenu => "kalango-dock-menu",
             Mode::Calendar => "kalango-calendario",
             Mode::Calculator => "kalango-calculadora",
+            Mode::Capture => "kalango-captura",
         }
     }
 
@@ -105,6 +109,7 @@ impl Mode {
             Mode::DockTrigger => Some("--dock-gatilho"),
             Mode::Calendar => Some("--calendario"),
             Mode::Calculator => Some("--calculadora"),
+            Mode::Capture => Some("--captura"),
             Mode::Fundo | Mode::Switcher | Mode::DockMenu => None,
         }
     }
@@ -123,6 +128,7 @@ impl Mode {
             Mode::DockMenu => ShellMode::DockMenu,
             Mode::Calendar => ShellMode::Calendar,
             Mode::Calculator => ShellMode::Calculator,
+            Mode::Capture => ShellMode::Capture,
         }
     }
 }
@@ -298,12 +304,13 @@ pub fn open(id: &str) -> bool {
         _ => (id, None),
     };
     let cmd = match id {
-        "launcher" | "settings" | "quick-settings" | "calendar-popup" | "calculator" => {
+        "launcher" | "settings" | "quick-settings" | "calendar-popup" | "calculator" | "screenshot" => {
             let mode = match id {
                 "launcher" => Mode::Launcher,
                 "settings" => Mode::Settings,
                 "calculator" => Mode::Calculator,
                 "calendar-popup" => Mode::Calendar,
+                "screenshot" => Mode::Capture,
                 _ => Mode::QuickSettings,
             };
             let mut c = Command::new(own_exe());
@@ -507,7 +514,7 @@ pub fn claim_instance(mode: Mode) -> bool {
                         let _ = Command::new("kill").arg(pid.to_string()).status();
                     }
                 });
-            } else if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Calendar | Mode::Fundo | Mode::DockMenu) {
+            } else if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Calendar | Mode::Fundo | Mode::DockMenu | Mode::Capture) {
                 let _ = Command::new("kill").arg(pid.to_string()).status();
                 let _ = fs::remove_file(&pidfile);
             }

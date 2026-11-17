@@ -239,6 +239,49 @@ const TRIGGER_RULE: &str = r#"    <!-- Faixa da dock escondida (modo dock-gatilh
     </windowRule>
 "#;
 
+/// Atalhos da captura de tela (`src/shell/capture.rs`), para os sistemas cujo
+/// rc.xml veio de uma ISO anterior a ela (só atualizam pelo apt).
+const CAPTURE_KEYS: &str = r#"    <!-- Captura de tela: Print, Shift+Print e Ctrl+Shift+Alt+R. -->
+    <keybind key="Print">
+      <action name="Execute" command="kalango-shell --captura" />
+    </keybind>
+    <keybind key="S-Print">
+      <action name="Execute" command="kalango-shell --captura=tela" />
+    </keybind>
+    <keybind key="C-S-A-r">
+      <action name="Execute" command="kalango-shell --captura=video" />
+    </keybind>
+"#;
+
+/// Regra da ferramenta de captura (como a do calendário).
+const CAPTURE_RULE: &str = r#"    <windowRule identifier="kalango-captura"
+                serverDecoration="no"
+                skipTaskbar="yes"
+                skipWindowSwitcher="yes">
+      <action name="MoveToOutput" output="" />
+      <action name="ToggleFullscreen"/>
+      <action name="ToggleAlwaysOnTop"/>
+      <action name="ToggleOmnipresent"/>
+    </windowRule>
+"#;
+
+/// Põe os atalhos e a regra da captura de tela no rc.xml, se ainda não houver
+/// (sem `<keyboard>`/`<windowRules>` onde pôr, deixa como está).
+fn ensure_capture(xml: &str) -> String {
+    let mut xml = xml.to_string();
+    if !xml.contains("kalango-shell --captura\"") {
+        if let Some(at) = xml.rfind("</keyboard>") {
+            xml = format!("{}{CAPTURE_KEYS}  {}", xml[..at].trim_end_matches(' '), &xml[at..]);
+        }
+    }
+    if !xml.contains("<windowRule identifier=\"kalango-captura\"") {
+        if let Some(at) = xml.rfind("</windowRules>") {
+            xml = format!("{}{CAPTURE_RULE}  {}", xml[..at].trim_end_matches(' '), &xml[at..]);
+        }
+    }
+    xml
+}
+
 /// Põe a regra da faixa da dock escondida no rc.xml, se ainda não houver.
 fn ensure_trigger_rule(xml: &str) -> Option<String> {
     if xml.contains("<windowRule identifier=\"kalango-dock-gatilho\"") {
@@ -277,7 +320,7 @@ pub fn set_outputs(primary: Option<(String, i32, i32)>, backgrounds: Vec<(String
 
 /// Monta o `rc.xml` do usuário a partir do do sistema (`None` = algo faltou).
 fn build(system_xml: &str, w: &Wanted) -> Option<String> {
-    let mut xml = system_xml.to_string();
+    let mut xml = ensure_capture(system_xml);
     if let Some(m) = w.margins {
         if margins_of(&xml) != Some(m) {
             xml = replace_margins(&xml, m)?;
@@ -292,7 +335,7 @@ fn build(system_xml: &str, w: &Wanted) -> Option<String> {
         xml = replace_action(&xml, "kalango-shell", "MoveToOutput", &format!("output=\"{name}\""))?;
         // O menu da dock, o menu de apps e o painel rápido também (ficam junto
         // da barra e da dock). Sem isso abriam no monitor em foco.
-        for rule in ["kalango-dock-menu", "kalango-launcher", "kalango-quick-settings", "kalango-calendario"] {
+        for rule in ["kalango-dock-menu", "kalango-launcher", "kalango-quick-settings", "kalango-calendario", "kalango-captura"] {
             if let Some(x) = replace_action(&xml, rule, "MoveToOutput", &format!("output=\"{name}\"")) {
                 xml = x;
             }
@@ -494,6 +537,20 @@ mod tests {
         comments_ok(&xml).unwrap();
         comments_ok(TRIGGER_RULE).unwrap();
         assert!(xml.contains("kalango-dock-gatilho") && xml.contains("width=\"443\" height=\"2\""));
+    }
+
+    #[test]
+    fn captura_de_tela_no_rc_xml() {
+        let system = include_str!("../../distro/config/includes.chroot/etc/xdg/labwc/rc.xml");
+        // O do sistema já tem tudo: nada muda (sem cópia do usuário só por isso).
+        assert_eq!(ensure_capture(system), system);
+        // Um rc.xml de uma ISO antiga ganha os atalhos e a regra.
+        let old = "<labwc_config>\n  <keyboard>\n  </keyboard>\n  <windowRules>\n  </windowRules>\n</labwc_config>\n";
+        let xml = ensure_capture(old);
+        comments_ok(&xml).unwrap();
+        assert!(xml.contains("<keybind key=\"Print\">") && xml.contains("--captura=tela"));
+        assert!(xml.contains("<windowRule identifier=\"kalango-captura\""));
+        assert_eq!(ensure_capture(&xml), xml);
     }
 
     #[test]

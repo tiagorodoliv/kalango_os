@@ -13,6 +13,8 @@
     ui/components/window_frame.slint): o labwc não decora;
   - "kalango-calendario": o calendário do relógio da barra. Tela cheia,
     transparente, por cima;
+  - "kalango-captura": a ferramenta de captura de tela (tecla Print). Tela
+    cheia, transparente, por cima;
   - "kalango-alternar": o Alt+Tab (src/shell/switcher.rs). Tela cheia, transparente,
     por cima; o processo fica aberto e a janela só aparece no Alt+Tab;
   - "kalango-dock-menu": o menu do botão direito de um app da dock, no
@@ -130,6 +132,18 @@
     <keybind key="C-A-Right"><action name="GoToDesktop" to="right" wrap="no" /></keybind>
     <keybind key="C-A-S-Left"><action name="SendToDesktop" to="left" wrap="no" /></keybind>
     <keybind key="C-A-S-Right"><action name="SendToDesktop" to="right" wrap="no" /></keybind>
+    <!-- Captura de tela (src/shell/capture.rs): Print abre a ferramenta, Shift+Print
+         tira a foto da tela inteira, Ctrl+Shift+Alt+R grava a tela. Com uma
+         gravação em andamento, qualquer um deles a termina. -->
+    <keybind key="Print">
+      <action name="Execute" command="kalango-shell --captura" />
+    </keybind>
+    <keybind key="S-Print">
+      <action name="Execute" command="kalango-shell --captura=tela" />
+    </keybind>
+    <keybind key="C-S-A-r">
+      <action name="Execute" command="kalango-shell --captura=video" />
+    </keybind>
   </keyboard>
 
   <windowRules>
@@ -220,6 +234,16 @@
       <action name="ToggleOmnipresent"/>
       <action name="ResizeTo" width="1" height="1" />
       <action name="MoveTo" x="0" y="0" />
+    </windowRule>
+    <windowRule identifier="kalango-captura"
+                serverDecoration="no"
+                skipTaskbar="yes"
+                skipWindowSwitcher="yes">
+      <!-- Ferramenta de captura de tela: tela cheia, transparente, por cima. -->
+      <action name="MoveToOutput" output="" />
+      <action name="ToggleFullscreen"/>
+      <action name="ToggleAlwaysOnTop"/>
+      <action name="ToggleOmnipresent"/>
     </windowRule>
   </windowRules>
 </labwc_config>

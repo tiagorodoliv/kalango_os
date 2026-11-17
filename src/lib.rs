@@ -93,6 +93,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     #[cfg(target_os = "linux")]
     {
         timers.extend(taskbar::install(&ui, mode));
+        timers.extend(shell::capture::install_desktop(&ui, mode));
         // O Alt+Tab fica aberto a sessão toda (guarda a ordem das janelas).
         if mode == Mode::Desktop && native {
             switcher::spawn_background();
@@ -140,7 +141,7 @@ pub fn renderer_for(
         // página Aparência, alta, travava no renderer de software).
         _ if hardware_gl => Some("femtovg"),
         // A dock em janela própria só abre com placa de vídeo (src/shell/dock.rs).
-        _ if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Calendar | Mode::Dock | Mode::DockTrigger | Mode::Switcher | Mode::DockMenu) => {
+        _ if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Calendar | Mode::Dock | Mode::DockTrigger | Mode::Switcher | Mode::DockMenu | Mode::Capture) => {
             Some("femtovg")
         }
         _ => Some("software"),
@@ -282,6 +283,16 @@ pub fn run() -> Result<(), slint::PlatformError> {
     if mode == Mode::Switcher {
         return switcher::run();
     }
+    // Captura de tela: parar a gravação, Shift+Print e Ctrl+Shift+Alt+R não
+    // abrem janela (src/shell/capture.rs).
+    #[cfg(target_os = "linux")]
+    if mode == Mode::Capture {
+        if let Some(action) = shell::capture::action_from_args(std::env::args()) {
+            if shell::capture::run_without_window(action) {
+                return Ok(());
+            }
+        }
+    }
     select_renderer(mode);
     let page = session::page_from_args(std::env::args());
     // Super com o menu aberto: o novo processo fecha o antigo e sai.
@@ -322,7 +333,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
     }
     // Menu de apps e painel rápido: já no tamanho da tela (ver
     // `outputs::primary_size`).
-    if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Calendar | Mode::DockMenu) && session::is_native() {
+    if matches!(mode, Mode::Launcher | Mode::QuickSettings | Mode::Calendar | Mode::DockMenu | Mode::Capture) && session::is_native() {
         if let Some((w, h)) = outputs::primary_size() {
             ui.window().set_size(slint::LogicalSize::new(w as f32, h as f32));
         }
@@ -335,6 +346,10 @@ pub fn run() -> Result<(), slint::PlatformError> {
     }
     if mode == Mode::Calculator {
         tools::calculator::install(&ui);
+    }
+    #[cfg(target_os = "linux")]
+    if mode == Mode::Capture {
+        shell::capture::install(&ui);
     }
     if matches!(mode, Mode::Settings | Mode::Calculator) && session::is_native() {
         timers.push(install_window_frame(&ui));

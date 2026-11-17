@@ -1,0 +1,258 @@
+// Captura de tela (`kalango-shell --captura`, src/shell/capture.rs), como a
+// do Ubuntu: janela em tela cheia e transparente por cima de tudo, com a
+// barra de ferramentas embaixo. Escolhe área (arrastar) ou a tela inteira,
+// foto ou vídeo, e o botão redondo captura. A janela some antes da foto.
+
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+
+export global Capture {
+    /// Área escolhida com o mouse (falso = a tela inteira).
+    in-out property <bool> area: true;
+    /// Gravar vídeo em vez de tirar foto.
+    in-out property <bool> video: false;
+    /// Área escolhida, em px lógicos da janela (= do monitor).
+    in-out property <length> sel-x: 0;
+    in-out property <length> sel-y: 0;
+    in-out property <length> sel-width: 0;
+    in-out property <length> sel-height: 0;
+    /// Captura (o Rust lê as propriedades acima).
+    callback capture();
+}
+
+/// Botão de escolha da barra (área/tela, foto/vídeo).
+component ChoiceButton inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> selected: false;
+    callback clicked();
+
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: root.selected ? Theme.accent-soft : touch.has-hover ? Theme.tile-hover : transparent;
+    border-width: root.selected ? 1px : 0;
+    border-color: Theme.accent.with-alpha(0.5);
+    Image {
+        source: root.icon;
+        colorize: root.selected ? Theme.accent : Theme.text;
+        width: 20px;
+        height: 20px;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component CaptureView inherits Rectangle {
+    callback close();
+
+    /// Escurecimento fora da área escolhida.
+    property <color> shade: #00000080;
+    property <bool> has-selection: Capture.sel-width >= 4px && Capture.sel-height >= 4px;
+
+    init => {
+        // Começa com uma área no meio da tela (metade do tamanho), como no Ubuntu.
+        if (!root.has-selection) {
+            Capture.sel-width = root.width / 2;
+            Capture.sel-height = root.height / 2;
+            Capture.sel-x = root.width / 4;
+            Capture.sel-y = root.height / 4;
+        }
+        keys.focus();
+    }
+
+    function capture() {
+        if (Capture.area && !root.has-selection) {
+            return;
+        }
+        Capture.capture();
+    }
+
+    keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.close();
+                return accept;
+            }
+            if (event.text == Key.Return || event.text == " ") {
+                root.capture();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    // --- Área escolhida: escurece em volta, borda no destaque ---
+    if Capture.area: Rectangle {
+        // Em cima, embaixo, à esquerda e à direita da área.
+        Rectangle { x: 0; y: 0; width: root.width; height: Capture.sel-y; background: root.shade; }
+        Rectangle {
+            x: 0;
+            y: Capture.sel-y + Capture.sel-height;
+            width: root.width;
+            height: max(0px, root.height - self.y);
+            background: root.shade;
+        }
+        Rectangle { x: 0; y: Capture.sel-y; width: Capture.sel-x; height: Capture.sel-height; background: root.shade; }
+        Rectangle {
+            x: Capture.sel-x + Capture.sel-width;
+            y: Capture.sel-y;
+            width: max(0px, root.width - self.x);
+            height: Capture.sel-height;
+            background: root.shade;
+        }
+    }
+    // A tela inteira: só um véu leve e a borda.
+    if !Capture.area: Rectangle {
+        background: #00000030;
+        border-width: 3px;
+        border-color: Theme.accent;
+    }
+
+    // Arrastar fora da área = área nova; dentro = mover a área.
+    drag := TouchArea {
+        enabled: Capture.area;
+        mouse-cursor: self.moving ? move : crosshair;
+        property <bool> moving: false;
+        property <length> start-x;
+        property <length> start-y;
+        pointer-event(e) => {
+            if (e.kind == PointerEventKind.down && e.button == PointerEventButton.left) {
+                self.moving = root.has-selection
+                    && self.mouse-x >= Capture.sel-x && self.mouse-x <= Capture.sel-x + Capture.sel-width
+                    && self.mouse-y >= Capture.sel-y && self.mouse-y <= Capture.sel-y + Capture.sel-height;
+                self.start-x = Capture.sel-x;
+                self.start-y = Capture.sel-y;
+            }
+        }
+        moved => {
+            if (!self.pressed) {
+                return;
+            }
+            if (self.moving) {
+                Capture.sel-x = clamp(self.start-x + self.mouse-x - self.pressed-x, 0, root.width - Capture.sel-width);
+                Capture.sel-y = clamp(self.start-y + self.mouse-y - self.pressed-y, 0, root.height - Capture.sel-height);
+            } else {
+                Capture.sel-x = clamp(min(self.pressed-x, self.mouse-x), 0, root.width);
+                Capture.sel-y = clamp(min(self.pressed-y, self.mouse-y), 0, root.height);
+                Capture.sel-width = min(abs(self.mouse-x - self.pressed-x), root.width - Capture.sel-x);
+                Capture.sel-height = min(abs(self.mouse-y - self.pressed-y), root.height - Capture.sel-y);
+            }
+        }
+        // Dois cliques na área = capturar.
+        double-clicked => { root.capture(); }
+    }
+
+    if Capture.area && root.has-selection: Rectangle {
+        x: Capture.sel-x - 2px;
+        y: Capture.sel-y - 2px;
+        width: Capture.sel-width + 4px;
+        height: Capture.sel-height + 4px;
+        border-width: 2px;
+        border-color: Theme.accent;
+        // Tamanho da área, num selo logo abaixo (ou dentro, se não couber).
+        Rectangle {
+            x: 2px;
+            y: parent.height + 34px > root.height - parent.y ? parent.height - 30px : parent.height + 6px;
+            width: size-text.preferred-width + 16px;
+            height: 24px;
+            border-radius: 6px;
+            background: Theme.panel-solid.with-alpha(0.9);
+            size-text := Text {
+                text: round(Capture.sel-width / 1px) + " × " + round(Capture.sel-height / 1px);
+                color: Theme.text;
+                font-family: Theme.mono;
+                font-size: 12px;
+            }
+        }
+    }
+
+    // --- Dica no topo ---
+    Rectangle {
+        y: 24px;
+        width: hint.preferred-width + 28px;
+        height: 34px;
+        border-radius: 17px;
+        background: Theme.panel-solid.with-alpha(0.92);
+        border-width: 1px;
+        border-color: Theme.border;
+        hint := Text {
+            text: Capture.area
+                ? @tr("Drag to choose the area · Enter captures · Esc cancels")
+                : @tr("The whole screen · Enter captures · Esc cancels");
+            color: Theme.text;
+            font-size: 13px;
+        }
+    }
+
+    // --- Barra de ferramentas ---
+    Rectangle {
+        // Acima da dock (que fica embaixo, por trás desta janela).
+        y: root.height - self.height - 100px;
+        width: bar.preferred-width;
+        height: 72px;
+        border-radius: 22px;
+        background: Theme.panel-solid.with-alpha(0.96);
+        border-width: 1px;
+        border-color: Theme.border;
+        drop-shadow-blur: 24px;
+        drop-shadow-color: #00000090;
+        // Engole os cliques (não começa uma área nova por baixo da barra).
+        TouchArea { }
+        bar := HorizontalLayout {
+            padding: 14px;
+            spacing: 6px;
+            alignment: center;
+            ChoiceButton {
+                icon: Icons.selection;
+                selected: Capture.area;
+                clicked => { Capture.area = true; }
+            }
+            ChoiceButton {
+                icon: Icons.monitor;
+                selected: !Capture.area;
+                clicked => { Capture.area = false; }
+            }
+            Rectangle { width: 1px; background: Theme.border; }
+            Rectangle { width: 8px; }
+            // Botão de capturar: branco (foto) ou vermelho (vídeo).
+            Rectangle {
+                width: 44px;
+                height: 44px;
+                border-radius: 22px;
+                border-width: 3px;
+                border-color: Theme.text;
+                Rectangle {
+                    width: shot.has-hover ? 34px : 30px;
+                    height: self.width;
+                    border-radius: self.width / 2;
+                    background: Capture.video ? Theme.danger : Theme.text;
+                    animate width { duration: Theme.anim; }
+                }
+                shot := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.capture(); }
+                }
+            }
+            Rectangle { width: 8px; }
+            Rectangle { width: 1px; background: Theme.border; }
+            ChoiceButton {
+                icon: Icons.camera;
+                selected: !Capture.video;
+                clicked => { Capture.video = false; }
+            }
+            ChoiceButton {
+                icon: Icons.video;
+                selected: Capture.video;
+                clicked => { Capture.video = true; }
+            }
+            Rectangle { width: 12px; }
+            ChoiceButton {
+                icon: Icons.x;
+                clicked => { root.close(); }
+            }
+        }
+    }
+}

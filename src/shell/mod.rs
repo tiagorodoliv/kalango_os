@@ -2,6 +2,7 @@
 //!
 //! - [`session`]: modos do shell (um processo cada), abrir apps, desligar;
 //! - [`calendar`]: calendário que abre ao clicar no relógio da barra;
+//! - `capture` (Linux): captura e gravação da tela (Print);
 //! - [`greeter`]: tela de login de verdade, como greeter do greetd;
 //! - [`dock`]: a dock em janela própria, sempre por cima das janelas;
 //! - `taskbar` (Linux): apps abertos na dock e o menu do botão direito dela;
@@ -18,6 +19,8 @@
 //!   mudaram fora de uma atualização.
 
 pub mod calendar;
+#[cfg(target_os = "linux")]
+pub mod capture;
 pub mod dock;
 pub mod greeter;
 pub mod integrity;

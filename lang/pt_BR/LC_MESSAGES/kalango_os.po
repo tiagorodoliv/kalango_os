@@ -1605,3 +1605,12 @@ msgstr "Testar alto-falantes"
 
 msgid "A voice plays on each side"
 msgstr "Uma voz toca em cada lado"
+
+msgid "Drag to choose the area · Enter captures · Esc cancels"
+msgstr "Arraste para escolher a área · Enter captura · Esc cancela"
+
+msgid "The whole screen · Enter captures · Esc cancels"
+msgstr "A tela inteira · Enter captura · Esc cancela"
+
+msgid "● Recording the screen · Print stops"
+msgstr "● Gravando a tela · Print para"

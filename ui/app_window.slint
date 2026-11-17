@@ -29,6 +29,7 @@ import { Dock } from "components/dock.slint";
 import { DesktopMenuArea } from "components/desktop_menu.slint";
 import { WindowFrame } from "components/window_frame.slint";
 import { CalendarView, Calendar, CalendarDay } from "screens/calendar.slint";
+import { CaptureView, Capture } from "screens/capture.slint";
 import { FilesWindow } from "apps/files.slint";
 import { TerminalWindow } from "apps/terminal.slint";
 import { LoginScreen } from "screens/login.slint";
@@ -42,7 +43,7 @@ import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, Power,
 // Reexportados para o Rust enxergar os globais e tipos.
 export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry, IconPreview, Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution }
 export { Calc, CalcHistory }
-export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice, Calendar, CalendarDay, Updates, UpdateItem }
+export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice, Calendar, CalendarDay, Updates, UpdateItem, Capture }
 
 /// Telas de nível superior.
 export enum Screen { login, desktop, settings }
@@ -75,6 +76,8 @@ export enum ShellMode {
     switcher,
     /// Menu do botão direito de um app da dock (`--menu-dock=`, src/shell/taskbar.rs).
     dock-menu,
+    /// Captura de tela (`--captura`, src/shell/capture.rs).
+    capture,
 }
 
 export component AppWindow inherits Window {
@@ -92,7 +95,7 @@ export component AppWindow inherits Window {
     // dos apps (a dock: os cantos arredondados mostram o que está atrás).
     background: root.mode == ShellMode.launcher || root.mode == ShellMode.quick-settings || root.mode == ShellMode.calendar || root.dock-window
         || ((root.mode == ShellMode.settings || root.mode == ShellMode.calculator) && Shell.rounded-window)
-        || root.mode == ShellMode.switcher || root.mode == ShellMode.dock-menu
+        || root.mode == ShellMode.switcher || root.mode == ShellMode.dock-menu || root.mode == ShellMode.capture
         ? transparent : Theme.background;
     // A dock é uma janela comum (não tela cheia): sem moldura nenhuma.
     no-frame: root.dock-window;
@@ -396,6 +399,7 @@ export component AppWindow inherits Window {
             compact: root.launcher-open || root.screen == Screen.settings;
             message: !Shell.native ? ""
                 : root.toast != "" ? root.toast
+                : Shell.recording ? @tr("● Recording the screen · Print stops")
                 : Shell.usb-writing ? @tr("Writing to the USB drive, do not remove it") : "";
             quick-open: root.quick-open;
             status-clicked => { root.toggle-quick(); }
@@ -531,6 +535,9 @@ export component AppWindow inherits Window {
         if root.mode == ShellMode.switcher: SwitcherView { }
         if root.mode == ShellMode.dock-menu: DockMenuView { }
 
+        if root.mode == ShellMode.capture: CaptureView {
+            close => { Shell.quit(); }
+        }
         if root.mode == ShellMode.calendar: CalendarView {
             // Teclado nos atalhos (Esc fecha).
             init => { keys.focus(); }

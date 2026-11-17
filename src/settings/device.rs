@@ -701,7 +701,7 @@ const VOLUME_SOUND_DELAY: Duration = Duration::from_millis(150);
 ///
 /// `channel` ("FL", "FR"...) põe o som (mono) só naquele canal: é o teste
 /// de alto-falantes. Sem o arquivo (tema não instalado), não faz nada.
-fn play_sound(name: &str, channel: Option<&str>) {
+pub(crate) fn play_sound(name: &str, channel: Option<&str>) {
     let path = format!("{SOUNDS}/{name}.oga");
     if !std::path::Path::new(&path).exists() {
         return;
