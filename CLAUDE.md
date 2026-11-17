@@ -163,6 +163,13 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (`Dock.shadow: false`): a janela tem o tamanho exato e a sombra cortada aparecia nos cantos ("sobra"). Sem placa de vídeo ou com a
   dock escondida, ela continua desenhada na área de trabalho (atrás das janelas). Com placa de vídeo, todo o shell
   usa OpenGL (`renderer_for`: a Aparência travava no renderer de software).
+- **Dock como no Ubuntu (2026-11-16):** "Solta da borda" (`Theme.dock-detached`, `dock-solta=`; só no estilo
+  dock) afasta a dock `Theme.dock-gap` = 8 px da borda (`appearance::DOCK_GAP`), com os 4 cantos arredondados; a
+  margem do labwc soma a folga e a janela da dock (`dock::geometry`) sai da borda. Botão do menu de programas
+  (grade de 9 pontos, id `apps-menu` → `toggle-launcher`): `Theme.dock-apps-button` 0 começo / 1 fim (padrão) /
+  2 escondido (`dock-botao-apps=inicio|fim|oculto`); conta como mais um passo no comprimento da dock (Slint e Rust).
+- **Calamares 3.3 (trixie) lê o shell só de `user:` → `shell:`**; a chave antiga `userShell` é ignorada (o hook
+  `0140` grava as duas). Antes disso a instalação limpa criava o usuário com bash, sem o prompt do Kali.
 - **Apps abertos na dock e Alt+Tab (2026-11-14):** `src/shell/toplevels.rs` (wlr-foreign-toplevel, conexão própria numa
   thread, ordem de uso) → `src/shell/taskbar.rs`: janela → id da dock (catálogo, `desktop:<caminho>` pelo nome do arquivo/
   `StartupWMClass`/programa — VS Code = `com.microsoft.VSCode.desktop` —, ou `window:<app_id>`); `Shell.running-ids`,
@@ -387,10 +394,10 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
 - `assets/wallpapers/` — 6 wallpapers 2880×1800: Ciano, Roxo, Azul, Verde, Amarelo, Rosa
   (mesma ordem das 6 cores de destaque da tela Aparência → trocar a cor de destaque pode trocar o wallpaper).
 - `assets/logo/` — `Kalango_Logo_Vetorizado.svg` e `Kalango_Logo_transparente.png` (2172×724).
-- `ui/icons/` — 31 ícones SVG de traço (24×24, stroke branco; aplicar cor com `colorize`):
+- `ui/icons/` — 32 ícones SVG de traço (24×24, stroke branco; aplicar cor com `colorize`):
   folder, terminal, globe, code, bag, settings, image, music, file-text, file, calendar, activity, download,
   search, lock, power, wifi, volume, battery, x, chevron-left/right, arrow-right, user, accessibility,
-  monitor, bluetooth, info, contrast, dock, chevron-down.
+  monitor, bluetooth, info, contrast, dock, chevron-down, grid (9 pontos, preenchido).
 - Na raiz ainda estão os arquivos originais enviados (zips, logo .svg/.png duplicados). Não apagar sem perguntar ao Tiago.
 
 ## Especificação extraída do layout
