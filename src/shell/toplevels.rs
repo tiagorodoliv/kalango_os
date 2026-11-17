@@ -231,21 +231,6 @@ impl Tracker {
     pub fn close(&self, id: u32) {
         self.with_handle(id, |h, _| h.close());
     }
-
-    /// Maximiza de novo as janelas maximizadas, para caberem nas margens
-    /// atuais do labwc. O labwc só recalcula a área de uma janela maximizada
-    /// ao maximizá-la: sem isso, mudar a margem da dock (tamanho, "solta da
-    /// borda", esconder) deixava as janelas abertas por trás da dock ou sem
-    /// ocupar a tela toda. As minimizadas ficam como estão.
-    pub fn refit_maximized(&self) {
-        if let Ok(inner) = self.inner.lock() {
-            for e in inner.list.iter().filter(|e| e.info.maximized && !e.info.minimized) {
-                e.handle.unset_maximized();
-                e.handle.set_maximized();
-            }
-        }
-        let _ = self.conn.flush();
-    }
 }
 
 #[cfg(test)]

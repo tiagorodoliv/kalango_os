@@ -375,22 +375,33 @@ fn sync() -> bool {
     true
 }
 
-/// Depois que o labwc reler a margem nova, maximiza de novo as janelas que
-/// estavam maximizadas: assim elas ficam rentes à dock (ou na tela toda, com
-/// a dock escondida) sem a pessoa ter de desmaximizar e maximizar cada uma.
+/// Faz o labwc aplicar a margem nova: ajusta a área útil e as janelas
+/// maximizadas (ficam rentes à dock, ou na tela toda com a dock escondida).
+///
+/// O labwc 0.8 relê o `<margin>` no `--reconfigure`, mas só recalcula a área
+/// útil quando a configuração dos monitores muda (`output_config_apply` →
+/// `output_update_for_layout_change`, que também rearruma as janelas). Por
+/// isso o shell reaplica a configuração de um monitor sem mudar nada
+/// (`wlr-randr --output X --on`): o wlroots descarta os campos iguais, então
+/// a tela não pisca. Sem isso as janelas maximizadas ficavam com a margem
+/// velha (ex.: por baixo da dock depois de "Solta da borda" ou do botão novo).
 ///
 /// O `labwc --reconfigure` só manda o sinal e volta na hora; a espera de
-/// meio segundo dá tempo de ele aplicar a configuração. Roda numa thread com
-/// uma conexão Wayland própria, para não segurar a interface.
+/// meio segundo dá tempo de ele reler a configuração.
 fn refit_maximized_later() {
-    #[cfg(target_os = "linux")]
     std::thread::spawn(|| {
         std::thread::sleep(std::time::Duration::from_millis(500));
-        if let Some(tracker) = crate::shell::toplevels::Tracker::start(|_| {}) {
-            tracker.refit_maximized();
-            // Dá tempo de os pedidos saírem antes de a conexão fechar.
-            std::thread::sleep(std::time::Duration::from_millis(200));
-        }
+        let Ok(out) = Command::new("wlr-randr").stdin(Stdio::null()).stderr(Stdio::null()).output() else {
+            return;
+        };
+        let text = String::from_utf8_lossy(&out.stdout);
+        let Some(output) = crate::settings::displays::parse(&text).into_iter().find(|o| o.enabled) else {
+            return;
+        };
+        let _ = Command::new("wlr-randr")
+            .args(["--output", &output.name, "--on"])
+            .stdin(Stdio::null())
+            .status();
     });
 }
 
