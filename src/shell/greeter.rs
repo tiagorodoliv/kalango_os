@@ -384,6 +384,13 @@ fn greeter_active() -> bool {
         .unwrap_or(true)
 }
 
+/// A conta tem PIN de login (`kalango-pin`). O greeter roda como `_greetd`:
+/// a pasta dos PINs (1733) não deixa ler nem listar, mas deixa ver se o
+/// arquivo de uma conta existe.
+fn has_pin(login: &str) -> bool {
+    !login.is_empty() && !login.contains('/') && std::path::Path::new("/var/lib/kalango/pin").join(login).is_file()
+}
+
 /// Relê as contas e as sessões abertas (a lista e a sessão da conta escolhida).
 fn refresh_sessions(ui: &AppWindow) {
     let sessions = read_sessions();
@@ -400,6 +407,10 @@ fn refresh_sessions(ui: &AppWindow) {
         .collect();
     let shell = ui.global::<Shell>();
     let current = shell.get_login_user().to_string();
+    let pin = has_pin(&current);
+    if shell.get_login_has_pin() != pin {
+        shell.set_login_has_pin(pin);
+    }
     let session = sessions.get(&current).cloned().unwrap_or_default();
     if shell.get_login_session().as_str() != session {
         shell.set_login_session(session.into());

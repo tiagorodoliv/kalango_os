@@ -441,6 +441,14 @@ export global Accounts {
     callback update(string /* login */, string /* nome */, bool /* admin */, string /* senha */);
     /// Remove a conta; `delete-files` apaga também a pasta pessoal.
     callback remove(string, bool);
+    /// PIN de login e desbloqueio de quem está usando (`kalango-pin estado`):
+    /// "" = recurso ausente (protótipo, sistema antigo), "sem", "ativo" ou
+    /// "bloqueado" (5 PINs errados; volta ao entrar com a senha).
+    in property <string> pin-state: "";
+    /// Define ou troca o próprio PIN (senha atual, PIN).
+    callback set-pin(string, string);
+    /// Remove o próprio PIN.
+    callback remove-pin();
     /// Login sugerido a partir do nome ("Maria Silva" → "maria").
     pure callback suggest-login(string) -> string;
     /// Login válido e livre ("" = ok; senão, o motivo).

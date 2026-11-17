@@ -1379,8 +1379,10 @@ component AccountRow inherits Rectangle {
 component FormHint inherits Rectangle {
     in property <string> text;
     in property <bool> error: true;
-    height: root.text == "" ? 0 : 26px;
-    Text {
+    /// Quebra em várias linhas em vez de cortar com reticências (avisos longos).
+    in property <bool> wrap: false;
+    height: root.text == "" ? 0 : root.wrap ? hint.preferred-height + 8px : 26px;
+    hint := Text {
         x: 20px;
         width: parent.width - 40px;
         text: root.text;
@@ -1388,7 +1390,8 @@ component FormHint inherits Rectangle {
         font-family: Theme.sans;
         font-size: 13px;
         vertical-alignment: center;
-        overflow: elide;
+        wrap: root.wrap ? word-wrap : no-wrap;
+        overflow: root.wrap ? clip : elide;
     }
 }
 
@@ -1398,6 +1401,11 @@ export component UsersPage inherits Rectangle {
     property <string> pw-new;
     property <string> pw-confirm;
     property <string> pw-error;
+    // Formulário do PIN (login e desbloqueio).
+    property <string> pin-pass;
+    property <string> pin-new;
+    property <string> pin-confirm;
+    property <string> pin-error;
     // Formulário "Adicionar usuário".
     property <string> add-name;
     property <string> add-login;
@@ -1420,6 +1428,7 @@ export component UsersPage inherits Rectangle {
         Accounts.message = "";
         Accounts.form = form;
         root.pw-current = ""; root.pw-new = ""; root.pw-confirm = ""; root.pw-error = "";
+        root.pin-pass = ""; root.pin-new = ""; root.pin-confirm = ""; root.pin-error = "";
         root.add-name = ""; root.add-login = ""; root.add-login-edited = false; root.add-admin = false;
         root.add-pass = ""; root.add-confirm = ""; root.add-error = "";
         root.ed-pass = ""; root.ed-confirm = ""; root.ed-error = ""; root.ed-removing = false;
@@ -1465,9 +1474,62 @@ export component UsersPage inherits Rectangle {
                     text: @tr("Change password");
                     clicked => { root.open-form(Accounts.form == "password" ? "" : "password"); }
                 }
+                // PIN (como o do Windows Hello): só na sessão do KalangOS.
+                if Accounts.pin-state != "": PillButton {
+                    text: Accounts.pin-state == "sem" ? @tr("Set up PIN") : @tr("Change PIN");
+                    clicked => { root.open-form(Accounts.form == "pin" ? "" : "pin"); }
+                }
+                if Accounts.pin-state == "ativo" || Accounts.pin-state == "bloqueado": PillButton {
+                    text: @tr("Remove PIN");
+                    clicked => { Accounts.remove-pin(); }
+                }
                 PillButton {
                     text: @tr("Log out");
                     clicked => { Shell.open-app("logout"); }
+                }
+            }
+            if Accounts.pin-state == "bloqueado": FormHint {
+                error: true;
+                wrap: true;
+                text: @tr("PIN blocked after 5 wrong attempts. Sign in once with your password to use it again.");
+            }
+            // Resultado de "Remover PIN" (os formulários mostram o deles).
+            if Accounts.form == "" && Accounts.message != "": FormHint {
+                error: Accounts.message-error;
+                text: Accounts.message;
+            }
+
+            if Accounts.form == "pin": Panel {
+                height: pin-col.preferred-height;
+                pin-col := VerticalLayout {
+                    padding-top: 12px;
+                    padding-bottom: 14px;
+                    FormTitle { text: Accounts.pin-state == "sem" ? @tr("Set up PIN") : @tr("Change PIN"); }
+                    FormHint {
+                        error: false;
+                        wrap: true;
+                        text: @tr("Use the PIN to sign in and to unlock the screen. Administrator tasks still ask for the password.");
+                    }
+                    Field { label: @tr("Current password"); password: true; text <=> root.pin-pass; }
+                    Field { label: @tr("PIN (4 to 12 digits)"); password: true; text <=> root.pin-new; }
+                    Field { label: @tr("Confirm"); password: true; text <=> root.pin-confirm; }
+                    FormHint { text: root.pin-error; }
+                    FormHint {
+                        error: !Accounts.busy;
+                        text: Accounts.busy ? @tr("Please wait...") : Accounts.message-error ? Accounts.message : "";
+                    }
+                    FormButtons {
+                        busy: Accounts.busy;
+                        cancel => { Accounts.form = ""; }
+                        save => {
+                            root.pin-error = root.pin-pass == "" ? @tr("Type your current password")
+                                : root.pin-new == "" ? @tr("Type the PIN")
+                                : root.pin-new != root.pin-confirm ? @tr("The PINs do not match") : "";
+                            if (root.pin-error == "") {
+                                Accounts.set-pin(root.pin-pass, root.pin-new);
+                            }
+                        }
+                    }
                 }
             }
 

@@ -13,6 +13,7 @@
 use std::collections::HashSet;
 use std::fs;
 use std::io::{Read, Write};
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::rc::Rc;
 use std::sync::mpsc;
@@ -215,6 +216,7 @@ fn refresh(ui: &AppWindow) {
     a.set_me(mine);
     a.set_others(ModelRc::from(Rc::new(VecModel::from(others))));
     a.set_can_manage(can_manage);
+    a.set_pin_state(pin_state().into());
 }
 
 /// Resultado do `kalango-usuarios` (código de saída) em texto.
@@ -369,6 +371,68 @@ pub fn change_own_password(current: &str, new: &str) -> Result<(), String> {
     }
 }
 
+/// Ajudante do PIN de login/desbloqueio (pacote kalango-shell, configurado
+/// por `/usr/local/lib/kalango/pam-kalango.sh`).
+const PIN_HELPER: &str = "/usr/local/sbin/kalango-pin";
+
+/// Estado do PIN de quem está usando: "" (sem o recurso), "sem", "ativo" ou
+/// "bloqueado".
+pub fn pin_state() -> String {
+    if !crate::shell::session::is_native() || !Path::new(PIN_HELPER).exists() {
+        return String::new();
+    }
+    Command::new(PIN_HELPER)
+        .arg("estado")
+        .stdin(Stdio::null())
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_default()
+}
+
+/// O PIN aceito (4 a 12 dígitos), a mesma regra do `kalango-pin`.
+pub fn valid_pin(pin: &str) -> bool {
+    (4..=12).contains(&pin.len()) && pin.bytes().all(|b| b.is_ascii_digit())
+}
+
+/// Mensagem para o código de saída do `kalango-pin definir`.
+fn pin_message(code: Option<i32>) -> String {
+    match code {
+        Some(2) => tr("The PIN must have 4 to 12 digits.", "O PIN precisa ter de 4 a 12 números."),
+        Some(3) => tr("The current password is wrong.", "A senha atual está errada."),
+        _ => tr("Could not save the PIN.", "Não foi possível salvar o PIN."),
+    }
+    .to_string()
+}
+
+/// Define ou troca o próprio PIN. A senha atual é conferida pelo ajudante
+/// (unix_chkpwd), que recebe "senha\0pin\0" pela entrada padrão (nunca em
+/// argumentos, que aparecem no `ps`).
+pub fn set_own_pin(password: &str, pin: &str) -> Result<(), String> {
+    if !valid_pin(pin) {
+        return Err(pin_message(Some(2)));
+    }
+    let mut child = Command::new(PIN_HELPER)
+        .arg("definir")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|_| pin_message(None))?;
+    if let Some(mut stdin) = child.stdin.take() {
+        let _ = stdin.write_all(format!("{password}\0{pin}\0").as_bytes());
+    }
+    let status = child.wait().map_err(|_| pin_message(None))?;
+    if status.success() { Ok(()) } else { Err(pin_message(status.code())) }
+}
+
+/// Remove o próprio PIN.
+pub fn remove_own_pin() -> Result<(), String> {
+    let ok = Command::new(PIN_HELPER).arg("remover").status().is_ok_and(|s| s.success());
+    if ok { Ok(()) } else { Err(pin_message(None)) }
+}
+
 /// Roda `work` numa thread e mostra o resultado na página (e relê as contas).
 fn run(ui: &AppWindow, success: &'static str, work: impl FnOnce() -> Result<(), String> + Send + 'static) {
     let a = ui.global::<Accounts>();
@@ -419,6 +483,20 @@ pub fn install(ui: &AppWindow, mode: Mode) {
                 Err("protótipo: o passwd só roda na sessão do KalangOS".into())
             }
         });
+    });
+
+    let weak = ui.as_weak();
+    a.on_set_pin(move |password, pin| {
+        let Some(ui) = weak.upgrade() else { return };
+        let (password, pin) = (password.to_string(), pin.to_string());
+        run(&ui, tr("PIN saved. Use it to sign in and to unlock the screen.", "PIN salvo. Use para entrar e desbloquear a tela."), move || {
+            set_own_pin(&password, &pin)
+        });
+    });
+    let weak = ui.as_weak();
+    a.on_remove_pin(move || {
+        let Some(ui) = weak.upgrade() else { return };
+        run(&ui, tr("PIN removed.", "PIN removido."), remove_own_pin);
     });
 
     let weak = ui.as_weak();
@@ -520,6 +598,16 @@ mod tests {
         let taken: HashSet<String> = ["root".to_string()].into();
         assert!(!login_problem("root", &taken).is_empty());
         assert!(login_problem("ana", &taken).is_empty());
+    }
+
+    #[test]
+    fn pin_de_4_a_12_numeros() {
+        assert!(valid_pin("1234"));
+        assert!(valid_pin("123456789012"));
+        assert!(!valid_pin("123"));
+        assert!(!valid_pin("1234567890123"));
+        assert!(!valid_pin("12a4"));
+        assert!(!valid_pin("١٢٣٤")); // dígitos não ASCII
     }
 
     #[test]

@@ -327,6 +327,14 @@ fn main() {
         save(&window, &out.join("config_usuarios_novo.png"));
         a.set_form("password".into());
         save(&window, &out.join("config_usuarios_senha.png"));
+        // PIN de login/desbloqueio: formulário e PIN bloqueado.
+        a.set_pin_state("sem".into());
+        a.set_form("pin".into());
+        save(&window, &out.join("config_usuarios_pin.png"));
+        a.set_form("".into());
+        a.set_pin_state("bloqueado".into());
+        save(&window, &out.join("config_usuarios_pin_bloqueado.png"));
+        a.set_pin_state("".into());
         a.set_form("".into());
         ui.set_settings_page(2);
         window.set_size(PhysicalSize::new((WIDTH as f32 * SCALE) as u32, (HEIGHT as f32 * SCALE) as u32));

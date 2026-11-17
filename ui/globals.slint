@@ -193,6 +193,9 @@ export global Shell {
     /// Sessão aberta da conta escolhida ("" = nenhuma): a tela mostra
     /// "Voltar à sessão" no lugar da senha (trocar de usuário).
     in property <string> login-session: "";
+    /// Greeter: a conta escolhida tem PIN (`/var/lib/kalango/pin/<conta>`):
+    /// o campo vira "Senha ou PIN" (o mesmo campo aceita os dois).
+    in property <bool> login-has-pin: false;
     /// Conferindo a senha (o PAM leva ~2 s para recusar).
     in property <bool> login-busy: false;
     /// Erro da última tentativa ("Senha incorreta"); a UI limpa ao digitar.

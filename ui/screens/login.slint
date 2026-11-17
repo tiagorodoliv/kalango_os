@@ -144,7 +144,7 @@ export component LoginScreen inherits Rectangle {
             x: 32px;
             y: 186px;
             opacity: root.returning ? 0 : 1;
-            text: @tr("Password");
+            text: Shell.login-has-pin ? @tr("Password or PIN") : @tr("Password");
             color: Theme.text;
             font-family: Theme.sans;
             font-size: 13px;

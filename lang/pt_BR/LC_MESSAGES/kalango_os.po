@@ -1501,3 +1501,39 @@ msgstr "Escondido"
 #: ui/components/dock.slint
 msgid "Show apps"
 msgstr "Mostrar aplicativos"
+
+#: ui/screens/settings_pages.slint
+msgid "Set up PIN"
+msgstr "Definir PIN"
+
+#: ui/screens/settings_pages.slint
+msgid "Change PIN"
+msgstr "Alterar PIN"
+
+#: ui/screens/settings_pages.slint
+msgid "Remove PIN"
+msgstr "Remover PIN"
+
+#: ui/screens/settings_pages.slint
+msgid "PIN blocked after 5 wrong attempts. Sign in once with your password to use it again."
+msgstr "PIN bloqueado depois de 5 tentativas erradas. Entre uma vez com a senha para voltar a usá-lo."
+
+#: ui/screens/settings_pages.slint
+msgid "Use the PIN to sign in and to unlock the screen. Administrator tasks still ask for the password."
+msgstr "Use o PIN para entrar e desbloquear a tela. Tarefas de administrador continuam pedindo a senha."
+
+#: ui/screens/settings_pages.slint
+msgid "PIN (4 to 12 digits)"
+msgstr "PIN (de 4 a 12 números)"
+
+#: ui/screens/settings_pages.slint
+msgid "Type the PIN"
+msgstr "Digite o PIN"
+
+#: ui/screens/settings_pages.slint
+msgid "The PINs do not match"
+msgstr "Os PINs não conferem"
+
+#: ui/screens/login.slint
+msgid "Password or PIN"
+msgstr "Senha ou PIN"
