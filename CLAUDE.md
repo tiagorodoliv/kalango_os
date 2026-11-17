@@ -169,6 +169,24 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   margem do labwc soma a folga e a janela da dock (`dock::geometry`) sai da borda. Botão do menu de programas
   (grade de 9 pontos, id `apps-menu` → `toggle-launcher`): `Theme.dock-apps-button` 0 começo / 1 fim (padrão) /
   2 escondido (`dock-botao-apps=inicio|fim|oculto`); conta como mais um passo no comprimento da dock (Slint e Rust).
+- **Dock escondida por cima das janelas (2026-11-16), como no Ubuntu:** com "Sempre visível" desligado e placa de vídeo,
+  a área de trabalho abre `--dock-gatilho --faixa=Lx2 --dock-faixa=LxA` (app_id `kalango-dock-gatilho`, faixa
+  transparente de `dock::TRIGGER` = 2 px na borda, sempre por cima; regra no rc.xml, que o shell acrescenta se faltar:
+  `labwc::ensure_trigger_rule`). O mouse encosta → `Shell.reveal-dock` abre `--dock --faixa=… --ocultar`; essa dock
+  fecha sozinha 0,9 s depois de o mouse sair (`dock::install_autohide`, `Shell.dock-hovered` pela TouchArea em volta
+  da dock). A posição da dock fica gravada no rc.xml mesmo escondida (é onde a faixa a abre). Margem = 0.
+- **Senhas e PIN (2026-11-16):** `/usr/local/lib/kalango/pam-kalango.sh ligar` (hook `0170` + postinst do pacote; prerm
+  desfaz): desvia `/usr/share/pam-configs/unix` para `/usr/share/kalango/pam-unix.debian` (**fora** da pasta: o
+  pam-auth-update lê todo arquivo de lá) e gera o nosso sem `obscure`, com `minlen=1` (o padrão do pam_unix é 6) e
+  `try_first_pass` no Auth-Initial; Calamares com `allowWeakPasswords`/`allowWeakPasswordsDefault: true`. **PIN**
+  (Windows Hello): `/usr/local/sbin/kalango-pin` (sh + perl `crypt` SHA-512, sem dependência nova), hash em
+  `/var/lib/kalango/pin/<conta>` (0600 da pessoa, pasta 1733), linha `pam_exec ... expose_authtok ... verificar` antes do
+  `login` em greetd/gtklock/swaylock (sudo/su/pkexec não aceitam PIN); 5 erros bloqueiam até entrar com a senha
+  (`senha-ok` depois do login). Configurações → Usuários: Definir/Alterar/Remover PIN (senha conferida pelo
+  `unix_chkpwd`, que exige `\0` no fim); login mostra "Senha ou PIN" (`Shell.login-has-pin`). Testado com pamtester.
+  Testar o `passwd` alimentado por pipe: `script -qec passwd` com `sleep` entre as respostas e `LC_ALL=C`.
+- **Swap do instalador (2026-11-16):** sem `partition.conf` (Debian e pacote calamares não trazem) o Calamares fazia swap do
+  tamanho da RAM; `etc/calamares/modules/partition.conf` deixa a pequena (até 4 GB) como padrão.
 - **Calamares 3.3 (trixie) lê o shell só de `user:` → `shell:`**; a chave antiga `userShell` é ignorada (o hook
   `0140` grava as duas). Antes disso a instalação limpa criava o usuário com bash, sem o prompt do Kali.
 - **Apps abertos na dock e Alt+Tab (2026-11-14):** `src/shell/toplevels.rs` (wlr-foreign-toplevel, conexão própria numa
