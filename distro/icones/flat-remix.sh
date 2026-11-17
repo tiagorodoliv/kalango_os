@@ -14,6 +14,16 @@
 # pelo SHA-256 (versão fixa: atualizar VERSAO e SHA256 juntos).
 set -eu
 
+# Baixa $1 para $2 com o curl ou, sem ele (o KalangOS instalado só tem o
+# wget), com o wget.
+baixar_url() {
+	if command -v curl >/dev/null 2>&1; then
+		curl -fsSL -o "$2" "$1"
+	else
+		wget -q -O "$2" "$1"
+	fi
+}
+
 VERSAO=20251119
 SHA256=eba0547045a1714b47f1951d342624b70da150bdcc69d480883ab4667fe3e09b
 URL="https://github.com/daniruiz/flat-remix/archive/refs/tags/$VERSAO.tar.gz"
@@ -26,7 +36,7 @@ PACOTE="$CACHE/flat-remix-$VERSAO.tar.gz"
 mkdir -p "$CACHE" "$DESTINO"
 if ! echo "$SHA256  $PACOTE" | sha256sum -c --status 2>/dev/null; then
 	echo ">> Baixando o Flat Remix $VERSAO"
-	curl -fsSL -o "$PACOTE.part" "$URL"
+	baixar_url "$URL" "$PACOTE.part"
 	echo "$SHA256  $PACOTE.part" | sha256sum -c --status || {
 		echo "Flat Remix: SHA-256 não confere" >&2
 		rm -f "$PACOTE.part"

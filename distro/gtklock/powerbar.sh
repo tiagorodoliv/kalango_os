@@ -15,6 +15,16 @@
 # KALANGO_TROCAR_USUARIO, que o kalango-bloquear põe no idioma da sessão.
 set -eu
 
+# Baixa $1 para $2 com o curl ou, sem ele (o KalangOS instalado só tem o
+# wget), com o wget.
+baixar_url() {
+	if command -v curl >/dev/null 2>&1; then
+		curl -fsSL -o "$2" "$1"
+	else
+		wget -q -O "$2" "$1"
+	fi
+}
+
 VERSAO=4.0.0
 SHA256=7fefa48ddb9a60e58b5c72df6da2005e1dd38fdc779c5d535aac80da9b508e9e
 URL=https://github.com/jovanlanik/gtklock-powerbar-module/archive/refs/tags/v$VERSAO.tar.gz
@@ -27,7 +37,7 @@ baixar)
 	mkdir -p "$CACHE"
 	if [ ! -f "$ARQ" ] || ! echo "$SHA256  $ARQ" | sha256sum -c --quiet - 2>/dev/null; then
 		echo ">> Baixando $NOME" >&2
-		curl -fsSL -o "$ARQ.part" "$URL"
+		baixar_url "$URL" "$ARQ.part"
 		echo "$SHA256  $ARQ.part" | sha256sum -c --quiet -
 		mv "$ARQ.part" "$ARQ"
 	fi

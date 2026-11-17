@@ -14,6 +14,16 @@
 # Chamado pelo distro/build.sh. Versões fixas (commit + SHA-256).
 set -eu
 
+# Baixa $1 para $2 com o curl ou, sem ele (o KalangOS instalado só tem o
+# wget), com o wget.
+baixar_url() {
+	if command -v curl >/dev/null 2>&1; then
+		curl -fsSL -o "$2" "$1"
+	else
+		wget -q -O "$2" "$1"
+	fi
+}
+
 DESTINO=$1
 CACHE=$2
 mkdir -p "$CACHE" "$DESTINO"
@@ -28,7 +38,7 @@ baixar() {
 	# vai para o stderr.
 	if ! echo "$3  $arq" | sha256sum -c --status >/dev/null 2>&1; then
 		echo ">> Baixando $1" >&2
-		curl -fsSL -o "$arq.part" "$2"
+		baixar_url "$2" "$arq.part"
 		echo "$3  $arq.part" | sha256sum -c --status >/dev/null 2>&1 || {
 			echo "$1: SHA-256 não confere" >&2
 			rm -f "$arq.part"
