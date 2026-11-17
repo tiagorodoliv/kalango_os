@@ -373,7 +373,15 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `/www/wwwroot/kalangos.org/download`, que o `publicar.sh` do site não apaga), com o `kalango-shell 0.1.1-5`, o
   mesmo arquivo publicado no apt (a 0.1.1-6, com as correções de segurança, chega na 1ª atualização). **Cada ISO leva uma revisão nova** (`KALANGO_REVISAO=N distro/build.sh`) e o
   `.deb` de `distro/out` é publicado junto: mesma versão com outro conteúdo faz o apt da ISO tentar "voltar" de
-  versão e o `lb build` falha no fim (o `build.sh` confere isso no início). Os scripts de download usam `wget`
+  versão e o `lb build` falha no fim (o `build.sh` confere isso no início).
+  **Duas edições (2026-11-17, pedido do Tiago):** a padrão (kernel 6.12 do Debian 13, para máquinas antigas) e a
+  **hardware novo** (`KALANGO_EDICAO=novo` → `kalango-os-<versão>-hardware-novo.iso`): `lb config --backports true` +
+  `distro/edicoes/hardware-novo.pref` (pin 990 só para `linux-*`, `firmware-*`, `mesa-*` e libs do Mesa; o resto
+  fica estável), copiado para `config/archives` (montagem) e `/etc/apt/preferences.d` (o instalado segue nos kernels
+  novos). Em 2026-11: kernel 7.2, Mesa 26.1, firmware 2026-09, como o Ubuntu 26.10 (o único que funcionou num
+  notebook Core Ultra do Tiago). `KALANGO_DEB=<.deb publicado>` põe o pacote do apt na ISO sem compilar outro (ele
+  fica em `~/Documents/.local/share/kalango-repo/www/apt/pool/...`; não use um .deb de `distro/out`, que o build.sh
+  apaga antes de copiar). Os scripts de download usam `wget`
   quando não há `curl`. A VPN do servidor (`wg0`, NetworkManager) não liga sozinha: `nmcli connection up wg0`.
   Testado no HP: 0.1.0-1 → 0.1.0-2 pelo apt, com aviso de reiniciar (`/run/reboot-required`). Bugs e dicas: GitHub
   Issues (modelos em `.github/ISSUE_TEMPLATE`) + Discussions (ligar nas configurações do repositório).

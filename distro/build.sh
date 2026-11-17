@@ -11,13 +11,21 @@
 #       distro/build.sh --so-shell  (só compila o kalango-shell e monta o .deb)
 # Saída: distro/out/kalango-os-<versão>.iso (versão lida do Cargo.toml)
 #
-# Variáveis opcionais: KALANGO_MIRROR (espelho Debian, ex.: http://ftp.br.debian.org/debian/) e
-# KALANGO_REVISAO (revisão do pacote kalango-shell da ISO; use a mesma publicada no apt)
+# Variáveis opcionais:
+#   KALANGO_MIRROR   espelho Debian (ex.: http://ftp.br.debian.org/debian/)
+#   KALANGO_REVISAO  revisão do pacote kalango-shell compilado para a ISO
+#   KALANGO_DEB      usa este kalango-shell .deb (o publicado no apt) em vez de
+#                    compilar outro: a ISO e o apt ficam com o mesmo arquivo
+#   KALANGO_EDICAO   "novo" = edição para hardware novo: kernel, Mesa e firmware
+#                    do trixie-backports (processadores e placas recentes, como os
+#                    Intel Core Ultra que só funcionam com kernel 7.x); a ISO sai
+#                    como kalango-os-<versão>-hardware-novo.iso
 set -eu
 
 # Reexecuta como root mantendo o espelho e a revisão do pacote escolhidos.
 if [ "$(id -u)" -ne 0 ]; then
-	exec sudo KALANGO_MIRROR="${KALANGO_MIRROR:-}" KALANGO_REVISAO="${KALANGO_REVISAO:-1}" "$0" "$@"
+	exec sudo KALANGO_MIRROR="${KALANGO_MIRROR:-}" KALANGO_REVISAO="${KALANGO_REVISAO:-1}" \
+		KALANGO_EDICAO="${KALANGO_EDICAO:-}" KALANGO_DEB="${KALANGO_DEB:+$(realpath "$KALANGO_DEB")}" "$0" "$@"
 fi
 
 DISTRO=$(cd "$(dirname "$0")" && pwd)
@@ -27,7 +35,14 @@ OUT="$DISTRO/out"
 # Versão do sistema = versão do pacote do shell (campo version do [package] no Cargo.toml).
 VERSION=$(sed -n 's/^version *= *"\(.*\)"/\1/p' "$ROOT/Cargo.toml" | head -n 1)
 [ -n "$VERSION" ] || { echo "Não consegui ler a versão do Cargo.toml." >&2; exit 1; }
-ISO_NAME="kalango-os-$VERSION.iso"
+EDICAO="${KALANGO_EDICAO:-padrao}"
+case "$EDICAO" in
+padrao) ISO_NAME="kalango-os-$VERSION.iso" ;;
+novo) ISO_NAME="kalango-os-$VERSION-hardware-novo.iso" ;;
+*) echo "KALANGO_EDICAO inválida: $EDICAO (use padrao ou novo)" >&2; exit 1 ;;
+esac
+DEB_PRONTO="${KALANGO_DEB:-}"
+[ -z "$DEB_PRONTO" ] || [ -f "$DEB_PRONTO" ] || { echo "KALANGO_DEB não existe: $DEB_PRONTO" >&2; exit 1; }
 MIRROR="${KALANGO_MIRROR:-http://deb.debian.org/debian/}"
 SO_SHELL=0
 [ "${1:-}" = "--so-shell" ] && SO_SHELL=1
@@ -100,13 +115,15 @@ if [ ! -x "$BUILDER/usr/bin/apt-ftparchive" ]; then
 fi
 
 # --- 2. Compila o kalango-shell ---------------------------------------------
-echo ">> Compilando kalango-shell (release) no builder"
-mkdir -p "$BUILDER/work/shell"
-rsync -a --delete \
-	--include='/Cargo.toml' --include='/Cargo.lock' --include='/build.rs' \
-	--include='/src/***' --include='/ui/***' --include='/lang/***' --exclude='*' \
-	"$ROOT/" "$BUILDER/work/shell/"
-no_builder "cd /work/shell && cargo build --release --locked"
+if [ -z "$DEB_PRONTO" ]; then
+	echo ">> Compilando kalango-shell (release) no builder"
+	mkdir -p "$BUILDER/work/shell"
+	rsync -a --delete \
+		--include='/Cargo.toml' --include='/Cargo.lock' --include='/build.rs' \
+		--include='/src/***' --include='/ui/***' --include='/lang/***' --exclude='*' \
+		"$ROOT/" "$BUILDER/work/shell/"
+	no_builder "cd /work/shell && cargo build --release --locked"
+fi
 
 if [ "$SO_SHELL" -eq 1 ]; then
 	mkdir -p "$OUT"
@@ -131,8 +148,13 @@ rsync -a --delete "$DISTRO/config/" "$BUILDER/work/iso/config/"
 # cópia do .deb fica em distro/out para publicar com distro/repo/publicar.sh.
 mkdir -p "$BUILDER/work/iso/config/packages.chroot" "$OUT"
 rm -f "$BUILDER/work/iso/config/packages.chroot"/kalango-shell_*.deb "$OUT"/kalango-shell_*.deb
-sh "$DISTRO/pacotes/gerar-deb.sh" "$BUILDER/work/shell/target/release/kalango_os" \
-	"$BUILDER/work/iso/config/packages.chroot"
+if [ -n "$DEB_PRONTO" ]; then
+	echo ">> Usando o pacote pronto $DEB_PRONTO"
+	cp "$DEB_PRONTO" "$BUILDER/work/iso/config/packages.chroot/"
+else
+	sh "$DISTRO/pacotes/gerar-deb.sh" "$BUILDER/work/shell/target/release/kalango_os" \
+		"$BUILDER/work/iso/config/packages.chroot"
+fi
 cp "$BUILDER/work/iso/config/packages.chroot"/kalango-shell_*.deb "$OUT/"
 chown "$OWNER" "$OUT"/kalango-shell_*.deb
 # A mesma versão já publicada no apt com outro conteúdo (cada compilação gera um
@@ -164,7 +186,20 @@ POWERBAR=$(sh "$DISTRO/gtklock/powerbar.sh" baixar "$DISTRO/.cache")
 cp "$POWERBAR" "$BUILDER/work/powerbar.tar.gz"
 cp "$DISTRO/gtklock/powerbar.sh" "$BUILDER/work/powerbar.sh"
 no_builder "sh /work/powerbar.sh compilar /work/powerbar.tar.gz /work/iso/config/includes.chroot/usr/lib/x86_64-linux-gnu/gtklock"
-no_builder "cd /work/iso && lb config"
+# Edição para hardware novo: kernel, Mesa e firmware do trixie-backports. O
+# live-build só acrescenta o repositório; a prioridade (só para esses pacotes,
+# o resto do sistema continua no Debian estável) vale na montagem da ISO
+# (config/archives) e no sistema instalado (preferences.d, para continuar
+# recebendo os kernels novos).
+LB_EXTRA=""
+if [ "$EDICAO" = novo ]; then
+	LB_EXTRA="--backports true"
+	PREF="$DISTRO/edicoes/hardware-novo.pref"
+	mkdir -p "$BUILDER/work/iso/config/archives" "$BUILDER/work/iso/config/includes.chroot/etc/apt/preferences.d"
+	cp "$PREF" "$BUILDER/work/iso/config/archives/kalango-hardware-novo.pref.chroot"
+	cp "$PREF" "$BUILDER/work/iso/config/includes.chroot/etc/apt/preferences.d/kalango-hardware-novo.pref"
+fi
+no_builder "cd /work/iso && lb config $LB_EXTRA"
 # O live-build às vezes falha ao desmontar o /proc do chroot ("target is busy"): um processo
 # do apt ainda está saindo. Ele retoma de onde parou, então basta rodar de novo. As
 # montagens ficam como estão, porque o lb confia nos próprios marcadores para retomar.
