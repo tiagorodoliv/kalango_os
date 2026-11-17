@@ -46,6 +46,12 @@ pastas)
 		*) erro "só pastas dentro de $casa" ;;
 		esac
 		[ -d "$real" ] || erro "não é pasta: $real"
+		# O caminho vai para o smb.conf: uma quebra de linha (ou outro
+		# caractere de controle) no nome de uma pasta injetaria configuração,
+		# como uma seção nova apontando para /.
+		case "$real" in
+		*[[:cntrl:]]*) erro "nome de pasta com caractere inválido" ;;
+		esac
 		# Nome do compartilhamento = nome da pasta, só com caracteres seguros.
 		nome=$(basename "$real" | tr -cd '[:alnum:] ._-' | cut -c1-40)
 		[ -n "$nome" ] || nome=Pasta
