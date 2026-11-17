@@ -31,5 +31,17 @@ A ISO (`distro/build.sh`) instala o mesmo pacote e deixa uma cópia do `.deb` em
 `distro/out/`: publique-a junto com cada ISO, para que o repositório nunca tenha
 versão mais velha que a da ISO.
 
-O pacote leva o binário e os scripts de `/usr/local/{bin,sbin,lib/kalango}` e o
-hook `kalango-radios`; os arquivos de `/etc` continuam só na ISO.
+O pacote leva o binário e os scripts de `/usr/local/{bin,sbin,lib/kalango}`, o
+hook `kalango-radios` e o terminal (temas do foot em `/usr/share/kalango/terminal`
+e o `.zshrc` no estilo do Kali; o postinst passa as contas do bash para o zsh uma
+única vez por máquina). Os demais arquivos de `/etc` continuam só na ISO.
+
+## Sem o desktop Ubuntu (compilação cruzada)
+
+Qualquer Debian 13 serve para compilar o pacote, até um arm64 (VM no Mac): com
+`dpkg --add-architecture amd64`, `crossbuild-essential-amd64` e as bibliotecas
+`libfontconfig-dev:amd64 libfreetype-dev:amd64 libxkbcommon-dev:amd64
+libwayland-dev:amd64`, rode `cargo build --release --locked --target
+x86_64-unknown-linux-gnu` com `CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc`,
+`PKG_CONFIG_ALLOW_CROSS=1` e `PKG_CONFIG_LIBDIR=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig`.
+O binário sai contra a glibc do trixie, como o do `build.sh`.

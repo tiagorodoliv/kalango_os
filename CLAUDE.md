@@ -43,8 +43,9 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     barra, dock sempre visível, tamanho (44/52/60 px) e apps da dock (`Theme.dock-apps`, ids por vírgula;
     `Apps.dock` = `Shell.dock-entries`). A área de trabalho ajusta a margem do labwc gerando
     `~/.config/labwc/rc.xml` (cópia do de /etc com a marca "Gerado pelo kalango-shell" e o `bottom` trocado;
-    sem a marca, nunca sobrescreve) + `labwc --reconfigure` (`src/shell/labwc.rs`); janelas já maximizadas só se
-    ajustam ao maximizar de novo. **O labwc só enxerga `~/.config/labwc` se a pasta já existir quando ele inicia**
+    sem a marca, nunca sobrescreve) + `labwc --reconfigure` (`src/shell/labwc.rs`). O labwc só recalcula uma janela
+    maximizada ao maximizá-la: quando a margem muda (e na 1ª vez de cada área de trabalho) o shell remaximiza as
+    janelas maximizadas 0,5 s depois (`labwc::refit_maximized_later` → `toplevels::Tracker::refit_maximized`). **O labwc só enxerga `~/.config/labwc` se a pasta já existir quando ele inicia**
     (por isso o `kalango-session` faz `mkdir -p` antes do `exec labwc`). A dock vai embaixo/esquerda/direita
     (`Theme.dock-position`) e como dock flutuante ou barra de ponta a ponta (`Theme.dock-style`); as margens
     viram `bottom`/`left`/`right` no `<margin>`. Papel de parede: `Theme.wallpaper` (0 = circuitos, padrão
@@ -275,7 +276,10 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   partições são de sistema; o gvfs 1.57 lista todo drive e ignora `UDISKS_IGNORE` e `ID_SEAT`): o acesso é "Sistema de
   arquivos".
 - **Atualizações OTA (2026-11-15):** o shell e os scripts de `/usr/local/{bin,sbin,lib/kalango}` + `kalango-radios` vão no
-  pacote **`kalango-shell`** (`distro/pacotes/gerar-deb.sh`, versão `<Cargo.toml>-<KALANGO_REVISAO>`), instalado na ISO por
+  pacote **`kalango-shell`** (`distro/pacotes/gerar-deb.sh`, versão `<Cargo.toml>-<KALANGO_REVISAO>`; desde a 0.1.1 leva
+  também os temas do terminal e `/usr/share/kalango/zshrc`: o postinst põe o `.zshrc` no `/etc/skel`, deixa o zsh padrão
+  para contas novas e, uma vez por máquina (`/var/lib/kalango/terminal-zsh`), passa do bash para o zsh quem já existe;
+  depende de zsh e plugins), instalado na ISO por
   `config/packages.chroot` (cópia em `distro/out/`). Repositório apt assinado em `https://kalangos.easysmartcontroll.com/apt`
   (suite trixie, main; `etc/apt/sources.list.d/kalango.sources`, chave `0B89DC19D08F8A6B` em
   `usr/share/keyrings/kalango-archive-keyring.gpg`). **A chave privada fica só na máquina do Tiago**
