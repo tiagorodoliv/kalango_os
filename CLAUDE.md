@@ -167,6 +167,26 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (`Dock.shadow: false`): a janela tem o tamanho exato e a sombra cortada aparecia nos cantos ("sobra"). Sem placa de vídeo ou com a
   dock escondida, ela continua desenhada na área de trabalho (atrás das janelas). Com placa de vídeo, todo o shell
   usa OpenGL (`renderer_for`: a Aparência travava no renderer de software).
+- **Teclas de mídia (2026-11-18):** `XF86Audio*`, `XF86MonBrightness*`, Calculadora, Explorer, WWW, Search e Tools
+  no rc.xml → `/usr/local/bin/kalango-midia` (wpctl, brightnessctl, playerctl; valor no centro da barra pelo
+  `kalango-aviso`). Volume/brilho/player com `allowWhenLocked`. ISO antiga recebe pelo rc.xml do usuário
+  (`labwc::ensure_capture`, bloco `MEDIA_KEYS`). Pacote depende de playerctl e brightnessctl.
+- **Tela cheia sem dock (2026-11-18):** `toplevels` lê o estado 3 (tela cheia); app em foco em tela cheia →
+  `Shell.app-fullscreen` → `dock::install` fecha a dock em janela própria/faixa (sem mexer no rc.xml) e reabre depois.
+- **Ícones em pixel inteiro:** `AppIcon` arredonda tamanho e posição (frações deformavam a borda dos ícones).
+- **Firewall ligado por padrão (2026-11-18, pedido do Tiago):** ufw (dependência do pacote), bloqueia o que chega e
+  libera o que sai; sempre liberado mDNS 5353/udp. `/usr/local/sbin/kalango-firewall iniciar|ligar|desligar|permitir
+  PORTA/PROTO NOME|remover PORTA/PROTO` (pkexec `org.kalango.firewall`), estado em `/etc/kalango/firewall.conf` (todos
+  leem). `kalango-firewall.service` roda `iniciar` uma vez por máquina (marca `/var/lib/kalango/firewall-iniciado`):
+  antes de ligar, libera o que já escuta fora do loopback (`ss -ltnp`; SSH do HP continua). Compartilhar libera/fecha
+  as portas do Samba e wsdd2. A área de trabalho (`src/shell/firewall.rs`) vê porta TCP nova em escuta (< 32768, duas
+  voltas de 5 s) bloqueada → zenity "Permitir / Manter bloqueado" (`~/.config/kalango/firewall-bloqueados`).
+  Configurações → Compartilhamento → FIREWALL (`src/settings/firewall.rs`): liga/desliga e remove portas.
+- **Ícone "Instalar KalangOS" na área de trabalho da ISO live (2026-11-18):** `Shell.live`
+  (`/run/live/medium`), `ui/components/install_icon.slint`, canto de cima; além do item nos recentes do menu.
+- **Menu de apps como o Launchpad (2026-11-18):** uma lista só com rolagem (FIXADOS, RECENTES, TODOS OS APPS =
+  `Apps.others`, os instalados sem os fixados e os repetidos); sem o link "Todos os apps". Ícones do menu e da dock
+  pelo mesmo `ui/components/app_icon.slint` (`AppIcon`: estilo e cantos da dock).
 - **Dock como no Ubuntu (2026-11-16):** "Solta da borda" (`Theme.dock-detached`, `dock-solta=`; só no estilo
   dock) afasta a dock `Theme.dock-gap` = 8 px da borda (`appearance::DOCK_GAP`), com os 4 cantos arredondados; a
   margem do labwc soma a folga e a janela da dock (`dock::geometry`) sai da borda. Botão do menu de programas
@@ -248,7 +268,7 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `user` live não vai para o instalado), capturas do site. **Pendente:** senha do Wi-Fi/VPN e chave privada do WireGuard
   vão como argumento (`ps` de outra conta vê por ~1 s; testar a troca por stdin/arquivo na VM com hwsim); chave do apt
   sem senha (`gpg --passwd`); `gitleaks` no histórico antes de abrir o GitHub; nota de privacidade (logs do nginx);
-  decidir firewall padrão; aviso de senha de 1 caractere. A verificação de integridade pega mudança fora do apt, não
+  aviso de senha de 1 caractere. A verificação de integridade pega mudança fora do apt, não
   um invasor com root (ele também troca o md5sums). Regra: texto vindo da pessoa que vira arquivo de config de root
   passa por validação de caracteres de controle; arquivo gravado por root em pasta gravável por outros nunca segue link.
 - **Swap (2026-11-17, pedido do Tiago: sem swap ou a pessoa escolhe o tamanho):** instalador sem partição swap

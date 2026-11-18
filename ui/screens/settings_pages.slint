@@ -2113,6 +2113,43 @@ export component SharingPage inherits Rectangle {
                 text: @tr("Sharing folders works in the KalangOS session, with Samba installed.");
             }
 
+            // --- Firewall (ufw, ligado por padrão) ---
+            if Device.firewall-available: SectionLabel { text: @tr("FIREWALL"); }
+            if Device.firewall-available: Panel {
+                height: (1 + Device.firewall-rules.length) * 67px;
+                VerticalLayout {
+                    Row {
+                        title: @tr("Firewall");
+                        subtitle: Device.firewall-busy ? @tr("Please wait...")
+                            : Device.firewall-enabled ? @tr("On: blocks connections, except the ones below")
+                            : @tr("Off: any computer can try to connect");
+                        divider: false;
+                        Toggle {
+                            x: parent.width - self.width - 20px;
+                            checked <=> Device.firewall-enabled;
+                            toggled(on) => { Device.set-firewall(on); }
+                        }
+                    }
+                    for rule[i] in Device.firewall-rules: Row {
+                        title: rule.name != "" ? rule.name : rule.port;
+                        subtitle: @tr("Allowed · port {}", rule.port);
+                        PillButton {
+                            x: parent.width - self.width - 20px;
+                            text: @tr("Remove");
+                            enabled: !Device.firewall-busy;
+                            clicked => { Device.remove-firewall-rule(i); }
+                        }
+                    }
+                }
+            }
+            if Device.firewall-message != "": Text {
+                text: Device.firewall-message;
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+                wrap: word-wrap;
+            }
+
             if Device.sharing-available: SectionLabel { text: @tr("FILE SHARING"); }
             if Device.sharing-available: Panel {
                 height: 3 * 67px;
@@ -3045,7 +3082,7 @@ export component TaskbarPage inherits Rectangle {
 
             SectionLabel { text: "DOCK"; }
             Panel {
-                height: 10 * 67px;
+                height: 11 * 67px;
                 VerticalLayout {
                     Row {
                         title: @tr("Position");
@@ -3090,12 +3127,27 @@ export component TaskbarPage inherits Rectangle {
                     Row {
                         title: @tr("Icons");
                         subtitle: Theme.dock-icon-style == 1 ? @tr("Raised tile with shadow; rises under the mouse")
-                            : Theme.dock-icon-style == 2 ? @tr("Tile in each app's color") : @tr("Just the icon");
+                            : Theme.dock-icon-style == 2 ? @tr("Tile in each app's color")
+                            : Theme.dock-icon-style >= 3 ? @tr("Mandacaru style chosen below") : @tr("Just the icon");
                         Segmented {
                             x: parent.width - self.width - 20px;
                             options: [@tr("Flat"), "3D", @tr("Tiles")];
-                            selected: Theme.dock-icon-style;
+                            selected: Theme.dock-icon-style < 3 ? Theme.dock-icon-style : -1;
                             chosen(i) => { Theme.dock-icon-style = i; }
+                        }
+                    }
+                    // Estilos do tema da versão 0.1 Mandacaru (sertão).
+                    Row {
+                        title: @tr("Mandacaru icons");
+                        subtitle: Theme.dock-icon-style == 3 ? @tr("Clay tile, icon in cream")
+                            : Theme.dock-icon-style == 4 ? @tr("Each app in a color of the caatinga")
+                            : Theme.dock-icon-style == 5 ? @tr("Dark tile, icon in amber moonlight")
+                            : @tr("Styles inspired by the sertão");
+                        Segmented {
+                            x: parent.width - self.width - 20px;
+                            options: [@tr("Clay"), @tr("Caatinga"), @tr("Night")];
+                            selected: Theme.dock-icon-style - 3;
+                            chosen(i) => { Theme.dock-icon-style = 3 + i; }
                         }
                     }
                     Row {

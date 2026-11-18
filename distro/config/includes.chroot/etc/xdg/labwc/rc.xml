@@ -144,6 +144,26 @@
     <keybind key="C-S-A-r">
       <action name="Execute" command="kalango-shell --captura=video" />
     </keybind>
+    <!-- Teclas de mídia (kalango-midia): volume, brilho e player, com o valor no
+         centro da barra; calculadora, arquivos, navegador e busca. -->
+    <keybind key="XF86AudioRaiseVolume" allowWhenLocked="yes"><action name="Execute" command="kalango-midia volume-mais" /></keybind>
+    <keybind key="XF86AudioLowerVolume" allowWhenLocked="yes"><action name="Execute" command="kalango-midia volume-menos" /></keybind>
+    <keybind key="XF86AudioMute" allowWhenLocked="yes"><action name="Execute" command="kalango-midia mudo" /></keybind>
+    <keybind key="XF86AudioMicMute" allowWhenLocked="yes"><action name="Execute" command="kalango-midia microfone" /></keybind>
+    <keybind key="XF86MonBrightnessUp" allowWhenLocked="yes"><action name="Execute" command="kalango-midia brilho-mais" /></keybind>
+    <keybind key="XF86MonBrightnessDown" allowWhenLocked="yes"><action name="Execute" command="kalango-midia brilho-menos" /></keybind>
+    <keybind key="XF86AudioPlay" allowWhenLocked="yes"><action name="Execute" command="kalango-midia tocar" /></keybind>
+    <keybind key="XF86AudioPause" allowWhenLocked="yes"><action name="Execute" command="kalango-midia tocar" /></keybind>
+    <keybind key="XF86AudioNext" allowWhenLocked="yes"><action name="Execute" command="kalango-midia proxima" /></keybind>
+    <keybind key="XF86AudioPrev" allowWhenLocked="yes"><action name="Execute" command="kalango-midia anterior" /></keybind>
+    <keybind key="XF86AudioStop" allowWhenLocked="yes"><action name="Execute" command="kalango-midia parar" /></keybind>
+    <keybind key="XF86Calculator"><action name="Execute" command="kalango-shell --calculadora" /></keybind>
+    <keybind key="XF86Explorer"><action name="Execute" command="thunar" /></keybind>
+    <keybind key="XF86MyComputer"><action name="Execute" command="thunar" /></keybind>
+    <keybind key="XF86HomePage"><action name="Execute" command="x-www-browser" /></keybind>
+    <keybind key="XF86WWW"><action name="Execute" command="x-www-browser" /></keybind>
+    <keybind key="XF86Search"><action name="Execute" command="kalango-shell --launcher" /></keybind>
+    <keybind key="XF86Tools"><action name="Execute" command="kalango-shell --settings" /></keybind>
   </keyboard>
 
   <windowRules>

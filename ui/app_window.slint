@@ -27,6 +27,7 @@ import { Backdrop, BackdropVariant } from "components/backdrop.slint";
 import { TopBar } from "components/top_bar.slint";
 import { Dock } from "components/dock.slint";
 import { DesktopMenuArea } from "components/desktop_menu.slint";
+import { InstallIcon } from "components/install_icon.slint";
 import { WindowFrame } from "components/window_frame.slint";
 import { CalendarView, Calendar, CalendarDay } from "screens/calendar.slint";
 import { CaptureView, Capture } from "screens/capture.slint";
@@ -314,6 +315,14 @@ export component AppWindow inherits Window {
                 z: self.open ? 10 : 0;
                 settings(page) => { root.open-settings(page); }
                 launch(id) => { root.launch(id); }
+            }
+
+            // ISO live: "Instalar KalangOS" no canto de cima (à direita da
+            // dock, quando ela fica na esquerda).
+            if Shell.live: InstallIcon {
+                x: (Theme.dock-position == 1 ? Theme.dock-thickness + Theme.dock-gap : 0px) + 24px;
+                y: 35px + 24px;
+                clicked => { root.launch("installer"); }
             }
 
             if !Shell.native && root.files-open && !root.launcher-open: FilesWindow {

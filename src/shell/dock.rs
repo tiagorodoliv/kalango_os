@@ -192,6 +192,24 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             }
         });
 
+        // App em tela cheia (vídeo do navegador, jogo): a dock é sempre por
+        // cima e ficaria na frente dele. Fecha a dock (ou a faixa da dock
+        // escondida) sem mexer no rc.xml; ao sair da tela cheia, `wanted`
+        // volta a ser diferente de `current` e ela abre de novo.
+        if shell.get_app_fullscreen() {
+            if let Some(mut c) = child.take() {
+                let _ = c.kill();
+                let _ = c.wait();
+            }
+            for mut c in retired.drain(..) {
+                let _ = c.kill();
+                let _ = c.wait();
+            }
+            current = None;
+            shell.set_dock_external(true);
+            return;
+        }
+
         // A janela caiu: abre de novo (até 3 vezes; depois desiste e a dock
         // volta para a área de trabalho).
         if let Some(c) = child.as_mut() {

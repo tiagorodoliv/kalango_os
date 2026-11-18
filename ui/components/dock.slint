@@ -6,6 +6,7 @@
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { Apps, AppEntry, Shell } from "../globals.slint";
+import { AppIcon } from "app_icon.slint";
 
 /// Um item da dock (tile quadrado com ícone colorido; o lado vem de
 /// `Theme.dock-item`, ajustável em Configurações → Barra de tarefas).
@@ -22,87 +23,17 @@ component DockItem inherits Rectangle {
     /// Botão direito (menu do app).
     callback menu();
 
-    /// Ícone colorido do tema de ícones (sessão real): no estilo plano,
-    /// desenhado grande e sem colorir, sem o ladrilho de fundo (só aparece ao
-    /// passar o mouse).
-    property <bool> own-icon: root.app.tint == transparent;
-    /// Estilos de `Theme.dock-icon-style`.
-    property <bool> raised: Theme.dock-icon-style == 1;
-    property <bool> tiled: Theme.dock-icon-style == 2;
-    /// Cor do app (a pasta de Arquivos segue o destaque).
-    property <color> app-color: root.app.id == "files" ? Theme.accent : root.app.tint;
-    /// 3D: o ícone sobe um pouco com o mouse em cima.
-    property <length> lift: root.raised && touch.has-hover ? -3px : 0;
-    /// Ícone sem a transparência escolhida quando o mouse está em cima.
-    property <float> icon-opacity: touch.has-hover ? 1 : 1 - Theme.dock-icon-transparency;
-    /// Lado do ícone: os coloridos ficam grandes no estilo plano e menores
-    /// dentro do ladrilho (3D e ladrilho).
-    property <length> icon-size: !root.own-icon ? Theme.dock-icon
-        : root.raised || root.tiled ? Theme.dock-item * 0.66 : Theme.dock-item * 0.82;
-
     width: Theme.dock-item;
     height: Theme.dock-item;
 
-    // O ladrilho é desenhado por filhos (e não pelo próprio Rectangle) para a
-    // sombra do 3D ficar atrás dele. Sem drop-shadow nem gradiente: no
-    // renderer de software os dois saem quadrados (ignoram o arredondamento).
-    if root.raised: Rectangle {
-        y: 3px;
-        border-radius: Theme.dock-item-radius;
-        background: #00000070;
-    }
-    Rectangle {
-        border-radius: Theme.dock-item-radius;
-        background: root.raised
-            ? (touch.has-hover ? Theme.tile-hover : Theme.tile).brighter(0.35)
-            : root.tiled
-                ? (root.own-icon ? (touch.has-hover ? Theme.tile-hover : Theme.tile) : root.app-color.with-alpha(touch.has-hover ? 0.3 : 0.18))
-                : touch.has-hover ? Theme.tile-hover : root.own-icon ? transparent : Theme.tile;
-        border-width: root.raised || root.tiled ? 1px : 0;
-        border-color: root.tiled && !root.own-icon ? root.app-color.with-alpha(0.45) : root.raised ? #ffffff1a : Theme.border;
-        animate background { duration: Theme.anim; }
-    }
-    // 3D: reflexo na parte de cima do ladrilho (recuado das bordas, para
-    // caber em qualquer canto: reto, arredondado ou círculo).
-    if root.raised: Rectangle {
-        x: parent.width * 0.12;
-        y: parent.height * 0.05;
-        width: parent.width * 0.76;
-        height: parent.height * 0.42;
-        border-radius: min(self.height / 2, Theme.dock-item-radius);
-        background: #ffffff10;
-    }
-
-    // 3D: sombra do próprio ícone, um pouco abaixo dele.
-    if root.raised && root.app.letter == "": Image {
-        source: root.app.icon;
-        colorize: #000000;
-        opacity: 0.4 * root.icon-opacity;
-        width: root.icon-size;
-        height: root.icon-size;
-        x: (parent.width - self.width) / 2 + 1px;
-        y: (parent.height - self.height) / 2 + 3px + root.lift / 2;
-    }
-    if root.app.letter == "": Image {
-        source: root.app.icon;
-        colorize: root.own-icon ? transparent : root.app-color;
-        width: root.icon-size;
-        height: root.icon-size;
-        x: (parent.width - self.width) / 2;
-        y: (parent.height - self.height) / 2 + root.lift;
-        opacity: root.icon-opacity;
-        animate y { duration: Theme.anim; }
-    }
-    // App sem ícone: a inicial na cor do app.
-    if root.app.letter != "": Text {
-        text: root.app.letter;
-        color: root.app.tint;
-        font-family: Theme.sans;
-        font-size: Theme.dock-item * 0.45;
-        font-weight: 600;
-        y: (parent.height - self.height) / 2 + root.lift;
-        opacity: root.icon-opacity;
-        animate y { duration: Theme.anim; }
+    // Ladrilho e ícone no estilo escolhido (o mesmo do menu de apps); sem a
+    // transparência escolhida quando o mouse está em cima.
+    AppIcon {
+        app: root.app;
+        hovered: touch.has-hover;
+        radius: Theme.dock-item-radius;
+        glyph: Theme.dock-icon;
+        icon-opacity: touch.has-hover ? 1 : 1 - Theme.dock-icon-transparency;
     }
 
     // Indicador: traço quando ativo, ponto quando só aberto.

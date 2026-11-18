@@ -31,6 +31,8 @@ pub struct Window {
     pub minimized: bool,
     /// Maximizada (ocupa a área livre entre as margens da barra e da dock).
     pub maximized: bool,
+    /// Em tela cheia (vídeo, jogo, F11): a dock sai da frente.
+    pub fullscreen: bool,
 }
 
 /// Estados de uma janela no protocolo.
@@ -39,6 +41,7 @@ struct States {
     active: bool,
     minimized: bool,
     maximized: bool,
+    fullscreen: bool,
 }
 
 /// Estados do protocolo (array de u32 em bytes nativos): 0 = maximizada,
@@ -50,7 +53,12 @@ fn parse_states(bytes: &[u8]) -> States {
         .iter()
         .map(|c| u32::from_ne_bytes(*c))
         .collect();
-    States { active: states.contains(&2), minimized: states.contains(&1), maximized: states.contains(&0) }
+    States {
+        active: states.contains(&2),
+        minimized: states.contains(&1),
+        maximized: states.contains(&0),
+        fullscreen: states.contains(&3),
+    }
 }
 
 struct Entry {
@@ -155,6 +163,7 @@ impl Dispatch<ZwlrForeignToplevelHandleV1, ()> for State {
                             e.info.active = st.active;
                             e.info.minimized = st.minimized;
                             e.info.maximized = st.maximized;
+                            e.info.fullscreen = st.fullscreen;
                         }
                         Event::Done => publish = true,
                         _ => {}
@@ -240,7 +249,9 @@ mod tests {
     #[test]
     fn estados_do_protocolo() {
         let bytes: Vec<u8> = [0u32, 2].iter().flat_map(|v| v.to_ne_bytes()).collect();
-        assert_eq!(parse_states(&bytes), States { active: true, minimized: false, maximized: true });
+        assert_eq!(parse_states(&bytes), States { active: true, maximized: true, ..States::default() });
+        let bytes: Vec<u8> = [2u32, 3].iter().flat_map(|v| v.to_ne_bytes()).collect();
+        assert_eq!(parse_states(&bytes), States { active: true, fullscreen: true, ..States::default() });
         let bytes: Vec<u8> = [1u32].iter().flat_map(|v| v.to_ne_bytes()).collect();
         assert_eq!(parse_states(&bytes), States { minimized: true, ..States::default() });
         assert_eq!(parse_states(&[]), States::default());

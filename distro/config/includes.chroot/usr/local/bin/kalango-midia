@@ -1,0 +1,67 @@
+#!/bin/sh
+# Teclas de mídia do KalangOS (volume, brilho, player), ligadas no rc.xml do
+# labwc. Cada uma mostra o resultado no centro da barra (arquivo
+# $XDG_RUNTIME_DIR/kalango-aviso, que a área de trabalho lê a cada segundo).
+#
+#   kalango-midia volume-mais | volume-menos | mudo | microfone
+#   kalango-midia brilho-mais | brilho-menos
+#   kalango-midia tocar | proxima | anterior | parar
+set -u
+
+SAIDA=@DEFAULT_AUDIO_SINK@
+ENTRADA=@DEFAULT_AUDIO_SOURCE@
+
+# Português se a sessão estiver em português.
+case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in pt*) PT=1 ;; *) PT= ;; esac
+t() { if [ -n "$PT" ]; then echo "$2"; else echo "$1"; fi; }
+
+avisar() {
+	[ -n "${XDG_RUNTIME_DIR:-}" ] && printf '%s' "$1" >"$XDG_RUNTIME_DIR/kalango-aviso"
+}
+
+# "Volume: 0.45 [MUTED]" → "45%" ou "mudo".
+volume() {
+	v=$(wpctl get-volume "$1" 2>/dev/null) || return
+	case "$v" in *MUTED*) t "muted" "mudo"; return ;; esac
+	echo "$v" | awk '{ printf "%d%%", $2 * 100 + 0.5 }'
+}
+
+brilho() {
+	brightnessctl -m 2>/dev/null | cut -d, -f4
+}
+
+case "${1:-}" in
+volume-mais)
+	wpctl set-mute "$SAIDA" 0
+	wpctl set-volume -l 1.0 "$SAIDA" 5%+
+	avisar "$(t Volume Volume) $(volume "$SAIDA")"
+	;;
+volume-menos)
+	wpctl set-volume "$SAIDA" 5%-
+	avisar "$(t Volume Volume) $(volume "$SAIDA")"
+	;;
+mudo)
+	wpctl set-mute "$SAIDA" toggle
+	avisar "$(t Volume Volume) $(volume "$SAIDA")"
+	;;
+microfone)
+	wpctl set-mute "$ENTRADA" toggle
+	avisar "$(t Microphone Microfone) $(volume "$ENTRADA")"
+	;;
+brilho-mais)
+	brightnessctl -q set 5%+ && avisar "$(t Brightness Brilho) $(brilho)"
+	;;
+brilho-menos)
+	# Nunca apaga a tela de todo (mínimo de 1%).
+	brightnessctl -q -n1 set 5%- && avisar "$(t Brightness Brilho) $(brilho)"
+	;;
+tocar) playerctl play-pause ;;
+proxima) playerctl next ;;
+anterior) playerctl previous ;;
+parar) playerctl stop ;;
+*)
+	echo "uso: kalango-midia volume-mais|volume-menos|mudo|microfone|brilho-mais|brilho-menos|tocar|proxima|anterior|parar" >&2
+	exit 1
+	;;
+esac
+exit 0

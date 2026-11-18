@@ -79,6 +79,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     displays::install(&ui, mode);
     region::install(&ui, mode);
     sharing::install(&ui, mode);
+    crate::settings::firewall::install(&ui, mode);
     terminal::install(&ui, mode);
     usb::install(&ui, mode);
     #[cfg(target_os = "linux")]
@@ -103,6 +104,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     if mode == Mode::Desktop && native {
         shell::thunar::ensure_wallpaper_action();
         shell::integrity::start();
+        shell::firewall::start();
         shell::update::start();
     }
     users::install(&ui, mode);

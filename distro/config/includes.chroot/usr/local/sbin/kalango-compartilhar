@@ -3,8 +3,9 @@
 # Roda como root pelo pkexec (política org.kalango.compartilhar): o shell
 # nunca mexe no Samba diretamente.
 #
-#   kalango-compartilhar ligar                 liga o Samba e o wsdd2
-#   kalango-compartilhar desligar              desliga os dois
+#   kalango-compartilhar ligar                 liga o Samba e o wsdd2 (e libera
+#                                              as portas no firewall)
+#   kalango-compartilhar desligar              desliga os dois (e fecha as portas)
 #   kalango-compartilhar pastas SEM_SENHA PASTA...
 #       grava /etc/samba/kalango.conf com as pastas (do usuário que chamou)
 #       e recarrega o Samba. SEM_SENHA=1: visitantes entram sem senha e só
@@ -20,12 +21,23 @@ erro() {
 	exit 1
 }
 
+# Portas do Samba (NetBIOS e SMB) e do wsdd2 (aparecer na Rede do Windows):
+# liberadas no firewall enquanto o compartilhamento está ligado.
+PORTAS="137/udp 138/udp 139/tcp 445/tcp 3702/udp 5357/tcp"
+FIREWALL=/usr/local/sbin/kalango-firewall
+
 case "${1:-}" in
 ligar)
 	systemctl enable --now smbd.service wsdd2.service
+	if [ -x "$FIREWALL" ]; then
+		for p in $PORTAS; do "$FIREWALL" permitir "$p" Compartilhamento || true; done
+	fi
 	;;
 desligar)
 	systemctl disable --now smbd.service wsdd2.service
+	if [ -x "$FIREWALL" ]; then
+		for p in $PORTAS; do "$FIREWALL" remover "$p" || true; done
+	fi
 	;;
 pastas)
 	[ -n "${PKEXEC_UID:-}" ] || erro "use pelo pkexec"

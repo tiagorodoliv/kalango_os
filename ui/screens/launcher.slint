@@ -1,14 +1,16 @@
-// Menu de apps (launcher): card central com busca, apps fixados, recentes
-// e rodapé do usuário. Abre com Super (⌃ Control no macOS) ou pela pílula.
+// Menu de apps (launcher): card central com busca, uma lista com rolagem
+// (fixados, recentes e todos os apps, como o Launchpad do macOS) e rodapé do
+// usuário. Abre com Super (⌃ Control no macOS) ou pela pílula.
 
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
 import { Apps, AppEntry, Shell } from "../globals.slint";
-import { SectionLabel, Avatar, IconButton, LinkText } from "../components/widgets.slint";
+import { SectionLabel, Avatar, IconButton } from "../components/widgets.slint";
+import { AppIcon } from "../components/app_icon.slint";
 
-/// Tile de app da grade (108×101). Apps do catálogo usam os ícones de traço
-/// na cor do app; apps do sistema ("Todos os apps") trazem o ícone colorido
-/// próprio (`tint` transparente) ou, sem ícone, a inicial.
+/// Tile de app da grade (108×101): ícone no estilo da dock (`AppIcon`:
+/// plano, 3D ou ladrilho, com os mesmos cantos) e o nome embaixo, como no
+/// Launchpad do macOS.
 component AppTile inherits Rectangle {
     in property <AppEntry> app;
     callback clicked();
@@ -18,39 +20,22 @@ component AppTile inherits Rectangle {
     width: 108px;
     height: 101px;
     border-radius: 10px;
-    background: touch.has-hover ? Theme.tile-hover : Theme.tile;
-    border-width: 1px;
-    border-color: Theme.border;
+    background: touch.has-hover ? Theme.tile-hover.with-alpha(0.5) : transparent;
     animate background { duration: Theme.anim; }
 
-    /// Ícone colorido do próprio app (app do sistema).
-    property <bool> own-icon: root.app.tint == transparent;
-
-    // Quadradinho do ícone: o Terminal tem fundo preto, os demais a cor do app.
-    Rectangle {
-        y: 15px;
-        width: 48px;
-        height: 48px;
-        border-radius: 10px;
-        background: root.own-icon ? transparent
-            : root.app.id == "terminal" ? #05080b : root.app.tint.with-alpha(0.16);
-        if root.app.letter == "": Image {
-            source: root.app.icon;
-            colorize: root.own-icon ? transparent : root.app.id == "files" ? Theme.accent : root.app.tint;
-            width: root.own-icon ? 44px : 22px;
-            height: root.own-icon ? 44px : 22px;
-        }
-        if root.app.letter != "": Text {
-            text: root.app.letter;
-            color: root.app.tint;
-            font-family: Theme.sans;
-            font-size: 22px;
-            font-weight: 600;
-        }
+    AppIcon {
+        y: 9px;
+        width: 56px;
+        height: 56px;
+        app: root.app;
+        hovered: touch.has-hover;
+        // Mesmos cantos da dock (retos, arredondados ou pílula = círculo).
+        radius: Theme.dock-corners == 0 ? 6px : Theme.dock-corners == 2 ? self.width / 2 : 12px;
+        glyph: 26px;
     }
 
     Text {
-        y: 73px;
+        y: 74px;
         width: parent.width - 12px;
         horizontal-alignment: center;
         overflow: elide;
@@ -80,30 +65,49 @@ export component Launcher inherits Rectangle {
 
     /// Texto digitado na busca.
     property <string> query: search.text;
-    /// Página "Todos os apps" aberta (no lugar dos fixados e recentes).
-    property <bool> all-view: false;
     /// Menu do botão direito: app e onde fica (no card).
     property <AppEntry> menu-app;
     property <bool> menu-open: false;
     property <length> menu-x;
     property <length> menu-y;
-    /// Grade grande e com rolagem: busca ou "Todos os apps". Sem ela, a grade
-    /// dos fixados (2 linhas) divide o card com os recentes.
-    property <bool> tall-grid: root.query != "" || root.all-view;
-    /// Apps exibidos: fixados, todos os apps ou o resultado do filtro (feito
-    /// no Rust, que procura também nos apps instalados).
-    property <[AppEntry]> shown: root.query != "" ? Shell.filter-apps(root.query)
-        : root.all-view ? Apps.all : Apps.pinned;
+    property <bool> searching: root.query != "";
+    /// Com busca: o resultado do filtro (feito no Rust, que procura também
+    /// nos apps instalados). Sem busca: os fixados (o resto vem embaixo, em
+    /// `Apps.others`).
+    property <[AppEntry]> shown: root.searching ? Shell.filter-apps(root.query) : Apps.pinned;
 
-    // Volta ao topo da grade quando a lista muda (outra busca ou página).
-    changed query => { grid.content-y = 0; }
-    changed all-view => { grid.content-y = 0; }
+    // Posições das seções dentro da lista (rolam juntas).
+    /// Linha da grade: tile (101) + espaço (11).
+    property <length> row-step: 112px;
+    /// Do rótulo da seção até os itens.
+    property <length> label-gap: 26px;
+    property <length> recent-label-y: root.label-gap + ceil(root.shown.length / 6) * root.row-step + 6px;
+    property <bool> has-recents: !root.searching && Apps.recents.length > 0;
+    property <length> all-label-y: root.has-recents ? root.recent-label-y + root.label-gap + 50px + 24px : root.recent-label-y;
+    /// Fim do conteúdo (altura da lista inteira).
+    property <length> content-end: root.searching || Apps.others.length == 0
+        ? root.label-gap + ceil(root.shown.length / 6) * root.row-step - 11px
+        : root.all-label-y + root.label-gap + ceil(Apps.others.length / 6) * root.row-step - 11px;
 
-    /// Limpa a busca, volta aos fixados e foca o campo (chamado ao abrir).
+    // Volta ao topo quando a busca muda.
+    changed query => { list.content-y = 0; }
+
+    /// Limpa a busca, volta ao topo e foca o campo (chamado ao abrir).
     public function reset() {
         search.text = "";
-        root.all-view = false;
+        list.content-y = 0;
         search.focus();
+    }
+
+    /// Abre o menu do botão direito de um app (posição do tile na lista).
+    function open-menu(app: AppEntry, x: length, y: length) {
+        // As Configurações ficam sempre na dock.
+        if (Shell.native && app.id != "settings") {
+            root.menu-app = app;
+            root.menu-x = list.x + x + 20px;
+            root.menu-y = list.y + y + list.content-y + 70px;
+            root.menu-open = true;
+        }
     }
 
     // Escurece o fundo; clicar fora do card fecha.
@@ -190,54 +194,97 @@ export component Launcher inherits Rectangle {
             }
         }
 
-        // --- Fixados (ou resultados da busca) ---
-        SectionLabel {
+        // --- Lista com rolagem (como o Launchpad do macOS) ---
+        // Sem busca: FIXADOS, RECENTES e TODOS OS APPS, uma seção embaixo da
+        // outra, rolando com a roda do mouse (sem clicar em nada). Com busca:
+        // só os resultados. Grade de 6 colunas, posição pelo índice.
+        list := Flickable {
             x: 29px;
-            y: 112px;
-            text: root.query != "" ? @tr("RESULTS") : root.all-view ? @tr("ALL APPS") : @tr("PINNED");
-        }
-        if root.query == "": LinkText {
-            x: parent.width - self.width - 29px;
-            y: 110px;
-            text: root.all-view ? @tr("Back to pinned") : @tr("All apps");
-            clicked => {
-                root.all-view = !root.all-view;
-                search.focus();
-            }
-        }
-
-        // Grade 6 colunas; posição calculada pelo índice. Com busca ou em
-        // "Todos os apps" ela ocupa até o rodapé e rola com a roda do mouse.
-        grid := Flickable {
-            x: 29px;
-            y: 140px;
+            y: 104px;
             width: 703px;
-            height: root.tall-grid ? 330px : 213px;
-            content-height: max(self.height, ceil(root.shown.length / 6) * (101px + 11px) - 11px);
+            height: 366px;
+            content-height: max(self.height, root.content-end);
 
+            SectionLabel {
+                x: 0;
+                y: 4px;
+                text: root.searching ? @tr("RESULTS") : @tr("PINNED");
+            }
             for app[i] in root.shown: AppTile {
                 x: Math.mod(i, 6) * (108px + 11px);
-                y: floor(i / 6) * (101px + 11px);
+                y: root.label-gap + floor(i / 6) * root.row-step;
                 app: app;
                 clicked => { root.launch(app.id); }
-                menu => {
-                    // As Configurações ficam sempre na dock.
-                    if (Shell.native && app.id != "settings") {
-                        root.menu-app = app;
-                        root.menu-x = grid.x + self.x + 20px;
-                        root.menu-y = grid.y + self.y + grid.content-y + 70px;
-                        root.menu-open = true;
+                menu => { root.open-menu(app, self.x, self.y); }
+            }
+
+            // Recentes: arquivos abertos há pouco (e, na ISO live, o
+            // atalho do instalador, com borda de destaque).
+            if root.has-recents: SectionLabel {
+                x: 0;
+                y: root.recent-label-y + 4px;
+                text: @tr("RECENT");
+            }
+            for r[i] in root.has-recents ? Apps.recents : []: Rectangle {
+                x: i * (346px + 9px);
+                y: root.recent-label-y + root.label-gap;
+                width: 346px;
+                height: 50px;
+                border-radius: 8px;
+                background: recent-touch.has-hover ? Theme.tile-hover : Theme.tile;
+                border-width: r.kind == "install" ? 1px : 0;
+                border-color: Theme.accent.with-alpha(0.6);
+
+                Image {
+                    x: 14px;
+                    source: r.kind == "code" ? Icons.code : r.kind == "image" ? Icons.image
+                        : r.kind == "install" ? Icons.download : Icons.file;
+                    colorize: r.kind == "code" ? #a78bfa : r.kind == "image" ? #f28b95
+                        : r.kind == "install" ? Theme.accent : #7ea6f7;
+                    width: 19px;
+                    height: 19px;
+                }
+                VerticalLayout {
+                    x: 44px;
+                    width: parent.width - 58px;
+                    alignment: center;
+                    spacing: 1px;
+                    Text { text: r.name; color: Theme.text; font-family: Theme.sans; font-size: 13.5px; overflow: elide; }
+                    Text { text: r.path; color: Theme.text-muted; font-family: Theme.mono; font-size: 12px; overflow: elide; }
+                }
+                recent-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        if (r.app != "") {
+                            root.launch(r.app);
+                        } else if (r.target != "") {
+                            root.open-file(r.target);
+                        }
                     }
                 }
+            }
+
+            // Todos os outros apps instalados, em ordem alfabética.
+            if !root.searching && Apps.others.length > 0: SectionLabel {
+                x: 0;
+                y: root.all-label-y + 4px;
+                text: @tr("ALL APPS");
+            }
+            for app[i] in root.searching ? [] : Apps.others: AppTile {
+                x: Math.mod(i, 6) * (108px + 11px);
+                y: root.all-label-y + root.label-gap + floor(i / 6) * root.row-step;
+                app: app;
+                clicked => { root.launch(app.id); }
+                menu => { root.open-menu(app, self.x, self.y); }
             }
         }
 
         // Indicador de rolagem (só quando a lista não cabe).
-        if grid.content-height > grid.height: Rectangle {
-            x: grid.x + grid.width + 10px;
-            y: grid.y + grid.height * (-grid.content-y / grid.content-height);
+        if list.content-height > list.height: Rectangle {
+            x: list.x + list.width + 10px;
+            y: list.y + list.height * (-list.content-y / list.content-height);
             width: 3px;
-            height: grid.height * grid.height / grid.content-height;
+            height: list.height * list.height / list.content-height;
             border-radius: 1.5px;
             background: Theme.text-muted.with-alpha(0.5);
         }
@@ -248,62 +295,6 @@ export component Launcher inherits Rectangle {
             color: Theme.text-muted;
             font-family: Theme.sans;
             font-size: 14px;
-        }
-
-        // --- Recentes (só sem busca) ---
-        if !root.tall-grid: SectionLabel {
-            x: 29px;
-            y: 381px;
-            text: @tr("RECENT");
-        }
-        for r[i] in root.tall-grid ? [] : Apps.recents: Rectangle {
-            x: 29px + i * (346px + 9px);
-            y: 406px;
-            width: 346px;
-            height: 50px;
-            border-radius: 8px;
-            background: recent-touch.has-hover ? Theme.tile-hover : Theme.tile;
-
-            // O atalho do instalador (ISO live) ganha borda de destaque.
-            border-width: r.kind == "install" ? 1px : 0;
-            border-color: Theme.accent.with-alpha(0.6);
-
-            Image {
-                x: 14px;
-                source: r.kind == "code" ? Icons.code : r.kind == "image" ? Icons.image
-                    : r.kind == "install" ? Icons.download : Icons.file;
-                colorize: r.kind == "code" ? #a78bfa : r.kind == "image" ? #f28b95
-                    : r.kind == "install" ? Theme.accent : #7ea6f7;
-                width: 19px;
-                height: 19px;
-            }
-            VerticalLayout {
-                x: 44px;
-                width: parent.width - 58px;
-                alignment: center;
-                spacing: 1px;
-                Text { text: r.name; color: Theme.text; font-family: Theme.sans; font-size: 13.5px; overflow: elide; }
-                Text { text: r.path; color: Theme.text-muted; font-family: Theme.mono; font-size: 12px; overflow: elide; }
-            }
-            recent-touch := TouchArea {
-                mouse-cursor: pointer;
-                clicked => {
-                    if (r.app != "") {
-                        root.launch(r.app);
-                    } else if (r.target != "") {
-                        root.open-file(r.target);
-                    }
-                }
-            }
-        }
-
-        if !root.tall-grid && Apps.recents.length == 0: Text {
-            x: 29px;
-            y: 421px;
-            text: @tr("No recently opened files");
-            color: Theme.text-muted;
-            font-family: Theme.sans;
-            font-size: 13px;
         }
 
         // --- Rodapé ---

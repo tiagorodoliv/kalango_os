@@ -50,6 +50,9 @@ for d in usr/local/bin usr/local/sbin usr/local/lib/kalango; do
 	done
 done
 install -D -m 0755 "$INC/usr/lib/systemd/system-sleep/kalango-radios" "$P/usr/lib/systemd/system-sleep/kalango-radios"
+# Firewall: liga o ufw na primeira vez (kalango-firewall iniciar).
+install -D -m 0644 "$INC/usr/lib/systemd/system/kalango-firewall.service" \
+	"$P/usr/lib/systemd/system/kalango-firewall.service"
 # Políticas do polkit dos scripts acima (kalango-integridade, -atualizar...):
 # quem só atualiza pelo apt também recebe as novas.
 mkdir -p "$P/usr/share/polkit-1/actions"
@@ -76,7 +79,7 @@ Architecture: amd64
 Maintainer: KalangOS <repo@kalangos.org>
 Section: x11
 Priority: optional
-Depends: labwc, libc6, foot, zsh, zsh-autosuggestions, zsh-syntax-highlighting, fonts-droid-fallback, grim, wf-recorder, wl-clipboard
+Depends: labwc, libc6, foot, zsh, zsh-autosuggestions, zsh-syntax-highlighting, fonts-droid-fallback, grim, wf-recorder, wl-clipboard, ufw, playerctl, brightnessctl
 Recommends: sound-theme-freedesktop
 Installed-Size: $(du -sk "$P/usr" | cut -f1)
 Homepage: https://github.com/tiagorodoliv/kalango_os
@@ -152,6 +155,18 @@ if [ "$1" = configure ]; then
 		sed -i 's|^systemd-cat -t kalango-shell kalango-shell &$|systemd-cat -t kalango-shell kalango-shell-sessao \&|' "$AUTO"
 	fi
 fi
+if [ "$1" = configure ]; then
+	# Firewall ligado por padrão (2026-11-18): bloqueia o que chega, libera o
+	# que sai. A unidade roda "kalango-firewall iniciar" uma vez por máquina
+	# (marca em /var/lib/kalango/firewall-iniciado), liberando antes o que já
+	# recebe conexões (SSH...). Na montagem da ISO (sem systemd rodando) só
+	# habilita; liga no primeiro boot.
+	systemctl enable kalango-firewall.service >/dev/null 2>&1 || true
+	if [ -d /run/systemd/system ]; then
+		systemctl start kalango-firewall.service || true
+	fi
+fi
+
 # Sem pedido de reiniciar: a área de trabalho percebe a versão nova e oferece
 # recarregar a interface sem fechar os apps (src/shell/update.rs).
 exit 0

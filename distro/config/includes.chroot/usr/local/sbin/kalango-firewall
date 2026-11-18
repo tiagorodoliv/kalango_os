@@ -1,0 +1,117 @@
+#!/bin/sh
+# Firewall do KalangOS (ufw). Roda como root: pelo pkexec (política
+# org.kalango.firewall, Configurações → Compartilhamento → Firewall e o aviso
+# de "programa quer receber conexões"), pelo kalango-compartilhar e pela
+# unidade kalango-firewall.service (primeira vez na máquina).
+#
+#   kalango-firewall iniciar                 1ª vez: libera o que já recebe
+#                                            conexões (ex.: SSH) e liga
+#   kalango-firewall ligar | desligar
+#   kalango-firewall permitir PORTA/PROTO NOME
+#   kalango-firewall remover PORTA/PROTO
+#
+# Padrão, como o Ubuntu com o ufw ligado: bloqueia o que chega de fora e
+# libera o que sai (navegar, atualizar, imprimir continuam iguais). Sempre
+# liberado: mDNS (5353/udp), para achar impressoras e computadores da rede.
+#
+# /etc/kalango/firewall.conf (todos leem; só este script grava) guarda o
+# estado e as portas liberadas: o shell mostra a lista e sabe o que avisar.
+set -eu
+
+CONF=/etc/kalango/firewall.conf
+MARCA=/var/lib/kalango/firewall-iniciado
+
+erro() {
+	echo "kalango-firewall: $*" >&2
+	exit 1
+}
+
+command -v ufw >/dev/null 2>&1 || erro "ufw não está instalado"
+
+# PORTA/PROTO válido: 1–65535 e tcp ou udp (vai para o ufw e para o arquivo).
+porta() {
+	numero=${1%/*}
+	proto=${1#*/}
+	case "$numero" in '' | *[!0-9]*) erro "porta inválida: $1" ;; esac
+	[ ${#numero} -le 5 ] && [ "$numero" -ge 1 ] && [ "$numero" -le 65535 ] || erro "porta inválida: $1"
+	case "$proto" in tcp | udp) ;; *) erro "protocolo inválido: $1" ;; esac
+	echo "$numero/$proto"
+}
+
+# Nome mostrado na lista: só caracteres seguros (vai para o arquivo e para o
+# comentário do ufw).
+nome_seguro() {
+	n=$(printf '%s' "$1" | LC_ALL=C tr -cd 'A-Za-z0-9 ._-' | cut -c1-40)
+	[ -n "$n" ] || n=$2
+	echo "$n"
+}
+
+# Troca (ou tira, sem $2) a linha que começa com $1 no arquivo.
+gravar() {
+	mkdir -p "${CONF%/*}"
+	tmp=$(mktemp)
+	{
+		echo "# Firewall do KalangOS. Gerado pelo kalango-firewall; mude pelas"
+		echo "# Configurações → Compartilhamento → Firewall."
+		[ -f "$CONF" ] && grep -v -e '^#' -e "^$1" "$CONF" || true
+		[ -z "${2:-}" ] || echo "$2"
+	} >"$tmp"
+	install -m 0644 "$tmp" "$CONF"
+	rm -f "$tmp"
+}
+
+liberadas() {
+	[ -f "$CONF" ] && sed -n 's/^permitir=\([0-9]*\/[a-z]*\) .*/\1/p' "$CONF" || true
+}
+
+ligar() {
+	ufw default deny incoming >/dev/null
+	ufw default allow outgoing >/dev/null
+	ufw allow 5353/udp comment 'kalango: mDNS' >/dev/null
+	for pp in $(liberadas); do
+		ufw allow "$pp" >/dev/null
+	done
+	ufw --force enable >/dev/null
+	gravar "ligado=" "ligado=sim"
+}
+
+case "${1:-}" in
+iniciar)
+	[ -e "$MARCA" ] && exit 0
+	# Não derrubar o que já funciona: serviços que recebem conexões de fora
+	# agora (SSH, um servidor) continuam liberados.
+	ss -Hltnp 2>/dev/null | while read -r _ _ _ local _ processo; do
+		case "$local" in 127.* | \[::1\]:* | *%lo:*) continue ;; esac
+		numero=${local##*:}
+		case "$numero" in '' | *[!0-9]*) continue ;; esac
+		nome=$(printf '%s' "$processo" | sed -n 's/^users:(("\([^"]*\)".*/\1/p')
+		"$0" permitir "$numero/tcp" "${nome:-Porta $numero}" || true
+	done
+	ligar
+	mkdir -p "${MARCA%/*}"
+	date -Iseconds >"$MARCA"
+	;;
+ligar)
+	ligar
+	;;
+desligar)
+	ufw disable >/dev/null
+	gravar "ligado=" "ligado=nao"
+	;;
+permitir)
+	[ $# -ge 2 ] || erro "uso: kalango-firewall permitir PORTA/PROTO NOME"
+	pp=$(porta "$2")
+	nome=$(nome_seguro "${3:-}" "Porta ${pp%/*}")
+	ufw allow "$pp" comment "kalango: $nome" >/dev/null
+	gravar "permitir=$pp " "permitir=$pp $nome"
+	;;
+remover)
+	[ $# -eq 2 ] || erro "uso: kalango-firewall remover PORTA/PROTO"
+	pp=$(porta "$2")
+	ufw delete allow "$pp" >/dev/null 2>&1 || true
+	gravar "permitir=$pp "
+	;;
+*)
+	erro "uso: kalango-firewall iniciar|ligar|desligar|permitir PORTA/PROTO NOME|remover PORTA/PROTO"
+	;;
+esac

@@ -22,6 +22,7 @@ pub mod calendar;
 #[cfg(target_os = "linux")]
 pub mod capture;
 pub mod dock;
+pub mod firewall;
 pub mod greeter;
 pub mod integrity;
 pub mod labwc;

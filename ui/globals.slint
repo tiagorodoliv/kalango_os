@@ -22,6 +22,13 @@ export struct AppEntry {
     letter: string,
     /// Texto extra da busca (nome genérico, palavras-chave, programa).
     keywords: string,
+    /// Estilos Mandacaru (`src/launcher/icon_style.rs`): o ícone em tons de
+    /// creme (Barro) e de âmbar (Noite do sertão), e a cor da caatinga do
+    /// fundo (Caatinga). Vazios/transparente nos ícones de traço do catálogo,
+    /// que o `AppIcon` pinta com `colorize`.
+    icon-barro: image,
+    icon-noite: image,
+    earth: color,
 }
 
 /// Um item da seção RECENTES do launcher (arquivo ou atalho de app).
@@ -66,6 +73,11 @@ export global Apps {
     /// alfabética. Sessão real: o Rust lê os `.desktop` do sistema
     /// (`src/launcher/desktop.rs`). Protótipo: os próprios fixados.
     in-out property <[AppEntry]> all: pinned;
+
+    /// Os apps instalados que não estão nos fixados (nem repetem um deles,
+    /// como o Thunar = Arquivos): a parte "Todos os apps" do menu, embaixo dos
+    /// fixados e dos recentes, na mesma lista com rolagem.
+    in-out property <[AppEntry]> others: [];
 
     /// Apps da dock (antes do separador; Configurações vem depois dele),
     /// escolhidos em Configurações → Barra de tarefas (`Theme.dock-apps`).
@@ -216,6 +228,12 @@ export global Shell {
     /// os apps abrem de verdade e as janelas de demonstração somem.
     /// Desligado no desenvolvimento e nas capturas (protótipo navegável).
     in property <bool> native: false;
+    /// Rodando da ISO live (`/run/live/medium`): a área de trabalho mostra o
+    /// ícone "Instalar KalangOS" no canto, à vista de quem experimenta.
+    in property <bool> live: false;
+    /// O app em foco está em tela cheia (vídeo, jogo): a dock em janela
+    /// própria fecha até ele sair (`src/shell/dock.rs`).
+    in property <bool> app-fullscreen: false;
     /// Apps com janela aberta (sessão real, `src/shell/taskbar.rs`): ids da dock
     /// separados por vírgula ("files,desktop:/usr/share/...").
     in property <string> running-ids: "";

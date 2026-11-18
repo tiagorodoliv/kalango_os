@@ -1,0 +1,124 @@
+// Ícone de app no estilo escolhido em Configurações → Barra de tarefas
+// (`Theme.dock-icon-style`: plano, 3D ou ladrilho). A dock e o menu de apps
+// usam o mesmo componente, assim os dois têm a mesma cara.
+
+import { Theme } from "../theme.slint";
+import { AppEntry } from "../globals.slint";
+
+/// Ícone quadrado de um app (o lado é o `width` de quem usa).
+///
+/// Apps do catálogo usam os ícones de traço na cor do app; apps do sistema
+/// trazem o ícone colorido do tema (`tint` transparente) ou, sem ícone, a
+/// inicial.
+export component AppIcon inherits Rectangle {
+    in property <AppEntry> app;
+    /// Mouse em cima (vem da TouchArea de quem usa).
+    in property <bool> hovered: false;
+    /// Arredondamento do ladrilho.
+    in property <length> radius: self.width * 0.21;
+    /// Lado do ícone de traço (apps do catálogo).
+    in property <length> glyph: self.width * 0.46;
+    /// Opacidade do ícone (a dock tem transparência própria).
+    in property <float> icon-opacity: 1;
+
+    /// Ícone colorido do tema de ícones: no estilo plano, desenhado grande e
+    /// sem colorir, sem o ladrilho de fundo (só aparece com o mouse em cima).
+    property <bool> own-icon: root.app.tint == transparent;
+    property <bool> raised: Theme.dock-icon-style == 1;
+    property <bool> tiled: Theme.dock-icon-style == 2;
+    /// Estilos Mandacaru (`src/launcher/icon_style.rs`): Barro, Caatinga e
+    /// Noite do sertão. Os três têm ladrilho com sombra e reflexo, como o 3D.
+    property <bool> barro: Theme.dock-icon-style == 3;
+    property <bool> caatinga: Theme.dock-icon-style == 4;
+    property <bool> noite: Theme.dock-icon-style == 5;
+    property <bool> mandacaru: root.barro || root.caatinga || root.noite;
+    /// Ladrilho com sombra embaixo (3D e Mandacaru).
+    property <bool> shadowed: root.raised || root.mandacaru;
+    /// Versão tingida do ícone (Barro e Noite), feita no Rust.
+    property <image> tinted: root.barro ? root.app.icon-barro : root.app.icon-noite;
+    property <bool> use-tinted: (root.barro || root.noite) && root.own-icon && root.tinted.width > 0;
+    /// Cor do traço/inicial nos estilos Mandacaru (ícones do catálogo).
+    property <color> mandacaru-ink: root.barro ? #fff1dc : root.caatinga ? #fff6e8 : #e2a65a;
+    /// Fundo da Caatinga (sem cor do Rust, o protótipo usa a terra).
+    property <color> earth: root.app.earth == transparent ? #8a4b2a : root.app.earth;
+    /// Cor do app (a pasta de Arquivos segue o destaque).
+    property <color> app-color: root.app.id == "files" ? Theme.accent : root.app.tint;
+    /// 3D: o ícone sobe um pouco com o mouse em cima.
+    property <length> lift: root.raised && root.hovered ? -3px : 0;
+    /// Os coloridos ficam grandes no estilo plano e menores dentro do
+    /// ladrilho (3D e ladrilho).
+    ///
+    /// Sempre em pixels inteiros (tamanho e posição): com frações (52 × 0,82 =
+    /// 42,64 px) o ícone caía entre dois pixels e a borda saía deformada.
+    property <length> icon-size: round((!root.own-icon ? root.glyph
+        : root.raised || root.tiled || root.mandacaru ? root.width * 0.66 : root.width * 0.82) / 1px) * 1px;
+    /// Canto do ícone centralizado, em pixel inteiro.
+    property <length> icon-x: round((root.width - root.icon-size) / 2 / 1px) * 1px;
+    property <length> icon-y: round((root.height - root.icon-size) / 2 / 1px) * 1px;
+
+    // O ladrilho é desenhado por filhos (e não pelo próprio Rectangle) para a
+    // sombra do 3D ficar atrás dele. Sem drop-shadow nem gradiente: no
+    // renderer de software os dois saem quadrados (ignoram o arredondamento).
+    if root.shadowed: Rectangle {
+        y: 3px;
+        border-radius: root.radius;
+        background: #00000070;
+    }
+    Rectangle {
+        border-radius: root.radius;
+        background: root.barro ? (root.hovered ? #b86a40 : #a65a33)
+            : root.caatinga ? (root.hovered ? root.earth.brighter(0.15) : root.earth)
+            : root.noite ? (root.hovered ? #1d2431 : #141922)
+            : root.raised
+            ? (root.hovered ? Theme.tile-hover : Theme.tile).brighter(0.35)
+            : root.tiled
+                ? (root.own-icon ? (root.hovered ? Theme.tile-hover : Theme.tile) : root.app-color.with-alpha(root.hovered ? 0.3 : 0.18))
+                : root.hovered ? Theme.tile-hover : root.own-icon ? transparent : Theme.tile;
+        border-width: root.raised || root.tiled || root.mandacaru ? 1px : 0;
+        border-color: root.noite ? #e2a65a70 : root.mandacaru ? #ffffff26
+            : root.tiled && !root.own-icon ? root.app-color.with-alpha(0.45) : root.raised ? #ffffff1a : Theme.border;
+        animate background { duration: Theme.anim; }
+    }
+    // 3D: reflexo na parte de cima do ladrilho (recuado das bordas, para
+    // caber em qualquer canto: reto, arredondado ou círculo).
+    if root.raised || root.barro || root.caatinga: Rectangle {
+        x: parent.width * 0.12;
+        y: parent.height * 0.05;
+        width: parent.width * 0.76;
+        height: parent.height * 0.42;
+        border-radius: min(self.height / 2, root.radius);
+        background: root.raised ? #ffffff10 : #ffffff16;
+    }
+
+    // 3D: sombra do próprio ícone, um pouco abaixo dele.
+    if root.shadowed && root.app.letter == "": Image {
+        source: root.use-tinted ? root.tinted : root.app.icon;
+        colorize: #000000;
+        opacity: 0.4 * root.icon-opacity;
+        width: root.icon-size;
+        height: root.icon-size;
+        x: root.icon-x + 1px;
+        y: root.icon-y + 3px + root.lift / 2;
+    }
+    if root.app.letter == "": Image {
+        source: root.use-tinted ? root.tinted : root.app.icon;
+        colorize: root.own-icon ? transparent : root.mandacaru ? root.mandacaru-ink : root.app-color;
+        width: root.icon-size;
+        height: root.icon-size;
+        x: root.icon-x;
+        y: root.icon-y + root.lift;
+        opacity: root.icon-opacity;
+        animate y { duration: Theme.anim; }
+    }
+    // App sem ícone: a inicial na cor do app.
+    if root.app.letter != "": Text {
+        text: root.app.letter;
+        color: root.mandacaru ? root.mandacaru-ink : root.app.tint;
+        font-family: Theme.sans;
+        font-size: root.width * 0.45;
+        font-weight: 600;
+        y: (parent.height - self.height) / 2 + root.lift;
+        opacity: root.icon-opacity;
+        animate y { duration: Theme.anim; }
+    }
+}

@@ -46,7 +46,8 @@ pub struct Prefs {
     pub dock_style: i32,
     /// Transparência do fundo da dock, 0.0 (opaca) a 0.8.
     pub dock_transparency: f32,
-    /// Ícones da dock: 0 = planos, 1 = 3D, 2 = ladrilho na cor do app.
+    /// Ícones da dock: 0 = planos, 1 = 3D, 2 = ladrilho na cor do app; estilos
+    /// Mandacaru: 3 = barro, 4 = caatinga, 5 = noite do sertão.
     pub dock_icon_style: i32,
     /// Transparência dos ícones da dock, 0.0 (opacos) a 0.6.
     pub dock_icon_transparency: f32,
@@ -75,7 +76,7 @@ const DOCK_POSITIONS: [&str; 3] = ["embaixo", "esquerda", "direita"];
 /// Nomes do estilo da dock no arquivo (índice = `dock_style`).
 const DOCK_STYLES: [&str; 2] = ["dock", "barra"];
 /// Ícones da dock no arquivo (índice = `dock_icon_style`).
-const DOCK_ICONS: [&str; 3] = ["plano", "3d", "ladrilho"];
+const DOCK_ICONS: [&str; 6] = ["plano", "3d", "ladrilho", "barro", "caatinga", "noite"];
 /// Cantos da dock no arquivo (índice = `dock_corners`).
 const DOCK_CORNERS: [&str; 3] = ["retos", "arredondados", "pilula"];
 /// Botão do menu de programas no arquivo (índice = `dock_apps_button`).
@@ -359,7 +360,7 @@ impl Prefs {
             DOCK_POSITIONS[self.dock_position.clamp(0, 2) as usize],
             DOCK_STYLES[self.dock_style.clamp(0, 1) as usize],
             self.dock_transparency,
-            DOCK_ICONS[self.dock_icon_style.clamp(0, 2) as usize],
+            DOCK_ICONS[self.dock_icon_style.clamp(0, DOCK_ICONS.len() as i32 - 1) as usize],
             self.dock_icon_transparency,
             DOCK_CORNERS[self.dock_corners.clamp(0, 2) as usize],
             self.dock_detached,

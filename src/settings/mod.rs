@@ -18,6 +18,7 @@ pub mod appearance;
 pub mod bluetooth;
 pub mod device;
 pub mod displays;
+pub mod firewall;
 pub mod netconfig;
 pub mod power;
 pub mod printers;

@@ -6,4 +6,5 @@
 
 pub mod apps;
 pub mod desktop;
+pub mod icon_style;
 pub mod recent;

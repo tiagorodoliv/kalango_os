@@ -555,6 +555,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     ui.set_mode(mode.to_ui());
     let shell = ui.global::<Shell>();
     shell.set_native(native);
+    shell.set_live(native && crate::launcher::recent::is_live());
     shell.on_open_app(|id| open(&id));
     shell.on_open_file(|path| open_file(&path));
     let real = native || mode == Mode::Greeter;

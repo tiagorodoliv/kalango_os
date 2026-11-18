@@ -170,6 +170,10 @@ fn apply(ui: &AppWindow, windows: Vec<(Window, String)>) {
         }
         s.windows = windows;
     });
+    // App em foco em tela cheia: a dock (janela sempre por cima) sai da
+    // frente (`dock::install`) e volta quando ele sai da tela cheia.
+    let fullscreen = STATE.with_borrow(|s| s.windows.iter().any(|(w, _)| w.active && w.fullscreen && !w.minimized));
+    ui.global::<Shell>().set_app_fullscreen(fullscreen);
     refresh(ui);
 }
 
@@ -424,7 +428,7 @@ mod tests {
     }
 
     fn win(id: u32, minimized: bool) -> Window {
-        Window { id, app_id: "foot".into(), title: String::new(), active: false, minimized, maximized: false }
+        Window { id, app_id: "foot".into(), title: String::new(), active: false, minimized, maximized: false, fullscreen: false }
     }
 
     #[test]

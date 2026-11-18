@@ -1,0 +1,14 @@
+# Firewall do KalangOS: liga o ufw na primeira vez que a máquina inicia
+# (e em cada boot da ISO live). Depois disso o próprio ufw.service o mantém.
+[Unit]
+Description=Firewall do KalangOS (primeira configuração)
+After=ufw.service
+Wants=ufw.service
+ConditionPathExists=!/var/lib/kalango/firewall-iniciado
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/kalango-firewall iniciar
+
+[Install]
+WantedBy=multi-user.target

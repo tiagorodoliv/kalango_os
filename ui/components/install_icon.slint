@@ -1,0 +1,50 @@
+// Ícone "Instalar KalangOS" na área de trabalho da ISO live (como o "Install
+// Ubuntu" do Ubuntu): fica no canto de cima, à vista, e não só nos recentes
+// do menu. Um clique abre o instalador.
+
+import { Theme } from "../theme.slint";
+import { Brand } from "../brand.slint";
+
+export component InstallIcon inherits Rectangle {
+    callback clicked();
+
+    width: 112px;
+    height: 124px;
+    border-radius: 14px;
+    background: touch.has-hover ? Theme.panel.with-alpha(0.75) : Theme.panel.with-alpha(0.45);
+    border-width: 1px;
+    border-color: Theme.accent.with-alpha(touch.has-hover ? 0.9 : 0.5);
+    animate background, border-color { duration: Theme.anim; }
+
+    // Ícone do K com um anel no destaque.
+    Rectangle {
+        y: 12px;
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: Theme.tile;
+        border-width: 2px;
+        border-color: Theme.accent;
+        Image {
+            source: Brand.icon;
+            width: 46px;
+            height: 46px;
+        }
+    }
+    Text {
+        y: 82px;
+        width: parent.width - 10px;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+        text: @tr("Install KalangOS");
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}

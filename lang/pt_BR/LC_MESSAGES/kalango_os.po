@@ -1614,3 +1614,48 @@ msgstr "A tela inteira · Enter captura · Esc cancela"
 
 msgid "● Recording the screen · Print stops"
 msgstr "● Gravando a tela · Print para"
+
+msgid "Install KalangOS"
+msgstr "Instalar KalangOS"
+
+msgid "FIREWALL"
+msgstr "FIREWALL"
+
+msgid "Firewall"
+msgstr "Firewall"
+
+msgid "On: blocks connections, except the ones below"
+msgstr "Ligado: bloqueia conexões, menos as liberadas abaixo"
+
+msgid "Off: any computer can try to connect"
+msgstr "Desligado: qualquer computador pode tentar se conectar"
+
+msgid "Allowed · port {}"
+msgstr "Liberado · porta {}"
+
+msgid "Mandacaru style chosen below"
+msgstr "Estilo Mandacaru escolhido abaixo"
+
+msgid "Mandacaru icons"
+msgstr "Ícones Mandacaru"
+
+msgid "Clay tile, icon in cream"
+msgstr "Ladrilho de barro, ícone em creme"
+
+msgid "Each app in a color of the caatinga"
+msgstr "Cada app numa cor da caatinga"
+
+msgid "Dark tile, icon in amber moonlight"
+msgstr "Ladrilho escuro, ícone em luar âmbar"
+
+msgid "Styles inspired by the sertão"
+msgstr "Estilos inspirados no sertão"
+
+msgid "Clay"
+msgstr "Barro"
+
+msgid "Caatinga"
+msgstr "Caatinga"
+
+msgid "Night"
+msgstr "Noite"

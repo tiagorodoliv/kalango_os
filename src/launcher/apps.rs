@@ -126,13 +126,14 @@ pub fn use_themed_icons(ui: &AppWindow, theme: &str) {
         .get_pinned()
         .iter()
         .map(|mut app| {
-            let image = themed_icon_names(&app.id)
+            app.earth = crate::launcher::icon_style::earth(&app.id);
+            let path = themed_icon_names(&app.id)
                 .iter()
-                .find_map(|name| desktop::find_themed_icon(name, theme, &dirs))
-                .and_then(|path| load_icon(&path));
-            if let Some(image) = image {
+                .find_map(|name| desktop::find_themed_icon(name, theme, &dirs));
+            if let Some((path, image)) = path.and_then(|p| load_icon(&p).map(|i| (p, i))) {
                 app.icon = image;
                 app.tint = Color::from_argb_u8(0, 0, 0, 0);
+                (app.icon_barro, app.icon_noite) = crate::launcher::icon_style::variants(&path);
             }
             app
         })
@@ -216,6 +217,10 @@ pub fn initial(name: &str) -> String {
 /// numa cor fixa por app.
 fn to_entry(app: &DesktopApp, icon: Option<&PathBuf>) -> AppEntry {
     let image = icon.and_then(|p| load_icon(p));
+    let (icon_barro, icon_noite) = match (icon, &image) {
+        (Some(p), Some(_)) => crate::launcher::icon_style::variants(p),
+        _ => (Image::default(), Image::default()),
+    };
     let tint = if image.is_some() {
         Color::from_argb_u8(0, 0, 0, 0)
     } else {
@@ -229,6 +234,9 @@ fn to_entry(app: &DesktopApp, icon: Option<&PathBuf>) -> AppEntry {
         tint,
         letter: if image.is_some() { SharedString::new() } else { initial(&app.name).into() },
         keywords: app.keywords.clone().into(),
+        icon_barro,
+        icon_noite,
+        earth: crate::launcher::icon_style::earth(app.id().as_str()),
     }
 }
 
@@ -283,7 +291,7 @@ pub fn entry_for(ui: &AppWindow, id: &str) -> Option<AppEntry> {
 
 /// Liga o callback `Shell.filter-apps`; na sessão real (`themed`) troca os
 /// ícones dos fixados pelos do tema e, no menu (`load_installed`), preenche
-/// `Apps.all` com os apps instalados.
+/// `Apps.all` (e `Apps.others`, sem os fixados) com os apps instalados.
 pub fn install(ui: &AppWindow, load_installed: bool, themed: bool) {
     if themed {
         use_themed_icons(ui, &desktop::current_icon_theme());
@@ -360,8 +368,17 @@ pub fn install(ui: &AppWindow, load_installed: bool, themed: bool) {
                     })
                     .collect()
             });
-            ui.global::<Apps>()
-                .set_all(ModelRc::from(Rc::new(VecModel::from(entries))));
+            let apps = ui.global::<Apps>();
+            let pinned_ids: HashSet<SharedString> = apps.get_pinned().iter().map(|a| a.id).collect();
+            let others: Vec<AppEntry> = DUPLICATES.with_borrow(|dup| {
+                entries
+                    .iter()
+                    .filter(|app| !pinned_ids.contains(&app.id) && !dup.contains(&app.id))
+                    .cloned()
+                    .collect()
+            });
+            apps.set_all(ModelRc::from(Rc::new(VecModel::from(entries))));
+            apps.set_others(ModelRc::from(Rc::new(VecModel::from(others))));
         });
     });
 }

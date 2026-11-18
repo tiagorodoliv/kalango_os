@@ -253,6 +253,30 @@ const CAPTURE_KEYS: &str = r#"    <!-- Captura de tela: Print, Shift+Print e Ctr
     </keybind>
 "#;
 
+/// Teclas de mídia (`kalango-midia`), para os sistemas cujo rc.xml veio de
+/// uma ISO anterior a elas: o mesmo bloco do rc.xml do sistema.
+const MEDIA_KEYS: &str = r#"    <!-- Teclas de mídia (kalango-midia): volume, brilho e player, com o valor no
+         centro da barra; calculadora, arquivos, navegador e busca. -->
+    <keybind key="XF86AudioRaiseVolume" allowWhenLocked="yes"><action name="Execute" command="kalango-midia volume-mais" /></keybind>
+    <keybind key="XF86AudioLowerVolume" allowWhenLocked="yes"><action name="Execute" command="kalango-midia volume-menos" /></keybind>
+    <keybind key="XF86AudioMute" allowWhenLocked="yes"><action name="Execute" command="kalango-midia mudo" /></keybind>
+    <keybind key="XF86AudioMicMute" allowWhenLocked="yes"><action name="Execute" command="kalango-midia microfone" /></keybind>
+    <keybind key="XF86MonBrightnessUp" allowWhenLocked="yes"><action name="Execute" command="kalango-midia brilho-mais" /></keybind>
+    <keybind key="XF86MonBrightnessDown" allowWhenLocked="yes"><action name="Execute" command="kalango-midia brilho-menos" /></keybind>
+    <keybind key="XF86AudioPlay" allowWhenLocked="yes"><action name="Execute" command="kalango-midia tocar" /></keybind>
+    <keybind key="XF86AudioPause" allowWhenLocked="yes"><action name="Execute" command="kalango-midia tocar" /></keybind>
+    <keybind key="XF86AudioNext" allowWhenLocked="yes"><action name="Execute" command="kalango-midia proxima" /></keybind>
+    <keybind key="XF86AudioPrev" allowWhenLocked="yes"><action name="Execute" command="kalango-midia anterior" /></keybind>
+    <keybind key="XF86AudioStop" allowWhenLocked="yes"><action name="Execute" command="kalango-midia parar" /></keybind>
+    <keybind key="XF86Calculator"><action name="Execute" command="kalango-shell --calculadora" /></keybind>
+    <keybind key="XF86Explorer"><action name="Execute" command="thunar" /></keybind>
+    <keybind key="XF86MyComputer"><action name="Execute" command="thunar" /></keybind>
+    <keybind key="XF86HomePage"><action name="Execute" command="x-www-browser" /></keybind>
+    <keybind key="XF86WWW"><action name="Execute" command="x-www-browser" /></keybind>
+    <keybind key="XF86Search"><action name="Execute" command="kalango-shell --launcher" /></keybind>
+    <keybind key="XF86Tools"><action name="Execute" command="kalango-shell --settings" /></keybind>
+"#;
+
 /// Regra da ferramenta de captura (como a do calendário).
 const CAPTURE_RULE: &str = r#"    <windowRule identifier="kalango-captura"
                 serverDecoration="no"
@@ -265,13 +289,19 @@ const CAPTURE_RULE: &str = r#"    <windowRule identifier="kalango-captura"
     </windowRule>
 "#;
 
-/// Põe os atalhos e a regra da captura de tela no rc.xml, se ainda não houver
+/// Põe os atalhos e a regra da captura de tela e as teclas de mídia no
+/// rc.xml, se ainda não houver
 /// (sem `<keyboard>`/`<windowRules>` onde pôr, deixa como está).
 fn ensure_capture(xml: &str) -> String {
     let mut xml = xml.to_string();
     if !xml.contains("kalango-shell --captura\"") {
         if let Some(at) = xml.rfind("</keyboard>") {
             xml = format!("{}{CAPTURE_KEYS}  {}", xml[..at].trim_end_matches(' '), &xml[at..]);
+        }
+    }
+    if !xml.contains("kalango-midia volume-mais") {
+        if let Some(at) = xml.rfind("</keyboard>") {
+            xml = format!("{}{MEDIA_KEYS}  {}", xml[..at].trim_end_matches(' '), &xml[at..]);
         }
     }
     if !xml.contains("<windowRule identifier=\"kalango-captura\"") {
@@ -550,6 +580,7 @@ mod tests {
         comments_ok(&xml).unwrap();
         assert!(xml.contains("<keybind key=\"Print\">") && xml.contains("--captura=tela"));
         assert!(xml.contains("<windowRule identifier=\"kalango-captura\""));
+        assert!(xml.contains("XF86AudioRaiseVolume") && xml.contains("kalango-midia brilho-menos"));
         assert_eq!(ensure_capture(&xml), xml);
     }
 

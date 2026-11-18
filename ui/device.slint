@@ -60,6 +60,14 @@ export struct DisplayOutput {
     primary: bool,
 }
 
+/// Porta liberada no firewall (Configurações → Compartilhamento → Firewall).
+export struct FirewallRule {
+    /// "8000/tcp".
+    port: string,
+    /// Quem pediu ("Compartilhamento", "sshd", "python3").
+    name: string,
+}
+
 /// Uma pasta que pode ser compartilhada (Configurações → Compartilhamento).
 export struct SharedFolder {
     /// Nome da pasta ("Public", "Documents"...).
@@ -417,6 +425,17 @@ export global Device {
     /// Abre um endereço digitado ("192.168.0.10", "\\\\pc\\pasta", "sftp://...").
     callback connect-server(string);
     callback set-keyboard(int);
+
+    // --- Firewall (src/settings/firewall.rs) ---
+    /// ufw e o script do firewall instalados (sessão real).
+    in property <bool> firewall-available: false;
+    in-out property <bool> firewall-enabled: false;
+    /// Esperando a senha do administrador ou o ufw.
+    in property <bool> firewall-busy: false;
+    in property <[FirewallRule]> firewall-rules: [];
+    in property <string> firewall-message: "";
+    callback set-firewall(bool);
+    callback remove-firewall-rule(int);
 }
 
 /// Energia (Configurações → Energia, `src/settings/power.rs`). As listas são índices

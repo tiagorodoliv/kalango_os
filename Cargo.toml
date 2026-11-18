@@ -24,6 +24,10 @@ slint = { version = "1.8", default-features = false, features = [
 # A mesma versão e os mesmos formatos que o Slint já usa: não entra código novo.
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 
+# Estilos Mandacaru dos ícones (src/launcher/icon_style.rs): desenhar o SVG do
+# ícone em pixels para tingi-lo. A mesma versão que o Slint já usa para os SVG.
+resvg = { version = "0.48", default-features = false }
+
 # Data/hora local (fuso do sistema) para o relógio da barra e do login.
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
