@@ -37,3 +37,19 @@ video/vm.sh --desligar
 Com uma ISO anterior a 2026-11-13 (que iniciava em português), use
 `video/vm.sh --ingles` e, na VM, `sudo chfn -f User user` e gere o locale
 `en_US.UTF-8`.
+
+## Vídeo curto do site (`rapido.py`)
+
+`python3 video/rapido.py` grava ~70 s sem narração (login, menu de apps, ícones
+Mandacaru, cores, aviso do firewall, Atualizações com as notas) e monta em
+`saida/`: `kalango-rapido.mp4` (H.264, ~1,6 MB), a capa `.jpg`, legendas
+`.pt.vtt`/`.en.vtt` e os capítulos em `.capitulos.json`. As esperas (abrir as
+Configurações, o aviso do firewall) saem por corte seco. Vai para o site em
+`public/assets/video/` (seção "Tour rápido", capítulos clicáveis).
+
+Antes de gravar, na sessão da VM: `sudo apt-get update`, `sudo apt-get install
+ufw`, `sudo systemctl start kalango-firewall`, abrir as Configurações uma vez e
+sair da sessão (a gravação começa na tela de login). Para gravar de novo na
+mesma VM, desfaça a porta liberada: `sudo kalango-firewall remover 8000/tcp`.
+Sem `ffmpeg` no computador, o do Debian extraído sem root serve
+(`~/.local/kalango-build/ffmpeg/bin`).
