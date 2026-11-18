@@ -350,6 +350,11 @@ pub fn run() -> Result<(), slint::PlatformError> {
     #[cfg(target_os = "linux")]
     if mode == Mode::Capture {
         shell::capture::install(&ui);
+        // A janela some antes da foto: com o `run()`, o Slint sai ao esconder
+        // a última janela e a captura nunca acontecia. Aqui o laço só termina
+        // pelo `quit_event_loop` do fim da captura (ou pelo Esc).
+        ui.show()?;
+        return slint::run_event_loop_until_quit();
     }
     if matches!(mode, Mode::Settings | Mode::Calculator) && session::is_native() {
         timers.push(install_window_frame(&ui));
