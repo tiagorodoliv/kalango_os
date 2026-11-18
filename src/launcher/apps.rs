@@ -129,7 +129,7 @@ pub fn use_themed_icons(ui: &AppWindow, theme: &str) {
             let image = themed_icon_names(&app.id)
                 .iter()
                 .find_map(|name| desktop::find_themed_icon(name, theme, &dirs))
-                .and_then(|path| Image::load_from_path(&path).ok());
+                .and_then(|path| load_icon(&path));
             if let Some(image) = image {
                 app.icon = image;
                 app.tint = Color::from_argb_u8(0, 0, 0, 0);
@@ -153,13 +153,54 @@ pub fn icon_previews() -> Vec<IconPreview> {
                     names
                         .iter()
                         .find_map(|n| desktop::find_themed_icon(n, &theme, &dirs))
-                        .and_then(|p| Image::load_from_path(&p).ok())
+                        .and_then(|p| load_icon(&p))
                         .unwrap_or_default()
                 })
                 .collect();
             IconPreview { icons: ModelRc::from(Rc::new(VecModel::from(icons))) }
         })
         .collect()
+}
+
+/// Lado (px) até onde os ícones PNG grandes são reduzidos ao carregar.
+///
+/// A dock e o menu desenham os ícones com 30 a 50 px. O OpenGL reduz uma
+/// imagem grande de uma vez, sem suavizar (sem mipmaps): um PNG de 512 px
+/// (PWAs do Chrome, Flatpak, AppImage) ficava com a borda em degraus. Reduzido
+/// antes com um filtro bom (Lanczos), a sobra até o tamanho final é pequena e
+/// sai lisa. SVG não passa por aqui: o Slint o desenha no tamanho da tela.
+const ICON_PX: u32 = 64;
+
+/// Carrega o ícone de um app, reduzindo antes os PNG/JPEG grandes (ver
+/// [`ICON_PX`]).
+pub fn load_icon(path: &std::path::Path) -> Option<Image> {
+    let raster = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| matches!(e.to_ascii_lowercase().as_str(), "png" | "jpg" | "jpeg"));
+    if raster {
+        if let Some(image) = downscaled(path) {
+            return Some(image);
+        }
+    }
+    Image::load_from_path(path).ok()
+}
+
+/// O PNG/JPEG reduzido para caber em [`ICON_PX`] (`None` se já é pequeno ou
+/// não deu para ler: aí vale o carregamento normal).
+fn downscaled(path: &std::path::Path) -> Option<Image> {
+    let (w, h) = image::image_dimensions(path).ok()?;
+    if w.max(h) <= ICON_PX {
+        return None;
+    }
+    let img = image::open(path).ok()?;
+    let small = img.resize(ICON_PX, ICON_PX, image::imageops::FilterType::Lanczos3).to_rgba8();
+    let buffer = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::clone_from_slice(
+        small.as_raw(),
+        small.width(),
+        small.height(),
+    );
+    Some(Image::from_rgba8(buffer))
 }
 
 /// Cores das iniciais dos apps sem ícone (as cores de destaque do tema).
@@ -174,7 +215,7 @@ pub fn initial(name: &str) -> String {
 /// transparente (o ícone já é colorido); sem ícone, o menu mostra a inicial
 /// numa cor fixa por app.
 fn to_entry(app: &DesktopApp, icon: Option<&PathBuf>) -> AppEntry {
-    let image = icon.and_then(|p| Image::load_from_path(p).ok());
+    let image = icon.and_then(|p| load_icon(p));
     let tint = if image.is_some() {
         Color::from_argb_u8(0, 0, 0, 0)
     } else {
@@ -328,6 +369,21 @@ pub fn install(ui: &AppWindow, load_installed: bool, themed: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reduz_icone_png_grande() {
+        let dir = std::env::temp_dir().join(format!("kalango-icone-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let grande = dir.join("grande.png");
+        image::RgbaImage::from_pixel(512, 256, image::Rgba([10, 200, 90, 255])).save(&grande).unwrap();
+        let img = load_icon(&grande).unwrap();
+        assert_eq!((img.size().width, img.size().height), (64, 32));
+        // Pequeno: fica como está.
+        let pequeno = dir.join("pequeno.png");
+        image::RgbaImage::from_pixel(48, 48, image::Rgba([0, 0, 0, 255])).save(&pequeno).unwrap();
+        assert_eq!(load_icon(&pequeno).unwrap().size().width, 48);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn ignora_acentos_e_maiusculas() {
