@@ -17,11 +17,15 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, Image, ModelRc, Timer, TimerMode, VecModel};
 
-use crate::{AppWindow, Mode, Shell, Theme};
+use crate::{AppWindow, CustomWallpaper, Mode, Shell, Theme};
 
 /// Modelos na ordem de `Theme.wallpaper-names` (o índice 0 é "Circuitos",
-/// o desenho do próprio shell, que não tem arquivo).
-pub const MODELS: [&str; 7] = ["PretoAzul", "Preto", "Azul", "Verde", "Roxo", "Laranja", "Branco"];
+/// o desenho do próprio shell, que não tem arquivo). Os novos entram no fim:
+/// o `aparencia.conf` guarda o nome, mas a imagem própria vem logo depois
+/// ([`CUSTOM`]). Os do Sertão (versão 0.1 Mandacaru) são fotos em JPEG e vão
+/// também no pacote `kalango-shell` (quem atualiza pelo apt recebe).
+pub const MODELS: [&str; 9] =
+    ["PretoAzul", "Preto", "Azul", "Verde", "Roxo", "Laranja", "Branco", "SertaoDia", "SertaoNoite"];
 /// Resoluções disponíveis de cada modelo (largura × altura), da menor para a maior.
 const SIZES: [(u32, u32); 3] = [(1920, 1080), (2560, 1440), (3840, 2160)];
 
@@ -73,12 +77,31 @@ fn dirs() -> Vec<PathBuf> {
     ]
 }
 
-/// Acha o arquivo de um modelo (`suffix` = "3840x2160", "miniatura"...).
+/// Acha o arquivo de um modelo (`suffix` = "3840x2160", "miniatura"...), em
+/// PNG (os desenhados) ou JPEG (as fotos).
 fn file(model: &str, suffix: &str) -> Option<PathBuf> {
     dirs()
         .into_iter()
-        .map(|d| d.join(format!("Kalango_{model}_{suffix}.png")))
+        .flat_map(|d| ["png", "jpg"].map(|ext| d.join(format!("Kalango_{model}_{suffix}.{ext}"))))
         .find(|p| p.is_file())
+}
+
+/// Imagens próprias já adicionadas (as cópias reduzidas em
+/// `~/.local/share/backgrounds`), da mais nova para a mais velha.
+pub fn customs() -> Vec<PathBuf> {
+    let Some(dir) = custom_dir() else { return Vec::new() };
+    let Ok(entries) = std::fs::read_dir(&dir) else { return Vec::new() };
+    let mut found: Vec<(std::time::SystemTime, PathBuf)> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            let name = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            name.starts_with("kalango-") && name.ends_with(".jpg") && !name.ends_with("-miniatura.jpg")
+        })
+        .map(|p| (std::fs::metadata(&p).and_then(|m| m.modified()).unwrap_or(std::time::UNIX_EPOCH), p))
+        .collect();
+    found.sort_by(|a, b| b.0.cmp(&a.0));
+    found.into_iter().map(|(_, p)| p).collect()
 }
 
 /// Tamanho que cobre `cover` mantendo a proporção de `(w, h)`, sem
@@ -174,6 +197,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     }
     if mode == Mode::Settings {
         install_picker(ui);
+        install_remove(ui);
     }
     match mode {
         // A área de trabalho e o fundo dos monitores extras.
@@ -235,14 +259,45 @@ pub fn run_cli(file: &str) -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
-/// Mostra a miniatura da imagem própria escolhida (se houver).
+/// Mostra as imagens próprias já adicionadas (miniaturas) para escolher de
+/// novo; a escolhida agora entra mesmo se estiver fora da pasta.
 fn show_custom_thumb(ui: &AppWindow) {
-    let file = ui.global::<Theme>().get_wallpaper_file().to_string();
-    let thumb = (!file.is_empty())
-        .then(|| Image::load_from_path(&thumb_of(Path::new(&file))).ok())
-        .flatten()
-        .unwrap_or_default();
-    ui.global::<Shell>().set_wallpaper_custom_thumb(thumb);
+    let current = ui.global::<Theme>().get_wallpaper_file().to_string();
+    let mut paths = customs();
+    if !current.is_empty() && Path::new(&current).is_file() && !paths.iter().any(|p| p.to_string_lossy() == current) {
+        paths.insert(0, PathBuf::from(&current));
+    }
+    let items: Vec<CustomWallpaper> = paths
+        .iter()
+        .map(|p| CustomWallpaper {
+            path: p.to_string_lossy().into_owned().into(),
+            thumb: Image::load_from_path(&thumb_of(p)).unwrap_or_default(),
+        })
+        .collect();
+    ui.global::<Shell>().set_wallpaper_customs(ModelRc::from(Rc::new(VecModel::from(items))));
+}
+
+/// Tira uma imagem própria da lista (apaga a cópia reduzida e a miniatura;
+/// a imagem original da pessoa não é tocada). Se era a escolhida, volta ao
+/// papel de parede padrão.
+fn install_remove(ui: &AppWindow) {
+    let weak = ui.as_weak();
+    ui.global::<Shell>().on_remove_custom_wallpaper(move |path| {
+        let Some(ui) = weak.upgrade() else { return };
+        let path = PathBuf::from(path.as_str());
+        // Só as cópias do próprio shell, dentro da pasta dele.
+        let inside = custom_dir().is_some_and(|d| path.parent() == Some(d.as_path()));
+        if inside {
+            let _ = std::fs::remove_file(thumb_of(&path));
+            let _ = std::fs::remove_file(&path);
+        }
+        let theme = ui.global::<Theme>();
+        if theme.get_wallpaper() == CUSTOM && theme.get_wallpaper_file().as_str() == path.to_string_lossy() {
+            theme.set_wallpaper(1);
+            theme.set_wallpaper_file("".into());
+        }
+        show_custom_thumb(&ui);
+    });
 }
 
 /// "Escolher imagem..." na Aparência: zenity, cópia reduzida, e a escolha vai

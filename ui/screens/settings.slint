@@ -459,11 +459,10 @@ component AppearancePage inherits Rectangle {
             Rectangle { height: 10px; }
             wallpapers := Rectangle {
                 // Miniaturas de 80×45 em grade: quantas couberem por linha.
-                // Depois dos modelos: a imagem própria (se houver) e o "+".
+                // Depois dos modelos: as imagens próprias já adicionadas e o "+".
                 property <int> cols: max(1, floor((col.w + 10px) / 90px));
-                property <bool> has-custom: Theme.wallpaper-file != "";
                 property <int> custom-at: Theme.wallpaper-names.length;
-                property <int> plus-at: self.custom-at + (self.has-custom ? 1 : 0);
+                property <int> plus-at: self.custom-at + Shell.wallpaper-customs.length;
                 property <int> custom-index: Theme.wallpaper-names.length;
                 height: ceil((self.plus-at + 1) / self.cols) * 55px - 10px;
                 for nome[i] in Theme.wallpaper-names: Rectangle {
@@ -499,29 +498,56 @@ component AppearancePage inherits Rectangle {
                         clicked => { Theme.wallpaper = i; }
                     }
                 }
-                // Imagem própria já escolhida.
-                if self.has-custom: Rectangle {
-                    x: Math.mod(wallpapers.custom-at, wallpapers.cols) * (80px + 10px);
-                    y: floor(wallpapers.custom-at / wallpapers.cols) * 55px;
+                // Imagens próprias já adicionadas (a mais nova primeiro).
+                for c[k] in Shell.wallpaper-customs: Rectangle {
+                    x: Math.mod(wallpapers.custom-at + k, wallpapers.cols) * (80px + 10px);
+                    y: floor((wallpapers.custom-at + k) / wallpapers.cols) * 55px;
                     width: 80px;
                     height: 45px;
                     border-radius: 6px;
                     clip: true;
                     background: Theme.background;
+                    property <bool> chosen: Theme.wallpaper == wallpapers.custom-index && Theme.wallpaper-file == c.path;
                     Image {
                         width: parent.width;
                         height: parent.height;
-                        source: Shell.wallpaper-custom-thumb;
+                        source: c.thumb;
                         image-fit: cover;
                     }
                     Rectangle {
                         border-radius: 6px;
-                        border-width: Theme.wallpaper == wallpapers.custom-index ? 2px : 1px;
-                        border-color: Theme.wallpaper == wallpapers.custom-index ? Theme.accent : Theme.border;
+                        border-width: parent.chosen ? 2px : 1px;
+                        border-color: parent.chosen ? Theme.accent : Theme.border;
                     }
-                    TouchArea {
+                    custom-touch := TouchArea {
                         mouse-cursor: pointer;
-                        clicked => { Theme.wallpaper = wallpapers.custom-index; }
+                        clicked => {
+                            Theme.wallpaper-file = c.path;
+                            Theme.wallpaper = wallpapers.custom-index;
+                        }
+                    }
+                    // Tirar da lista (com o mouse em cima).
+                    if custom-touch.has-hover || remove-touch.has-hover: Rectangle {
+                        x: parent.width - self.width - 3px;
+                        y: 3px;
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 9px;
+                        background: remove-touch.has-hover ? Theme.danger : #000000b0;
+                        Image {
+                            width: 10px;
+                            height: 10px;
+                            source: Icons.x;
+                            colorize: #ffffff;
+                        }
+                    }
+                    remove-touch := TouchArea {
+                        x: parent.width - 24px;
+                        y: 0;
+                        width: 24px;
+                        height: 24px;
+                        mouse-cursor: pointer;
+                        clicked => { Shell.remove-custom-wallpaper(c.path); }
                     }
                 }
                 // Escolher uma imagem do computador.

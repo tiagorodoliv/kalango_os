@@ -74,7 +74,8 @@ export global Theme {
     /// Papel de parede: 0 = circuitos (desenho do próprio shell); 1 em diante,
     /// as imagens de `wallpaper-names` (arquivos em src/shell/wallpaper.rs).
     in-out property <int> wallpaper: 1;
-    /// Imagem própria (`wallpaper` = 8): a cópia reduzida que o Rust gravou.
+    /// Imagem própria (`wallpaper` = `wallpaper-names.length`, o índice depois
+    /// dos modelos): a cópia reduzida que o Rust gravou.
     in-out property <string> wallpaper-file: "";
     /// Botões das janelas: 0 padrão, 1 círculos, 2 arredondados, 3 destaque,
     /// 4 retangulares (`src/settings/window_buttons.rs`).
@@ -82,7 +83,7 @@ export global Theme {
     /// Lado dos botões das janelas: 0 = esquerda (como no macOS), 1 = direita.
     /// Vale também para o Chrome (modo GTK), o Firefox e os apps GNOME.
     in-out property <int> window-buttons-side: 1;
-    out property <[string]> wallpaper-names: [@tr("Circuits"), @tr("Black and blue"), @tr("Black"), @tr("Blue"), @tr("Green"), @tr("Purple"), @tr("Orange"), @tr("White")];
+    out property <[string]> wallpaper-names: [@tr("Circuits"), @tr("Black and blue"), @tr("Black"), @tr("Blue"), @tr("Green"), @tr("Purple"), @tr("Orange"), @tr("White"), @tr("Sertão by day"), @tr("Sertão by night")];
     /// Ids dos apps da dock, separados por vírgula, na ordem exibida
     /// (Configurações fica sempre no fim, depois do separador).
     in-out property <string> dock-apps: "files,terminal,browser,code,store";

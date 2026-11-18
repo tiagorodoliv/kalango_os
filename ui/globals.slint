@@ -31,6 +31,12 @@ export struct AppEntry {
     earth: color,
 }
 
+/// Uma imagem própria de papel de parede (Configurações → Aparência).
+export struct CustomWallpaper {
+    path: string,
+    thumb: image,
+}
+
 /// Um item da seção RECENTES do launcher (arquivo ou atalho de app).
 export struct RecentEntry {
     /// Nome do arquivo (ou do atalho, ex.: "Instalar KalangOS").
@@ -151,6 +157,10 @@ export global Shell {
     in property <[image]> wallpaper-thumbs;
     /// Miniatura da imagem própria (vazia sem imagem escolhida).
     in property <image> wallpaper-custom-thumb;
+    /// Imagens próprias já adicionadas (caminho e miniatura), para escolher
+    /// de novo ou tirar da lista (`src/shell/wallpaper.rs`).
+    in property <[CustomWallpaper]> wallpaper-customs;
+    callback remove-custom-wallpaper(string);
     /// Escolhendo/preparando a imagem própria, ou o erro dela.
     in property <bool> wallpaper-busy: false;
     in property <string> wallpaper-message: "";

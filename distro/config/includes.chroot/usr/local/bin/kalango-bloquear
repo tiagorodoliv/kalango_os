@@ -37,6 +37,8 @@ sed -e "s/@SENHA@/$SENHA/" -e "s/@DESBLOQUEAR@/$DESBLOQUEAR/" "$DIR/layout.ui" >
 # Papel de parede das Configurações (papel-de-parede=Azul → Kalango_Azul_1920x1080.png).
 NOME=$(sed -n 's/^papel-de-parede=//p' "$CONF/kalango/aparencia.conf" 2>/dev/null | head -n 1)
 FUNDO=/usr/share/backgrounds/kalango/Kalango_${NOME}_1920x1080.png
+# As fotos (Sertão) são JPEG.
+[ -f "$FUNDO" ] || FUNDO=/usr/share/backgrounds/kalango/Kalango_${NOME}_1920x1080.jpg
 # Imagem própria (papel-de-parede=arquivo): a cópia reduzida que o shell gravou.
 if [ "$NOME" = arquivo ]; then
 	FUNDO=$(sed -n 's/^papel-de-parede-arquivo=//p' "$CONF/kalango/aparencia.conf" 2>/dev/null | head -n 1)

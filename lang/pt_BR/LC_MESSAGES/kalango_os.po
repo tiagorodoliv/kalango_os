@@ -1731,3 +1731,9 @@ msgstr "Comando (ex.: gimp)"
 
 msgid "Key: T, Enter, F5, Print..."
 msgstr "Tecla: T, Enter, F5, Print..."
+
+msgid "Sertão by day"
+msgstr "Sertão de dia"
+
+msgid "Sertão by night"
+msgstr "Sertão à noite"
