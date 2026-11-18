@@ -33,6 +33,15 @@ KALANGO_REPO_DESTINO=root@SEU_VPS:/www/wwwroot/kalangos.easysmartcontroll.com/ap
     distro/repo/publicar.sh distro/out/kalango-shell_*.deb
 ```
 
+**Segurança da publicação.** O servidor só serve arquivos e é o elo fraco (outros sites
+no mesmo VPS, FTP). Por isso o `publicar.sh` só aceita do servidor os pacotes que ele
+mesmo já assinou: o `InRelease` de lá tem de ter a assinatura da chave do projeto, o
+`Packages` tem de bater com ele e cada `.deb` com o SHA-256 listado. Arquivo estranho ou
+alterado em `pool/` interrompe tudo **antes de assinar** e mostra o nome: confira o
+servidor (alguém pôs ou trocou um pacote lá) antes de continuar. Servidor inacessível
+também interrompe (o envio usa `--delete`); só a primeira publicação num servidor novo,
+vazio, roda com `KALANGO_REPO_NOVO=1`.
+
 A ISO (`distro/build.sh`) instala o mesmo pacote e deixa uma cópia do `.deb` em
 `distro/out/`: publique-a junto com cada ISO, para que o repositório nunca tenha
 versão mais velha que a da ISO.
