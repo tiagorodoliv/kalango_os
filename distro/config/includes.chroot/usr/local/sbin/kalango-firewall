@@ -1,25 +1,34 @@
 #!/bin/sh
 # Firewall do KalangOS (ufw). Roda como root: pelo pkexec (política
-# org.kalango.firewall, Configurações → Compartilhamento → Firewall e o aviso
-# de "programa quer receber conexões"), pelo kalango-compartilhar e pela
-# unidade kalango-firewall.service (primeira vez na máquina).
+# org.kalango.firewall: Configurações → Firewall e o aviso de "programa quer
+# receber conexões"), pelo kalango-compartilhar e pela unidade
+# kalango-firewall.service (primeira vez na máquina).
 #
-#   kalango-firewall iniciar                 1ª vez: libera o que já recebe
-#                                            conexões (ex.: SSH) e liga
+#   kalango-firewall iniciar            1ª vez: libera o que já recebe conexões
+#                                       (ex.: SSH) e liga
 #   kalango-firewall ligar | desligar
-#   kalango-firewall permitir PORTA/PROTO NOME
-#   kalango-firewall remover PORTA/PROTO
+#   kalango-firewall permitir PORTAS/PROTO NOME [local]
+#   kalango-firewall ativar | desativar | remover PORTAS/PROTO
+#
+# PORTAS = uma porta (8000) ou uma faixa (6000:6010); PROTO = tcp, udp ou
+# ambos (vira duas regras, uma de cada). "local" = só da rede local (faixas
+# privadas do IPv4 e as locais do IPv6), em vez de qualquer endereço.
+# Desativar tira a regra do ufw mas a guarda na lista, para ativar depois.
 #
 # Padrão, como o Ubuntu com o ufw ligado: bloqueia o que chega de fora e
 # libera o que sai (navegar, atualizar, imprimir continuam iguais). Sempre
 # liberado: mDNS (5353/udp), para achar impressoras e computadores da rede.
 #
 # /etc/kalango/firewall.conf (todos leem; só este script grava) guarda o
-# estado e as portas liberadas: o shell mostra a lista e sabe o que avisar.
+# estado e as regras, uma por linha:
+#   permitir=PORTAS/PROTO ORIGEM ESTADO NOME   (ORIGEM qualquer|local, ESTADO on|off)
+# Linhas antigas "permitir=PORTAS/PROTO NOME" valem como "qualquer on".
 set -eu
 
 CONF=/etc/kalango/firewall.conf
 MARCA=/var/lib/kalango/firewall-iniciado
+# "Rede local": endereços privados e de enlace (IPv4 e IPv6).
+REDES_LOCAIS="10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 fc00::/7 fe80::/10"
 
 erro() {
 	echo "kalango-firewall: $*" >&2
@@ -28,51 +37,122 @@ erro() {
 
 command -v ufw >/dev/null 2>&1 || erro "ufw não está instalado"
 
-# PORTA/PROTO válido: 1–65535 e tcp ou udp (vai para o ufw e para o arquivo).
+numero_ok() {
+	case "$1" in '' | *[!0-9]*) return 1 ;; esac
+	[ ${#1} -le 5 ] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+
+# PORTAS/PROTO válido (vai para o ufw e para o arquivo): 1–65535, faixa
+# crescente, tcp/udp/ambos. Aceita "-" na faixa e devolve com ":".
 porta() {
-	numero=${1%/*}
-	proto=${1#*/}
-	case "$numero" in '' | *[!0-9]*) erro "porta inválida: $1" ;; esac
-	[ ${#numero} -le 5 ] && [ "$numero" -ge 1 ] && [ "$numero" -le 65535 ] || erro "porta inválida: $1"
-	case "$proto" in tcp | udp) ;; *) erro "protocolo inválido: $1" ;; esac
-	echo "$numero/$proto"
+	case "$1" in */*) ;; *) erro "falta o protocolo: $1" ;; esac
+	portas=$(printf '%s' "${1%/*}" | tr '-' ':')
+	proto=${1##*/}
+	case "$portas" in
+	*:*)
+		ini=${portas%%:*}
+		fim=${portas#*:}
+		numero_ok "$ini" && numero_ok "$fim" && [ "$ini" -lt "$fim" ] || erro "faixa inválida: $1"
+		;;
+	*) numero_ok "$portas" || erro "porta inválida: $1" ;;
+	esac
+	case "$proto" in tcp | udp | ambos) ;; *) erro "protocolo inválido: $1" ;; esac
+	echo "$portas/$proto"
 }
 
 # Nome mostrado na lista: só caracteres seguros (vai para o arquivo e para o
 # comentário do ufw).
 nome_seguro() {
-	n=$(printf '%s' "$1" | LC_ALL=C tr -cd 'A-Za-z0-9 ._-' | cut -c1-40)
+	n=$(printf '%s' "$1" | LC_ALL=C tr -cd 'A-Za-z0-9 ._-' | cut -c1-40 | sed 's/^ *//; s/ *$//')
 	[ -n "$n" ] || n=$2
 	echo "$n"
 }
 
-# Troca (ou tira, sem $2) a linha que começa com $1 no arquivo.
+# Troca (ou tira, sem $2) a linha que começa com $1 no arquivo. A linha
+# trocada fica no mesmo lugar (a lista das Configurações não muda de ordem ao
+# desativar uma regra); uma nova vai para o fim.
 gravar() {
 	mkdir -p "${CONF%/*}"
 	tmp=$(mktemp)
 	{
 		echo "# Firewall do KalangOS. Gerado pelo kalango-firewall; mude pelas"
-		echo "# Configurações → Compartilhamento → Firewall."
-		[ -f "$CONF" ] && grep -v -e '^#' -e "^$1" "$CONF" || true
-		[ -z "${2:-}" ] || echo "$2"
+		echo "# Configurações → Firewall."
+		if [ -f "$CONF" ]; then
+			awk -v k="$1" -v n="${2:-}" '
+				/^#/ { next }
+				index($0, k) == 1 { if (n != "" && !feito) { print n; feito = 1 } next }
+				{ print }
+				END { if (n != "" && !feito) print n }
+			' "$CONF"
+		elif [ -n "${2:-}" ]; then
+			echo "$2"
+		fi
 	} >"$tmp"
 	install -m 0644 "$tmp" "$CONF"
 	rm -f "$tmp"
 }
 
-liberadas() {
-	[ -f "$CONF" ] && sed -n 's/^permitir=\([0-9]*\/[a-z]*\) .*/\1/p' "$CONF" || true
+# Lê a regra PP do arquivo: define ORIGEM, ESTADO e NOME (volta 1 se não há).
+ler() {
+	linha=$([ -f "$CONF" ] && grep -m1 "^permitir=$1 " "$CONF" || true)
+	[ -n "$linha" ] || return 1
+	resto=${linha#permitir=$1 }
+	set -f
+	# shellcheck disable=SC2086
+	set -- $resto
+	set +f
+	if { [ "${1:-}" = qualquer ] || [ "${1:-}" = local ]; } && { [ "${2:-}" = on ] || [ "${2:-}" = off ]; }; then
+		ORIGEM=$1 ESTADO=$2
+		shift 2
+		NOME="$*"
+	else
+		ORIGEM=qualquer ESTADO=on NOME=$resto
+	fi
+}
+
+# Põe (allow) ou tira (delete) a regra PP no ufw.
+ufw_regra() {
+	acao=$1 pp=$2 origem=$3 nome=$4
+	portas=${pp%/*}
+	proto=${pp#*/}
+	if [ "$origem" = local ]; then
+		for rede in $REDES_LOCAIS; do
+			if [ "$acao" = allow ]; then
+				ufw allow from "$rede" to any port "$portas" proto "$proto" comment "kalango: $nome" >/dev/null
+			else
+				ufw delete allow from "$rede" to any port "$portas" proto "$proto" >/dev/null 2>&1 || true
+			fi
+		done
+	elif [ "$acao" = allow ]; then
+		ufw allow "$pp" comment "kalango: $nome" >/dev/null
+	else
+		ufw delete allow "$pp" >/dev/null 2>&1 || true
+	fi
+}
+
+# Regras do arquivo (PORTAS/PROTO), uma por linha.
+regras() {
+	[ -f "$CONF" ] && sed -n 's/^permitir=\([0-9:]*\/[a-z]*\) .*/\1/p' "$CONF" || true
 }
 
 ligar() {
 	ufw default deny incoming >/dev/null
 	ufw default allow outgoing >/dev/null
 	ufw allow 5353/udp comment 'kalango: mDNS' >/dev/null
-	for pp in $(liberadas); do
-		ufw allow "$pp" >/dev/null
+	for pp in $(regras); do
+		ler "$pp" || continue
+		[ "$ESTADO" = on ] && ufw_regra allow "$pp" "$ORIGEM" "$NOME"
 	done
 	ufw --force enable >/dev/null
 	gravar "ligado=" "ligado=sim"
+}
+
+# Protocolos de PP: "ambos" vira tcp e udp.
+cada_proto() {
+	case "${1#*/}" in
+	ambos) echo "${1%/*}/tcp ${1%/*}/udp" ;;
+	*) echo "$1" ;;
+	esac
 }
 
 case "${1:-}" in
@@ -99,19 +179,41 @@ desligar)
 	gravar "ligado=" "ligado=nao"
 	;;
 permitir)
-	[ $# -ge 2 ] || erro "uso: kalango-firewall permitir PORTA/PROTO NOME"
+	[ $# -ge 2 ] || erro "uso: kalango-firewall permitir PORTAS/PROTO NOME [local]"
+	pedido=$(porta "$2")
+	nome=$(nome_seguro "${3:-}" "Porta ${pedido%/*}")
+	origem=qualquer
+	[ "${4:-}" = local ] && origem=local
+	for pp in $(cada_proto "$pedido"); do
+		# Trocando uma regra que já existe (outra origem): tira a antiga do ufw.
+		if ler "$pp"; then ufw_regra delete "$pp" "$ORIGEM" "$NOME"; fi
+		ufw_regra allow "$pp" "$origem" "$nome"
+		gravar "permitir=$pp " "permitir=$pp $origem on $nome"
+	done
+	;;
+ativar | desativar)
+	[ $# -eq 2 ] || erro "uso: kalango-firewall $1 PORTAS/PROTO"
 	pp=$(porta "$2")
-	nome=$(nome_seguro "${3:-}" "Porta ${pp%/*}")
-	ufw allow "$pp" comment "kalango: $nome" >/dev/null
-	gravar "permitir=$pp " "permitir=$pp $nome"
+	ler "$pp" || erro "regra não encontrada: $pp"
+	if [ "$1" = ativar ]; then
+		ufw_regra allow "$pp" "$ORIGEM" "$NOME"
+		gravar "permitir=$pp " "permitir=$pp $ORIGEM on $NOME"
+	else
+		ufw_regra delete "$pp" "$ORIGEM" "$NOME"
+		gravar "permitir=$pp " "permitir=$pp $ORIGEM off $NOME"
+	fi
 	;;
 remover)
-	[ $# -eq 2 ] || erro "uso: kalango-firewall remover PORTA/PROTO"
+	[ $# -eq 2 ] || erro "uso: kalango-firewall remover PORTAS/PROTO"
 	pp=$(porta "$2")
-	ufw delete allow "$pp" >/dev/null 2>&1 || true
+	if ler "$pp"; then
+		ufw_regra delete "$pp" "$ORIGEM" "$NOME"
+	else
+		ufw_regra delete "$pp" qualquer ""
+	fi
 	gravar "permitir=$pp "
 	;;
 *)
-	erro "uso: kalango-firewall iniciar|ligar|desligar|permitir PORTA/PROTO NOME|remover PORTA/PROTO"
+	erro "uso: kalango-firewall iniciar|ligar|desligar|permitir PORTAS/PROTO NOME [local]|ativar|desativar|remover PORTAS/PROTO"
 	;;
 esac

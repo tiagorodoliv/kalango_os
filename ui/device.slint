@@ -62,10 +62,16 @@ export struct DisplayOutput {
 
 /// Porta liberada no firewall (Configurações → Compartilhamento → Firewall).
 export struct FirewallRule {
-    /// "8000/tcp".
+    /// Para mostrar: "8000 · TCP", "6000–6010 · UDP".
     port: string,
-    /// Quem pediu ("Compartilhamento", "sshd", "python3").
+    /// Como o script a chama: "8000/tcp", "6000:6010/udp".
+    key: string,
+    /// Quem pediu ("Compartilhamento", "sshd", "python3") ou o nome dado.
     name: string,
+    /// Só da rede local (senão, de qualquer endereço).
+    local: bool,
+    /// Ativa; desativada fica na lista, fora do firewall.
+    enabled: bool,
 }
 
 /// Uma pasta que pode ser compartilhada (Configurações → Compartilhamento).
@@ -434,8 +440,15 @@ export global Device {
     in property <bool> firewall-busy: false;
     in property <[FirewallRule]> firewall-rules: [];
     in property <string> firewall-message: "";
+    /// Conta as mudanças que deram certo (a página limpa o formulário).
+    in-out property <int> firewall-added: 0;
     callback set-firewall(bool);
     callback remove-firewall-rule(int);
+    /// Ativa/desativa a regra `i` sem tirá-la da lista.
+    callback set-firewall-rule(int, bool);
+    /// Abrir porta(s): nome, porta ou faixa ("8000", "6000-6010"),
+    /// protocolo (0 TCP, 1 UDP, 2 os dois) e só da rede local.
+    callback add-firewall-rule(string, string, int, bool);
 }
 
 /// Energia (Configurações → Energia, `src/settings/power.rs`). As listas são índices

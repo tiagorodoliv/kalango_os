@@ -315,12 +315,19 @@ pub fn install_desktop(ui: &AppWindow, mode: Mode) -> Option<Timer> {
     }
     let weak = ui.as_weak();
     let timer = Timer::default();
-    timer.start(TimerMode::Repeated, Duration::from_secs(1), move || {
+    // A cada 100 ms: as teclas de volume e brilho (kalango-midia) mostram o
+    // valor aqui e precisam acompanhar o aperto. Sem aviso, é só um open() que
+    // falha; o estado da gravação é conferido a cada 1 s.
+    let mut tick = 0u32;
+    timer.start(TimerMode::Repeated, Duration::from_millis(100), move || {
         let Some(ui) = weak.upgrade() else { return };
-        let recording = recording_pid().is_some();
-        let shell = ui.global::<Shell>();
-        if shell.get_recording() != recording {
-            shell.set_recording(recording);
+        tick = tick.wrapping_add(1);
+        if tick % 10 == 0 {
+            let recording = recording_pid().is_some();
+            let shell = ui.global::<Shell>();
+            if shell.get_recording() != recording {
+                shell.set_recording(recording);
+            }
         }
         if let Some(path) = notice_file() {
             if let Ok(text) = fs::read_to_string(&path) {

@@ -15,6 +15,13 @@ ENTRADA=@DEFAULT_AUDIO_SOURCE@
 case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in pt*) PT=1 ;; *) PT= ;; esac
 t() { if [ -n "$PT" ]; then echo "$2"; else echo "$1"; fi; }
 
+# Segurando a tecla, o labwc repete o atalho várias vezes por segundo: se o
+# aperto anterior ainda está rodando, este é descartado (sem fila de processos).
+if [ -n "${XDG_RUNTIME_DIR:-}" ]; then
+	exec 9>"$XDG_RUNTIME_DIR/kalango-midia.lock"
+	flock -n 9 || exit 0
+fi
+
 avisar() {
 	[ -n "${XDG_RUNTIME_DIR:-}" ] && printf '%s' "$1" >"$XDG_RUNTIME_DIR/kalango-aviso"
 }
@@ -32,8 +39,10 @@ brilho() {
 
 case "${1:-}" in
 volume-mais)
-	wpctl set-mute "$SAIDA" 0
+	# Tira o mudo junto (em paralelo): subir o volume mudo não faria som.
+	wpctl set-mute "$SAIDA" 0 &
 	wpctl set-volume -l 1.0 "$SAIDA" 5%+
+	wait
 	avisar "$(t Volume Volume) $(volume "$SAIDA")"
 	;;
 volume-menos)

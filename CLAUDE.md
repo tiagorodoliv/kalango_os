@@ -174,7 +174,9 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
 - **Teclas de mídia (2026-11-18):** `XF86Audio*`, `XF86MonBrightness*`, Calculadora, Explorer, WWW, Search e Tools
   no rc.xml → `/usr/local/bin/kalango-midia` (wpctl, brightnessctl, playerctl; valor no centro da barra pelo
   `kalango-aviso`). Volume/brilho/player com `allowWhenLocked`. ISO antiga recebe pelo rc.xml do usuário
-  (`labwc::ensure_capture`, bloco `MEDIA_KEYS`). Pacote depende de playerctl e brightnessctl.
+  (`labwc::ensure_capture`, bloco `MEDIA_KEYS`). Pacote depende de playerctl e brightnessctl. Segurando a tecla o
+  labwc repete o atalho: o script usa `flock -n` (aperto com outro rodando é descartado, sem fila) e a área de
+  trabalho lê o `kalango-aviso` a cada 100 ms (antes 1 s: o valor parecia "travado").
 - **Tela cheia sem dock (2026-11-18):** `toplevels` lê o estado 3 (tela cheia); app em foco em tela cheia →
   `Shell.app-fullscreen` → `dock::install` fecha a dock em janela própria/faixa (sem mexer no rc.xml) e reabre depois.
 - **Ícones em pixel inteiro:** `AppIcon` arredonda tamanho e posição (frações deformavam a borda dos ícones).
@@ -185,7 +187,13 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   antes de ligar, libera o que já escuta fora do loopback (`ss -ltnp`; SSH do HP continua). Compartilhar libera/fecha
   as portas do Samba e wsdd2. A área de trabalho (`src/shell/firewall.rs`) vê porta TCP nova em escuta (< 32768, duas
   voltas de 5 s) bloqueada → zenity "Permitir / Manter bloqueado" (`~/.config/kalango/firewall-bloqueados`).
-  Configurações → Compartilhamento → FIREWALL (`src/settings/firewall.rs`): liga/desliga e remove portas.
+  **Página própria Configurações → Firewall (2026-11-18, página 13, depois de Compartilhamento;
+  `FirewallPage`, `src/settings/firewall.rs`):** liga/desliga, regras com chave ativar/desativar (desativada sai do
+  ufw e fica na lista) e Remover, formulário "Abrir portas" (nome, porta ou faixa `6000-6010`, TCP/UDP/os dois,
+  rede local ou qualquer um, atalhos SSH/Web/Minecraft/KDE Connect). Arquivo: `permitir=PORTAS/PROTO ORIGEM ESTADO
+  NOME` (`qualquer|local`, `on|off`; linhas antigas valem como `qualquer on`); "ambos" vira duas regras; rede local =
+  faixas privadas IPv4/IPv6 (uma regra do ufw por faixa). O Samba do Compartilhamento abre só para a rede local.
+  Regra desativada também conta como decisão (o aviso não pergunta de novo: `Config::covers_tcp`).
 - **Ícone "Instalar KalangOS" na área de trabalho da ISO live (2026-11-18):** `Shell.live`
   (`/run/live/medium`), `ui/components/install_icon.slint`, canto de cima; além do item nos recentes do menu.
 - **Menu de apps como o Launchpad (2026-11-18):** uma lista só com rolagem (FIXADOS, RECENTES, TODOS OS APPS =

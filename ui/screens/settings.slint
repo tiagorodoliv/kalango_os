@@ -9,7 +9,7 @@ import { Icons } from "../icons.slint";
 import { Shell, TerminalTheme } from "../globals.slint";
 import { SectionLabel, IconButton, Toggle, SliderBar } from "../components/widgets.slint";
 import {
-    NetworkPage, BluetoothPage, DisplaysPage, SoundPage, PowerPage, UsersPage, SharingPage, RegionPage, UpdatesPage, AboutPage,
+    NetworkPage, BluetoothPage, DisplaysPage, SoundPage, PowerPage, UsersPage, SharingPage, FirewallPage, RegionPage, UpdatesPage, AboutPage,
     PrintersPage,
     TaskbarPage,
 } from "settings_pages.slint";
@@ -728,10 +728,12 @@ export component SettingsScreen inherits Rectangle {
         { name: @tr("Updates"), icon: Icons.download, badge: Updates.list.length },
         { name: @tr("About"), icon: Icons.info },
         { name: @tr("Printers"), icon: Icons.printer },
+        { name: "Firewall", icon: Icons.shield },
     ];
-    /// Ordem na barra lateral (índices de `sections`; Impressoras entrou
-    /// depois, sem renumerar as páginas, que os atalhos `settings:<n>` usam).
-    property <[int]> order: [0, 1, 2, 3, 4, 5, 6, 7, 12, 8, 9, 10, 11];
+    /// Ordem na barra lateral (índices de `sections`; Impressoras e Firewall
+    /// entraram depois, sem renumerar as páginas, que os atalhos
+    /// `settings:<n>` usam).
+    property <[int]> order: [0, 1, 2, 3, 4, 5, 6, 7, 12, 8, 13, 9, 10, 11];
     /// Página aberta (índice em `sections`).
     in-out property <int> current: 2;
 
@@ -854,6 +856,7 @@ export component SettingsScreen inherits Rectangle {
         if root.current == 10: UpdatesPage { }
         if root.current == 11: AboutPage { }
         if root.current == 12: PrintersPage { }
+        if root.current == 13: FirewallPage { }
     }
 
     // Fechar dentro da tela só no protótipo (lá as Configurações são uma tela

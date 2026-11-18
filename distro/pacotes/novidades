@@ -2,16 +2,14 @@
 # descrição do pacote e a página Configurações → Atualizações as mostra antes
 # de instalar. Uma linha curta por novidade; [pt] e [en]. Troque a cada versão.
 [pt]
-Firewall ligado por padrão, com aviso quando um programa pede para receber conexões
-Menu de apps numa lista só, com rolagem, como no macOS
-Ícones Mandacaru: Barro, Caatinga e Noite do sertão (Barra de tarefas)
-Teclas de volume, brilho, player e calculadora funcionando
-A dock some em vídeo de tela cheia
-Notas da versão aqui nas Atualizações
+Firewall com página própria nas Configurações
+Abrir portas ou faixas, em TCP, UDP ou os dois, para a rede local ou qualquer um
+Ativar e desativar cada regra sem apagar
+Compartilhamento de pastas liberado só para a rede local
+Teclas de volume e brilho mais rápidas, com o valor na hora
 [en]
-Firewall on by default, with a notice when a program asks to receive connections
-App menu in a single scrolling list, like macOS
-Mandacaru icons: Clay, Caatinga and Night (Taskbar)
-Volume, brightness, player and calculator keys now work
-The dock hides during full-screen video
-Release notes here in Updates
+Firewall has its own page in Settings
+Open ports or ranges, TCP, UDP or both, for the local network or anyone
+Turn each rule on and off without deleting it
+Folder sharing allowed only from the local network
+Faster volume and brightness keys, with the value shown right away

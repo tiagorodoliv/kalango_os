@@ -1659,3 +1659,48 @@ msgstr "Caatinga"
 
 msgid "Night"
 msgstr "Noite"
+
+msgid "The firewall is not installed"
+msgstr "O firewall não está instalado"
+
+msgid "The firewall works in the KalangOS session, with ufw installed (it comes with the updates)."
+msgstr "O firewall funciona na sessão do KalangOS, com o ufw instalado (vem com as atualizações)."
+
+msgid "Programs on this computer can always reach the internet. The firewall only decides who can connect to it from outside. When a program starts waiting for connections, KalangOS asks you first."
+msgstr "Os programas deste computador sempre acessam a internet. O firewall só decide quem pode se conectar a ele de fora. Quando um programa começa a esperar conexões, o KalangOS pergunta antes."
+
+msgid "ALLOWED CONNECTIONS"
+msgstr "CONEXÕES PERMITIDAS"
+
+msgid "No open ports. Everything coming from outside is blocked."
+msgstr "Nenhuma porta aberta. Tudo o que chega de fora é bloqueado."
+
+msgid "{} · local network only"
+msgstr "{} · só rede local"
+
+msgid "{} · anyone"
+msgstr "{} · qualquer um"
+
+msgid " · disabled"
+msgstr " · desativada"
+
+msgid "OPEN PORTS"
+msgstr "ABRIR PORTAS"
+
+msgid "Name (e.g. Game server)"
+msgstr "Nome (ex.: Servidor do jogo)"
+
+msgid "Port or range: 8000 or 6000-6010"
+msgstr "Porta ou faixa: 8000 ou 6000-6010"
+
+msgid "TCP and UDP"
+msgstr "TCP e UDP"
+
+msgid "Local network"
+msgstr "Rede local"
+
+msgid "Anyone"
+msgstr "Qualquer um"
+
+msgid "TCP is used by most programs (web, SSH, games); UDP by voice, video and some games. \"Local network\" accepts only computers on your home or office network."
+msgstr "TCP é o usado pela maioria dos programas (web, SSH, jogos); UDP por voz, vídeo e alguns jogos. \"Rede local\" aceita só computadores da sua casa ou do escritório."

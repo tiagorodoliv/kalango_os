@@ -21,7 +21,8 @@ erro() {
 	exit 1
 }
 
-# Portas do Samba (NetBIOS e SMB) e do wsdd2 (aparecer na Rede do Windows):
+# Portas do Samba (NetBIOS e SMB) e do wsdd2 (aparecer na Rede do Windows),
+# só para a rede local:
 # liberadas no firewall enquanto o compartilhamento está ligado.
 PORTAS="137/udp 138/udp 139/tcp 445/tcp 3702/udp 5357/tcp"
 FIREWALL=/usr/local/sbin/kalango-firewall
@@ -30,7 +31,7 @@ case "${1:-}" in
 ligar)
 	systemctl enable --now smbd.service wsdd2.service
 	if [ -x "$FIREWALL" ]; then
-		for p in $PORTAS; do "$FIREWALL" permitir "$p" Compartilhamento || true; done
+		for p in $PORTAS; do "$FIREWALL" permitir "$p" Compartilhamento local || true; done
 	fi
 	;;
 desligar)

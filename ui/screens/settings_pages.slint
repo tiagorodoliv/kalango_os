@@ -2113,43 +2113,6 @@ export component SharingPage inherits Rectangle {
                 text: @tr("Sharing folders works in the KalangOS session, with Samba installed.");
             }
 
-            // --- Firewall (ufw, ligado por padrão) ---
-            if Device.firewall-available: SectionLabel { text: @tr("FIREWALL"); }
-            if Device.firewall-available: Panel {
-                height: (1 + Device.firewall-rules.length) * 67px;
-                VerticalLayout {
-                    Row {
-                        title: @tr("Firewall");
-                        subtitle: Device.firewall-busy ? @tr("Please wait...")
-                            : Device.firewall-enabled ? @tr("On: blocks connections, except the ones below")
-                            : @tr("Off: any computer can try to connect");
-                        divider: false;
-                        Toggle {
-                            x: parent.width - self.width - 20px;
-                            checked <=> Device.firewall-enabled;
-                            toggled(on) => { Device.set-firewall(on); }
-                        }
-                    }
-                    for rule[i] in Device.firewall-rules: Row {
-                        title: rule.name != "" ? rule.name : rule.port;
-                        subtitle: @tr("Allowed · port {}", rule.port);
-                        PillButton {
-                            x: parent.width - self.width - 20px;
-                            text: @tr("Remove");
-                            enabled: !Device.firewall-busy;
-                            clicked => { Device.remove-firewall-rule(i); }
-                        }
-                    }
-                }
-            }
-            if Device.firewall-message != "": Text {
-                text: Device.firewall-message;
-                color: Theme.text-muted;
-                font-family: Theme.sans;
-                font-size: 13.5px;
-                wrap: word-wrap;
-            }
-
             if Device.sharing-available: SectionLabel { text: @tr("FILE SHARING"); }
             if Device.sharing-available: Panel {
                 height: 3 * 67px;
@@ -2350,6 +2313,215 @@ export component SharingPage inherits Rectangle {
                     text: @tr("Browse network");
                     clicked => { Device.browse-network(); }
                 }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Firewall
+// ---------------------------------------------------------------------------
+
+/// Campo de texto de uma linha com dica (para o formulário do Firewall).
+component FieldBox inherits Rectangle {
+    in property <string> hint;
+    in-out property <string> text <=> input.text;
+    callback accepted();
+    height: 38px;
+    border-radius: Theme.radius-small;
+    background: Theme.sunken;
+    border-width: 1px;
+    border-color: input.has-focus ? Theme.accent : Theme.border;
+    if input.text == "": Text {
+        x: 12px;
+        width: parent.width - 24px;
+        overflow: elide;
+        text: root.hint;
+        color: Theme.text-muted;
+        font-family: Theme.sans;
+        font-size: 14px;
+        vertical-alignment: center;
+    }
+    input := TextInput {
+        x: 12px;
+        width: parent.width - 24px;
+        height: parent.height;
+        vertical-alignment: center;
+        color: Theme.text;
+        font-family: Theme.sans;
+        font-size: 14px;
+        accepted => { root.accepted(); }
+    }
+}
+
+/// Configurações → Firewall (`src/settings/firewall.rs`): liga/desliga, as
+/// regras (ativar, desativar, remover) e o formulário para abrir portas.
+export component FirewallPage inherits Rectangle {
+    /// Formulário "Abrir portas".
+    property <int> proto: 0;
+    property <bool> local-only: true;
+    property <string> name-text;
+    property <string> ports-text;
+
+    // Deu certo: limpa o formulário.
+    property <int> added: Device.firewall-added;
+    changed added => {
+        root.name-text = "";
+        root.ports-text = "";
+    }
+
+    Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: fw-col.preferred-height + 36px;
+        fw-col := VerticalLayout {
+            x: 0;
+            y: 12px;
+            width: min(Page.max-width, parent.width);
+            alignment: start;
+            spacing: 12px;
+
+            if !Device.firewall-available: EmptyNotice {
+                icon: Icons.shield;
+                title: @tr("The firewall is not installed");
+                text: @tr("The firewall works in the KalangOS session, with ufw installed (it comes with the updates).");
+            }
+
+            if Device.firewall-available: Panel {
+                height: 67px;
+                Row {
+                    title: @tr("Firewall");
+                    subtitle: Device.firewall-busy ? @tr("Please wait...")
+                        : Device.firewall-enabled ? @tr("On: blocks connections, except the ones below")
+                        : @tr("Off: any computer can try to connect");
+                    divider: false;
+                    Toggle {
+                        x: parent.width - self.width - 20px;
+                        checked <=> Device.firewall-enabled;
+                        toggled(on) => { Device.set-firewall(on); }
+                    }
+                }
+            }
+            if Device.firewall-available: Text {
+                text: @tr("Programs on this computer can always reach the internet. The firewall only decides who can connect to it from outside. When a program starts waiting for connections, KalangOS asks you first.");
+                color: Theme.text-muted;
+                font-family: Theme.sans;
+                font-size: 13px;
+                wrap: word-wrap;
+            }
+
+            // --- Regras ---
+            if Device.firewall-available: SectionLabel { text: @tr("ALLOWED CONNECTIONS"); }
+            if Device.firewall-available: Panel {
+                height: max(1, Device.firewall-rules.length) * 67px;
+                if Device.firewall-rules.length == 0: Text {
+                    x: 20px;
+                    text: @tr("No open ports. Everything coming from outside is blocked.");
+                    color: Theme.text-muted;
+                    font-family: Theme.sans;
+                    font-size: 13.5px;
+                    vertical-alignment: center;
+                }
+                VerticalLayout {
+                    for rule[i] in Device.firewall-rules: Row {
+                        divider: i > 0;
+                        title: rule.name != "" ? rule.name : rule.port;
+                        subtitle: (rule.local ? @tr("{} · local network only", rule.port) : @tr("{} · anyone", rule.port))
+                            + (rule.enabled ? "" : @tr(" · disabled"));
+                        opacity: rule.enabled ? 1 : 0.65;
+                        PillButton {
+                            x: parent.width - self.width - 20px;
+                            text: @tr("Remove");
+                            enabled: !Device.firewall-busy;
+                            clicked => { Device.remove-firewall-rule(i); }
+                        }
+                        Toggle {
+                            x: parent.width - self.width - 130px;
+                            checked: rule.enabled;
+                            toggled(on) => { Device.set-firewall-rule(i, on); }
+                        }
+                    }
+                }
+            }
+
+            // --- Abrir portas ---
+            if Device.firewall-available: SectionLabel { text: @tr("OPEN PORTS"); }
+            if Device.firewall-available: Panel {
+                height: form.preferred-height + 36px;
+                form := VerticalLayout {
+                    x: 20px;
+                    y: 18px;
+                    width: parent.width - 40px;
+                    spacing: 12px;
+                    // Atalhos de serviços comuns: preenchem o formulário.
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        for preset in [
+                            { name: "SSH", ports: "22", proto: 0 },
+                            { name: "Web", ports: "80", proto: 0 },
+                            { name: "Web HTTPS", ports: "443", proto: 0 },
+                            { name: "Minecraft", ports: "25565", proto: 0 },
+                            { name: "KDE Connect", ports: "1714-1764", proto: 2 },
+                        ]: PillButton {
+                            height: 28px;
+                            text: preset.name;
+                            clicked => {
+                                root.name-text = preset.name;
+                                root.ports-text = preset.ports;
+                                root.proto = preset.proto;
+                            }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        FieldBox {
+                            text <=> root.name-text;
+                            horizontal-stretch: 2;
+                            hint: @tr("Name (e.g. Game server)");
+                        }
+                        FieldBox {
+                            text <=> root.ports-text;
+                            horizontal-stretch: 1;
+                            hint: @tr("Port or range: 8000 or 6000-6010");
+                            accepted => { add-btn.clicked(); }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: space-between;
+                        Segmented {
+                            options: ["TCP", "UDP", @tr("TCP and UDP")];
+                            selected: root.proto;
+                            chosen(i) => { root.proto = i; }
+                        }
+                        Segmented {
+                            options: [@tr("Local network"), @tr("Anyone")];
+                            selected: root.local-only ? 0 : 1;
+                            chosen(i) => { root.local-only = i == 0; }
+                        }
+                        add-btn := PillButton {
+                            text: Device.firewall-busy ? @tr("Please wait...") : @tr("Open");
+                            primary: true;
+                            enabled: !Device.firewall-busy && root.ports-text != "";
+                            clicked => { Device.add-firewall-rule(root.name-text, root.ports-text, root.proto, root.local-only); }
+                        }
+                    }
+                    Text {
+                        text: @tr("TCP is used by most programs (web, SSH, games); UDP by voice, video and some games. \"Local network\" accepts only computers on your home or office network.");
+                        color: Theme.text-muted;
+                        font-family: Theme.sans;
+                        font-size: 12.5px;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+            if Device.firewall-message != "": Text {
+                text: Device.firewall-message;
+                color: Theme.danger;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+                wrap: word-wrap;
             }
         }
     }

@@ -178,7 +178,7 @@ pub fn start() {
             let ignored = blocked();
             let candidates: Vec<Listener> = now
                 .into_iter()
-                .filter(|l| l.port < EPHEMERAL && !conf.allows_tcp(l.port))
+                .filter(|l| l.port < EPHEMERAL && !conf.covers_tcp(l.port))
                 .filter(|l| !ignored.contains(&l.port) && !asked.contains(&l.port))
                 .collect();
             let previous = std::mem::replace(&mut seen, candidates.iter().map(|l| l.port).collect());
