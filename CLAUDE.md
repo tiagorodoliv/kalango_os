@@ -167,6 +167,10 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (`Dock.shadow: false`): a janela tem o tamanho exato e a sombra cortada aparecia nos cantos ("sobra"). Sem placa de vídeo ou com a
   dock escondida, ela continua desenhada na área de trabalho (atrás das janelas). Com placa de vídeo, todo o shell
   usa OpenGL (`renderer_for`: a Aparência travava no renderer de software).
+- **Notas da versão nas Atualizações (2026-11-18):** `distro/pacotes/novidades` ([pt] e [en], uma linha curta por
+  novidade; **trocar a cada versão publicada**) → o `gerar-deb.sh` põe na descrição do pacote (parágrafos
+  "Novidades:"/"What's new:", linhas " - "); a página Atualizações lê pelo `apt-cache show pacote=versão` antes de
+  instalar (`updates::parse_notes`, só pacotes `kalango*`) e mostra embaixo da linha ("Interface do KalangOS").
 - **Teclas de mídia (2026-11-18):** `XF86Audio*`, `XF86MonBrightness*`, Calculadora, Explorer, WWW, Search e Tools
   no rc.xml → `/usr/local/bin/kalango-midia` (wpctl, brightnessctl, playerctl; valor no centro da barra pelo
   `kalango-aviso`). Volume/brilho/player com `allowWhenLocked`. ISO antiga recebe pelo rc.xml do usuário

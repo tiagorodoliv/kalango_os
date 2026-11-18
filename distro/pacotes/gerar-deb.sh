@@ -35,6 +35,21 @@ ROOT=$(dirname "$DISTRO")
 INC="$DISTRO/config/includes.chroot"
 VERSAO=$(sed -n 's/^version *= *"\(.*\)"/\1/p' "$ROOT/Cargo.toml" | head -n 1)-${KALANGO_REVISAO:-1}
 
+# Novidades da versão (distro/pacotes/novidades) na descrição do pacote, em
+# parágrafos "Novidades:" e "What's new:" com uma linha " - texto" cada; a
+# página Atualizações as lê pelo apt-cache antes de instalar.
+novidades() {
+	arq="$DISTRO/pacotes/novidades"
+	[ -f "$arq" ] || return 0
+	for lingua in pt en; do
+		itens=$(sed -n "/^\[$lingua\]/,/^\[/{/^\[/d;/^#/d;/^[[:space:]]*\$/d;s/^/ - /;p}" "$arq")
+		[ -n "$itens" ] || continue
+		echo " ."
+		if [ "$lingua" = pt ]; then echo " Novidades:"; else echo " What's new:"; fi
+		echo "$itens"
+	done
+}
+
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 P="$TMP/pkg"
@@ -87,6 +102,7 @@ Description: Interface do KalangOS (barra, dock, menu e Configurações)
  Shell gráfico do KalangOS em Rust + Slint, com os scripts do sistema que
  acompanham cada versão (sessão, tela de login, bloqueio, energia, usuários,
  impressoras, atualizações e o conserto do Wi-Fi/Bluetooth ao acordar).
+$(novidades)
 CTRL
 # A sessão aberta continua com o binário antigo até entrar de novo.
 cat >"$P/DEBIAN/postinst" <<'POST'

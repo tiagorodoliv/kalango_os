@@ -1,0 +1,17 @@
+# Novidades da próxima versão do kalango-shell. O gerar-deb.sh as põe na
+# descrição do pacote e a página Configurações → Atualizações as mostra antes
+# de instalar. Uma linha curta por novidade; [pt] e [en]. Troque a cada versão.
+[pt]
+Firewall ligado por padrão, com aviso quando um programa pede para receber conexões
+Menu de apps numa lista só, com rolagem, como no macOS
+Ícones Mandacaru: Barro, Caatinga e Noite do sertão (Barra de tarefas)
+Teclas de volume, brilho, player e calculadora funcionando
+A dock some em vídeo de tela cheia
+Notas da versão aqui nas Atualizações
+[en]
+Firewall on by default, with a notice when a program asks to receive connections
+App menu in a single scrolling list, like macOS
+Mandacaru icons: Clay, Caatinga and Night (Taskbar)
+Volume, brightness, player and calculator keys now work
+The dock hides during full-screen video
+Release notes here in Updates

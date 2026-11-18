@@ -587,6 +587,9 @@ export struct UpdateItem {
     version: string,
     /// Sistema (apt) ou app (Flatpak).
     app: bool,
+    /// Novidades da versão nova, uma por linha (só nos pacotes do KalangOS,
+    /// que as trazem na descrição: `distro/pacotes/novidades`).
+    notes: string,
 }
 
 /// Atualizações (Configurações → Atualizações, `src/settings/updates.rs`).

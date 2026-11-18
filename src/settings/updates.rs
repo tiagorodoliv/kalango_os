@@ -29,6 +29,8 @@ pub struct Package {
     pub name: String,
     pub old: String,
     pub new: String,
+    /// Novidades da versão nova (só nos pacotes do KalangOS), uma por linha.
+    pub notes: String,
 }
 
 /// Lê `apt list --upgradable`:
@@ -39,7 +41,7 @@ pub fn parse_upgradable(text: &str) -> Vec<Package> {
             let (name, rest) = l.split_once('/')?;
             let new = rest.split_whitespace().nth(1)?.to_string();
             let old = l.split_once("upgradable from: ")?.1.trim_end_matches(']').trim().to_string();
-            Some(Package { name: name.to_string(), old, new })
+            Some(Package { name: name.to_string(), old, new, notes: String::new() })
         })
         .collect()
 }
@@ -91,7 +93,10 @@ fn read(program: &str, args: &[&str]) -> String {
 
 /// Lê o que há para atualizar (apt e Flatpak).
 fn read_updates() -> (Vec<Package>, Vec<(String, String)>) {
-    let apt = parse_upgradable(&read("apt", &["list", "--upgradable"]));
+    let mut apt = parse_upgradable(&read("apt", &["list", "--upgradable"]));
+    for p in &mut apt {
+        p.notes = notes_of(&p.name, &p.new);
+    }
     let flatpak = if crate::shell::session::find_in_path("flatpak").is_some() {
         parse_flatpak(&read("flatpak", &["remote-ls", "--updates", "--columns=name,application,version"]))
     } else {
@@ -121,14 +126,65 @@ fn last_check() -> String {
     }
 }
 
+/// Novidades na descrição de um pacote do KalangOS (`apt-cache show`): a
+/// seção "Novidades:" (ou "What's new:" fora do português), uma linha
+/// " - texto" por novidade, até o próximo parágrafo (" .").
+pub fn parse_notes(show: &str, portuguese: bool) -> Vec<String> {
+    let header = if portuguese { " Novidades:" } else { " What's new:" };
+    let mut out = Vec::new();
+    let mut inside = false;
+    for line in show.lines() {
+        if line == header {
+            inside = true;
+        } else if inside {
+            match line.strip_prefix(" - ") {
+                Some(item) => out.push(item.trim().to_string()),
+                None => break,
+            }
+        }
+    }
+    out
+}
+
+/// Novidades da versão `version` de um pacote (vazio nos pacotes sem elas).
+fn notes_of(name: &str, version: &str) -> String {
+    if !name.starts_with("kalango") {
+        return String::new();
+    }
+    let show = read("apt-cache", &["show", "--no-all-versions", &format!("{name}={version}")]);
+    parse_notes(&show, tr("en", "pt") == "pt")
+        .iter()
+        .map(|n| format!("• {n}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Nome mostrado: o pacote da interface tem nome de gente.
+fn display_name(name: &str) -> String {
+    match name {
+        "kalango-shell" => tr("KalangOS interface", "Interface do KalangOS").to_string(),
+        _ => name.to_string(),
+    }
+}
+
 /// Mostra a lista na página.
 fn show(ui: &AppWindow, apt: &[Package], flatpak: &[(String, String)]) {
     let u = ui.global::<Updates>();
     let mut items: Vec<UpdateItem> = apt
         .iter()
-        .map(|p| UpdateItem { name: p.name.clone().into(), version: format!("{} → {}", p.old, p.new).into(), app: false })
+        .map(|p| UpdateItem {
+            name: display_name(&p.name).into(),
+            version: format!("{} → {}", p.old, p.new).into(),
+            app: false,
+            notes: p.notes.clone().into(),
+        })
         .collect();
-    items.extend(flatpak.iter().map(|(name, v)| UpdateItem { name: name.clone().into(), version: v.clone().into(), app: true }));
+    items.extend(flatpak.iter().map(|(name, v)| UpdateItem {
+        name: name.clone().into(),
+        version: v.clone().into(),
+        app: true,
+        notes: Default::default(),
+    }));
     u.set_list(ModelRc::from(Rc::new(VecModel::from(items))));
     u.set_last_check(last_check().into());
 }
@@ -293,13 +349,23 @@ mod tests {
     use super::*;
 
     #[test]
+    fn novidades_na_descricao() {
+        let show = "Package: kalango-shell\nVersion: 0.1.1-11\nDescription: Interface do KalangOS\n \
+                    Shell gráfico.\n .\n Novidades:\n - Firewall ligado\n - Menu com rolagem\n .\n \
+                    What's new:\n - Firewall on\nHomepage: x\n";
+        assert_eq!(parse_notes(show, true), ["Firewall ligado", "Menu com rolagem"]);
+        assert_eq!(parse_notes(show, false), ["Firewall on"]);
+        assert!(parse_notes("Package: bash\nDescription: GNU\n shell\n", true).is_empty());
+    }
+
+    #[test]
     fn lista_do_apt() {
         let text = "Listing...\n\
                     firefox-esr/stable-security 128.5.0esr-1~deb13u1 amd64 [upgradable from: 128.4.0esr-1~deb13u1]\n\
                     linux-image-amd64/stable 6.12.120-1 amd64 [upgradable from: 6.12.117-1]\n";
         let p = parse_upgradable(text);
         assert_eq!(p.len(), 2);
-        assert_eq!(p[0], Package { name: "firefox-esr".into(), old: "128.4.0esr-1~deb13u1".into(), new: "128.5.0esr-1~deb13u1".into() });
+        assert_eq!(p[0], Package { name: "firefox-esr".into(), old: "128.4.0esr-1~deb13u1".into(), new: "128.5.0esr-1~deb13u1".into(), notes: String::new() });
         assert!(needs_reboot(&p));
         assert!(!needs_reboot(&p[..1]));
     }

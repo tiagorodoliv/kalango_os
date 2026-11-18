@@ -2514,9 +2514,11 @@ export component UpdatesPage inherits Rectangle {
                 height: list-col.preferred-height;
                 list-col := VerticalLayout {
                     for u[i] in Updates.list: Rectangle {
-                        height: 50px;
+                        // Linha de 50 px; com novidades, o texto delas embaixo.
+                        height: u.notes == "" ? 50px : 50px + notes-text.preferred-height + 14px;
                         if i > 0: Rectangle { y: 0; height: 1px; background: Theme.border; }
                         Image {
+                            y: (50px - self.height) / 2;
                             x: 20px;
                             width: 18px;
                             height: 18px;
@@ -2526,6 +2528,8 @@ export component UpdatesPage inherits Rectangle {
                         Text {
                             x: 52px;
                             width: parent.width * 0.45;
+                            y: 0;
+                            height: 50px;
                             text: u.name;
                             color: Theme.text;
                             font-family: Theme.sans;
@@ -2536,6 +2540,8 @@ export component UpdatesPage inherits Rectangle {
                         }
                         Text {
                             x: parent.width * 0.5;
+                            y: 0;
+                            height: 50px;
                             width: parent.width * 0.5 - 20px;
                             text: u.version;
                             color: Theme.text-muted;
@@ -2544,6 +2550,18 @@ export component UpdatesPage inherits Rectangle {
                             horizontal-alignment: right;
                             vertical-alignment: center;
                             overflow: elide;
+                        }
+                        // O que a versão traz, em poucas linhas.
+                        notes-text := Text {
+                            x: 52px;
+                            y: 44px;
+                            width: parent.width - 72px;
+                            visible: u.notes != "";
+                            text: u.notes;
+                            color: Theme.text-muted;
+                            font-family: Theme.sans;
+                            font-size: 13px;
+                            wrap: word-wrap;
                         }
                     }
                 }
