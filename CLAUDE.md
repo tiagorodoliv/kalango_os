@@ -54,7 +54,9 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
     viram `bottom`/`left`/`right` no `<margin>`. Papel de parede: `Theme.wallpaper` (0 = circuitos, padrão
     1 = PretoAzul), arquivos em `/usr/share/backgrounds/kalango` (copiados pelo `build.sh`), carregados por
     `src/shell/wallpaper.rs` na menor resolução que cobre a tela; escolha com miniaturas na Aparência. **Imagem própria** (`Theme.wallpaper` = 8 =
-    `wallpaper::CUSTOM`, `papel-de-parede=arquivo` + `papel-de-parede-arquivo=`): "+" na Aparência (zenity) ou "Abrir
+    `wallpaper::CUSTOM`, `papel-de-parede=arquivo` + `papel-de-parede-arquivo=`; desde 2026-11-18 o índice da imagem própria é
+    `MODELS.len() + 1` = 10, com os modelos **SertaoDia/SertaoNoite** em JPEG no fim da lista e no pacote, e a Aparência
+    mostra **todas** as imagens já adicionadas (`wallpaper::customs`, "×" tira da lista): "+" na Aparência (zenity) ou "Abrir
     com → Definir como papel de parede" (`kalango-papel-de-parede.desktop` → `kalango-shell --papel-de-parede ARQ`);
     o shell grava uma cópia reduzida (cobre 2560×1440, JPEG, crate `image` que o Slint já traz) e a miniatura em
     `~/.local/share/backgrounds`. A tela de bloqueio usa a mesma cópia. Tema de ícones novo: a dock em janela
@@ -195,7 +197,9 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `aparencia.conf`), cor de destaque e tema claro; some 1,5 s depois; sai sozinho quando o binário é atualizado.
   **Volume 0%/100%:** com `LC_NUMERIC=pt_BR` (formatos do Brasil no instalador, mesmo com o sistema em inglês) o
   `awk` lia "0.96" como 0: o `kalango-midia` usa `LC_ALL=C` no wpctl e no awk. O script chama o aviso com `9>&-`
-  (senão o processo do aviso herdaria a trava do `flock` e as teclas parariam). Tecla de e-mail (`XF86Mail`) =
+  (senão o processo do aviso herdaria a trava do `flock` e as teclas parariam). **O 1º pedido abre o processo do aviso
+  separado** (`--osd=servidor`, grupo de processos próprio) e sai em ~20 ms: na 0.1.1-13 o 1º aperto *virava* o aviso,
+  o script ficava esperando por ele com a trava e todas as teclas seguintes eram descartadas. Tecla de e-mail (`XF86Mail`) =
   `xdg-email`. Teclado do Tiago: só a tecla de e-mail chegava aos apps; as outras já eram atalhos.
 - **Tela cheia sem dock (2026-11-18):** `toplevels` lê o estado 3 (tela cheia); app em foco em tela cheia →
   `Shell.app-fullscreen` → `dock::install` fecha a dock em janela própria/faixa (sem mexer no rc.xml) e reabre depois.

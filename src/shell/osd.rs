@@ -2,9 +2,9 @@
 //! no Ubuntu): `kalango-shell --osd=volume:45` (ou `volume:mudo:45`,
 //! `microfone:30`, `brilho:80`), chamado pelo `kalango-midia`.
 //!
-//! O primeiro pedido vira o processo do aviso, que fica aberto na sessão
-//! escutando `$XDG_RUNTIME_DIR/kalango-osd.sock`; os seguintes só mandam o
-//! pedido por ele e saem (rápido, sem abrir janela), como o Alt+Tab.
+//! O primeiro pedido abre, separado, o processo do aviso (`--osd=servidor`),
+//! que fica aberto na sessão escutando `$XDG_RUNTIME_DIR/kalango-osd.sock`;
+//! todo pedido só manda o texto por ele e sai na hora (~3 ms).
 //!
 //! O aviso é uma camada "overlay" do Wayland (`zwlr_layer_shell_v1`, que o
 //! labwc tem): não recebe foco nem cliques (quem está digitando continua
@@ -332,12 +332,61 @@ impl Osd {
 
 /// Roda `--osd=PEDIDO`: manda ao processo aberto ou vira ele.
 pub fn run(text: &str) {
+    if text == SERVER {
+        serve();
+        return;
+    }
     if send(text) {
+        return;
+    }
+    // Sem o processo do aviso: abre um, separado, e manda o pedido a ele.
+    // Este processo sai logo: quem chamou (o kalango-midia, que segura a
+    // trava das teclas) não pode ficar esperando o aviso, que fica aberto a
+    // sessão toda. Antes o primeiro aperto virava o aviso e o script ficava
+    // preso esperando por ele, com a trava: as teclas paravam de responder.
+    if spawn_server() {
+        for _ in 0..50 {
+            std::thread::sleep(Duration::from_millis(20));
+            if send(text) {
+                return;
+            }
+        }
+    }
+}
+
+/// Argumento do processo do aviso (`--osd=servidor`).
+const SERVER: &str = "servidor";
+
+/// Abre o processo do aviso em segundo plano, num grupo de processos
+/// próprio e sem a entrada/saída de quem chamou.
+fn spawn_server() -> bool {
+    use std::os::unix::process::CommandExt;
+    let exe = std::env::current_exe().unwrap_or_else(|_| "kalango-shell".into());
+    std::process::Command::new(exe)
+        .arg(format!("--osd={SERVER}"))
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::inherit())
+        .process_group(0)
+        .spawn()
+        .is_ok()
+}
+
+/// O processo do aviso: escuta os pedidos e mostra/esconde a camada.
+fn serve() {
+    // Outro já está aberto (dois apertos ao mesmo tempo): sai.
+    if socket_path().is_some_and(|p| UnixStream::connect(p).is_ok()) {
         return;
     }
     let Some(path) = socket_path() else { return };
     let _ = std::fs::remove_file(&path);
-    let Ok(listener) = UnixListener::bind(&path) else { return };
+    let listener = match UnixListener::bind(&path) {
+        Ok(l) => l,
+        Err(err) => {
+            eprintln!("kalango-shell: aviso de volume: {}: {err}", path.display());
+            return;
+        }
+    };
     let Some(mut osd) = Osd::new() else {
         eprintln!("kalango-shell: aviso de volume: sem Wayland/layer-shell");
         return;
@@ -356,11 +405,6 @@ pub fn run(text: &str) {
         }
     });
     let mut hide_at: Option<Instant> = None;
-    if let Some(req) = Request::parse(text) {
-        if osd.show(req) {
-            hide_at = Some(Instant::now() + VISIBLE);
-        }
-    }
     loop {
         let wait = hide_at.map_or(Duration::from_secs(60), |t| t.saturating_duration_since(Instant::now()));
         match rx.recv_timeout(wait) {

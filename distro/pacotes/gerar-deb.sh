@@ -65,6 +65,10 @@ for d in usr/local/bin usr/local/sbin usr/local/lib/kalango; do
 	done
 done
 install -D -m 0755 "$INC/usr/lib/systemd/system-sleep/kalango-radios" "$P/usr/lib/systemd/system-sleep/kalango-radios"
+# Papéis de parede em JPEG (as fotos do Sertão, da versão 0.1 Mandacaru): no
+# pacote, para quem atualiza pelo apt. Os desenhados (PNG) vêm só na ISO.
+mkdir -p "$P/usr/share/backgrounds/kalango"
+cp -p "$ROOT"/assets/wallpapers/16x9/Kalango_*.jpg "$P/usr/share/backgrounds/kalango/"
 # Firewall: liga o ufw na primeira vez (kalango-firewall iniciar).
 install -D -m 0644 "$INC/usr/lib/systemd/system/kalango-firewall.service" \
 	"$P/usr/lib/systemd/system/kalango-firewall.service"
