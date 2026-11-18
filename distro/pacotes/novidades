@@ -2,14 +2,12 @@
 # descrição do pacote e a página Configurações → Atualizações as mostra antes
 # de instalar. Uma linha curta por novidade; [pt] e [en]. Troque a cada versão.
 [pt]
-Firewall com página própria nas Configurações
-Abrir portas ou faixas, em TCP, UDP ou os dois, para a rede local ou qualquer um
-Ativar e desativar cada regra sem apagar
-Compartilhamento de pastas liberado só para a rede local
-Teclas de volume e brilho mais rápidas, com o valor na hora
+Aviso flutuante de volume, microfone e brilho acima da dock, como no macOS e no Ubuntu
+Volume mostrava 0% ou 100% com os formatos em português: corrigido
+Tecla de e-mail abre o programa de e-mail
+Firewall com página própria nas Configurações, com faixas de portas e ativar/desativar
 [en]
-Firewall has its own page in Settings
-Open ports or ranges, TCP, UDP or both, for the local network or anyone
-Turn each rule on and off without deleting it
-Folder sharing allowed only from the local network
-Faster volume and brightness keys, with the value shown right away
+Floating volume, microphone and brightness indicator above the dock, like macOS and Ubuntu
+Volume showed 0% or 100% with Portuguese formats: fixed
+The mail key opens the mail program
+Firewall has its own Settings page, with port ranges and on/off per rule

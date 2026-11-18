@@ -1,7 +1,8 @@
 #!/bin/sh
 # Teclas de mídia do KalangOS (volume, brilho, player), ligadas no rc.xml do
-# labwc. Cada uma mostra o resultado no centro da barra (arquivo
-# $XDG_RUNTIME_DIR/kalango-aviso, que a área de trabalho lê a cada segundo).
+# labwc. Volume, microfone e brilho aparecem no aviso flutuante acima da dock
+# (kalango-shell --osd=..., src/shell/osd.rs); sem ele, no centro da barra
+# (arquivo $XDG_RUNTIME_DIR/kalango-aviso).
 #
 #   kalango-midia volume-mais | volume-menos | mudo | microfone
 #   kalango-midia brilho-mais | brilho-menos
@@ -26,15 +27,35 @@ avisar() {
 	[ -n "${XDG_RUNTIME_DIR:-}" ] && printf '%s' "$1" >"$XDG_RUNTIME_DIR/kalango-aviso"
 }
 
-# "Volume: 0.45 [MUTED]" → "45%" ou "mudo".
+# Lê o volume: NIVEL (0–100) e MUDO (1/0). Sempre com LC_ALL=C: com os
+# formatos em português (LC_NUMERIC=pt_BR, o padrão do instalador no Brasil) o
+# awk lia "0.45" como 0 e o aviso mostrava 0% ou 100%.
+ler_volume() {
+	v=$(LC_ALL=C wpctl get-volume "$1" 2>/dev/null) || return 1
+	NIVEL=$(printf '%s\n' "$v" | LC_ALL=C awk '{ printf "%d", $2 * 100 + 0.5 }')
+	case "$v" in *MUTED*) MUDO=1 ;; *) MUDO=0 ;; esac
+}
+
+# Aviso flutuante (TIPO NÍVEL [MUDO]); sem ele, o texto na barra. O "9>&-"
+# fecha a trava no processo do aviso, que fica aberto depois deste script.
+mostrar() {
+	if [ "${3:-0}" = 1 ]; then pedido="$1:mudo:$2"; else pedido="$1:$2"; fi
+	kalango-shell --osd="$pedido" 9>&- 2>/dev/null && return
+	case "$1" in
+	volume) nome=$(t Volume Volume) ;;
+	microfone) nome=$(t Microphone Microfone) ;;
+	*) nome=$(t Brightness Brilho) ;;
+	esac
+	if [ "${3:-0}" = 1 ]; then avisar "$nome $(t muted mudo)"; else avisar "$nome $2%"; fi
+}
+
 volume() {
-	v=$(wpctl get-volume "$1" 2>/dev/null) || return
-	case "$v" in *MUTED*) t "muted" "mudo"; return ;; esac
-	echo "$v" | awk '{ printf "%d%%", $2 * 100 + 0.5 }'
+	ler_volume "$SAIDA" && mostrar volume "$NIVEL" "$MUDO"
 }
 
 brilho() {
-	brightnessctl -m 2>/dev/null | cut -d, -f4
+	b=$(brightnessctl -m 2>/dev/null | cut -d, -f4 | tr -d '%')
+	[ -n "$b" ] && mostrar brilho "$b"
 }
 
 case "${1:-}" in
@@ -43,26 +64,26 @@ volume-mais)
 	wpctl set-mute "$SAIDA" 0 &
 	wpctl set-volume -l 1.0 "$SAIDA" 5%+
 	wait
-	avisar "$(t Volume Volume) $(volume "$SAIDA")"
+	volume
 	;;
 volume-menos)
 	wpctl set-volume "$SAIDA" 5%-
-	avisar "$(t Volume Volume) $(volume "$SAIDA")"
+	volume
 	;;
 mudo)
 	wpctl set-mute "$SAIDA" toggle
-	avisar "$(t Volume Volume) $(volume "$SAIDA")"
+	volume
 	;;
 microfone)
 	wpctl set-mute "$ENTRADA" toggle
-	avisar "$(t Microphone Microfone) $(volume "$ENTRADA")"
+	ler_volume "$ENTRADA" && mostrar microfone "$NIVEL" "$MUDO"
 	;;
 brilho-mais)
-	brightnessctl -q set 5%+ && avisar "$(t Brightness Brilho) $(brilho)"
+	brightnessctl -q set 5%+ && brilho
 	;;
 brilho-menos)
 	# Nunca apaga a tela de todo (mínimo de 1%).
-	brightnessctl -q -n1 set 5%- && avisar "$(t Brightness Brilho) $(brilho)"
+	brightnessctl -q -n1 set 5%- && brilho
 	;;
 tocar) playerctl play-pause ;;
 proxima) playerctl next ;;

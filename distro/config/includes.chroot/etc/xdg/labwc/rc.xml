@@ -163,6 +163,7 @@
     <keybind key="XF86HomePage"><action name="Execute" command="x-www-browser" /></keybind>
     <keybind key="XF86WWW"><action name="Execute" command="x-www-browser" /></keybind>
     <keybind key="XF86Search"><action name="Execute" command="kalango-shell --launcher" /></keybind>
+    <keybind key="XF86Mail"><action name="Execute" command="xdg-email" /></keybind>
     <keybind key="XF86Tools"><action name="Execute" command="kalango-shell --settings" /></keybind>
   </keyboard>
 

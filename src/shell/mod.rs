@@ -23,6 +23,7 @@ pub mod calendar;
 pub mod capture;
 pub mod dock;
 pub mod firewall;
+pub mod osd;
 pub mod greeter;
 pub mod integrity;
 pub mod labwc;

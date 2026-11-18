@@ -177,6 +177,17 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (`labwc::ensure_capture`, bloco `MEDIA_KEYS`). Pacote depende de playerctl e brightnessctl. Segurando a tecla o
   labwc repete o atalho: o script usa `flock -n` (aperto com outro rodando é descartado, sem fila) e a área de
   trabalho lê o `kalango-aviso` a cada 100 ms (antes 1 s: o valor parecia "travado").
+- **Aviso flutuante de volume/microfone/brilho (2026-11-18), como no macOS/Ubuntu:** `kalango-shell --osd=volume:45`
+  (`volume:mudo:45`, `microfone:N`, `brilho:N`; `src/shell/osd.rs`, `ui/screens/osd.slint` = `OsdView`, exportado no
+  `app_window.slint`). O 1º pedido vira o processo do aviso (socket `$XDG_RUNTIME_DIR/kalango-osd.sock`, como o
+  Alt+Tab); **sem winit**: camada `zwlr_layer_shell_v1` overlay (não pega foco nem clique, fica por cima de tela
+  cheia), desenhada pelo `MinimalSoftwareWindow` do Slint numa plataforma própria e copiada para `wl_shm` (arquivo
+  apagado + `write_all_at`, dois buffers). Embaixo no meio, acima da dock (`look_from`: tamanho/posição/solta do
+  `aparencia.conf`), cor de destaque e tema claro; some 1,5 s depois; sai sozinho quando o binário é atualizado.
+  **Volume 0%/100%:** com `LC_NUMERIC=pt_BR` (formatos do Brasil no instalador, mesmo com o sistema em inglês) o
+  `awk` lia "0.96" como 0: o `kalango-midia` usa `LC_ALL=C` no wpctl e no awk. O script chama o aviso com `9>&-`
+  (senão o processo do aviso herdaria a trava do `flock` e as teclas parariam). Tecla de e-mail (`XF86Mail`) =
+  `xdg-email`. Teclado do Tiago: só a tecla de e-mail chegava aos apps; as outras já eram atalhos.
 - **Tela cheia sem dock (2026-11-18):** `toplevels` lê o estado 3 (tela cheia); app em foco em tela cheia →
   `Shell.app-fullscreen` → `dock::install` fecha a dock em janela própria/faixa (sem mexer no rc.xml) e reabre depois.
 - **Ícones em pixel inteiro:** `AppIcon` arredonda tamanho e posição (frações deformavam a borda dos ícones).

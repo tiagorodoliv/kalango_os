@@ -1,0 +1,82 @@
+// Aviso flutuante das teclas de volume, microfone e brilho (como no macOS e
+// no Ubuntu): uma pílula com o ícone, a barra do nível e a porcentagem,
+// perto da dock. Desenhado pelo renderer de software do Slint numa camada
+// "overlay" do Wayland (src/shell/osd.rs): não rouba o foco e fica por cima
+// até de vídeo em tela cheia.
+
+import { Icons } from "../icons.slint";
+
+export component OsdView inherits Window {
+    /// Ícone: 0 volume, 1 sem som, 2 microfone, 3 microfone mudo, 4 brilho.
+    in property <int> kind: 0;
+    /// Nível de 0 a 100 (sem som: o nível que voltará ao tirar o mudo).
+    in property <int> level: 50;
+    in property <bool> muted: false;
+    /// Cor de destaque da Aparência e tema claro.
+    in property <color> accent: #3dd6f5;
+    in property <bool> light: false;
+
+    property <color> text-color: root.light ? #1b2430 : #e6edf3;
+    property <color> muted-color: root.light ? #5b6875 : #8b98a5;
+
+    width: 320px;
+    height: 64px;
+    background: transparent;
+    no-frame: true;
+
+    // Pílula (sem sombra: no renderer de software a sombra sai quadrada).
+    Rectangle {
+        border-radius: self.height / 2;
+        background: root.light ? #f4f6f8f0 : #0d1218f0;
+        border-width: 1px;
+        border-color: root.light ? #00000018 : #ffffff1a;
+
+        Image {
+            x: 22px;
+            width: 22px;
+            height: 22px;
+            source: root.kind == 1 ? Icons.volume-x
+                : root.kind == 4 ? Icons.sun
+                : root.kind >= 2 ? Icons.volume
+                : Icons.volume;
+            colorize: root.muted ? root.muted-color : root.text-color;
+        }
+        // Microfone: o ícone de som com um "M" pequeno (não há ícone próprio).
+        if root.kind == 2 || root.kind == 3: Text {
+            x: 38px;
+            y: 36px;
+            text: "M";
+            color: root.muted ? root.muted-color : root.accent;
+            font-family: "Inter";
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        // Barra do nível.
+        Rectangle {
+            x: 62px;
+            width: parent.width - 62px - 74px;
+            height: 6px;
+            border-radius: 3px;
+            background: root.light ? #00000018 : #ffffff1f;
+            Rectangle {
+                x: 0;
+                width: parent.width * clamp(root.level, 0, 100) / 100;
+                height: parent.height;
+                border-radius: 3px;
+                background: root.muted ? root.muted-color : root.accent;
+            }
+        }
+
+        Text {
+            x: parent.width - 62px;
+            width: 44px;
+            horizontal-alignment: right;
+            text: root.muted ? "—" : root.level + "%";
+            color: root.text-color;
+            font-family: "Inter";
+            font-size: 15px;
+            font-weight: 600;
+        }
+    }
+}

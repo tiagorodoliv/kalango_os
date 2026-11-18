@@ -274,8 +274,12 @@ const MEDIA_KEYS: &str = r#"    <!-- Teclas de mídia (kalango-midia): volume, b
     <keybind key="XF86HomePage"><action name="Execute" command="x-www-browser" /></keybind>
     <keybind key="XF86WWW"><action name="Execute" command="x-www-browser" /></keybind>
     <keybind key="XF86Search"><action name="Execute" command="kalango-shell --launcher" /></keybind>
+    <keybind key="XF86Mail"><action name="Execute" command="xdg-email" /></keybind>
     <keybind key="XF86Tools"><action name="Execute" command="kalango-shell --settings" /></keybind>
 "#;
+
+/// Tecla de e-mail: abre o programa de e-mail padrão.
+const MAIL_KEY: &str = "    <keybind key=\"XF86Mail\"><action name=\"Execute\" command=\"xdg-email\" /></keybind>\n";
 
 /// Regra da ferramenta de captura (como a do calendário).
 const CAPTURE_RULE: &str = r#"    <windowRule identifier="kalango-captura"
@@ -302,6 +306,16 @@ fn ensure_capture(xml: &str) -> String {
     if !xml.contains("kalango-midia volume-mais") {
         if let Some(at) = xml.rfind("</keyboard>") {
             xml = format!("{}{MEDIA_KEYS}  {}", xml[..at].trim_end_matches(' '), &xml[at..]);
+        }
+    }
+    // Tecla de e-mail (entrou depois do bloco das teclas de mídia).
+    if !xml.contains("XF86Mail") {
+        if let Some(at) = xml.rfind("</keyboard>") {
+            xml = format!(
+                "{}{MAIL_KEY}  {}",
+                xml[..at].trim_end_matches(' '),
+                &xml[at..]
+            );
         }
     }
     if !xml.contains("<windowRule identifier=\"kalango-captura\"") {

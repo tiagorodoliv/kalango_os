@@ -278,6 +278,13 @@ pub fn run() -> Result<(), slint::PlatformError> {
         }
         return Ok(());
     }
+    // Aviso flutuante das teclas de volume/brilho: sem janela do winit
+    // (camada do Wayland desenhada pelo renderer de software; src/shell/osd.rs).
+    #[cfg(target_os = "linux")]
+    if let Some(request) = shell::osd::request_from_args(std::env::args()) {
+        shell::osd::run(&request);
+        return Ok(());
+    }
     let mode = Mode::from_args(std::env::args());
     // Alt+Tab: o atalho só manda o pedido ao processo aberto (rápido, sem
     // abrir janela); ver src/shell/switcher.rs.
