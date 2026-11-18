@@ -80,6 +80,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     region::install(&ui, mode);
     sharing::install(&ui, mode);
     crate::settings::firewall::install(&ui, mode);
+    timers.extend(crate::settings::shortcuts::install(&ui, mode));
     terminal::install(&ui, mode);
     usb::install(&ui, mode);
     #[cfg(target_os = "linux")]

@@ -24,6 +24,7 @@ pub mod power;
 pub mod printers;
 pub mod region;
 pub mod sharing;
+pub mod shortcuts;
 pub mod terminal;
 pub mod updates;
 pub mod users;

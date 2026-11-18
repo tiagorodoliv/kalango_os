@@ -2531,57 +2531,260 @@ export component FirewallPage inherits Rectangle {
 // Idioma e região
 // ---------------------------------------------------------------------------
 
-export component RegionPage inherits Rectangle {
-    VerticalLayout {
-        x: 0;
-        y: Page.top;
-        width: min(Page.max-width, parent.width);
-        alignment: start;
-        spacing: 16px;
+/// Tecla modificadora do editor de atalhos (liga/desliga).
+component ModChip inherits Rectangle {
+    in property <string> text;
+    in property <bool> on;
+    callback clicked();
+    width: label.preferred-width + 24px;
+    height: 32px;
+    border-radius: Theme.radius-small;
+    background: root.on ? Theme.accent-soft : touch.has-hover ? Theme.tile-hover : Theme.tile;
+    border-width: 1px;
+    border-color: root.on ? Theme.accent.with-alpha(0.6) : Theme.border;
+    label := Text {
+        text: root.text;
+        color: root.on ? Theme.accent : Theme.text;
+        font-family: Theme.mono;
+        font-size: 13px;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
 
-        Panel {
-            height: 2 * 67px;
-            VerticalLayout {
-                Row {
-                    title: @tr("Language");
-                    subtitle: @tr("Menus, settings and apps");
-                    divider: false;
-                    Dropdown {
-                        // Encolhe em janela estreita.
-                        width: clamp(parent.width * 0.4, 150px, 250px);
-                        x: parent.width - self.width - 20px;
-                        options: Device.languages;
-                        selected: Device.language-index;
-                        chosen(i) => { Device.set-language(i); }
+export component RegionPage inherits Rectangle {
+    /// Editor de atalho aberto: id do atalho padrão, "+novo" (atalho próprio)
+    /// ou "" (fechado).
+    property <string> editing: "";
+    property <string> editing-name;
+    /// Modificadores do editor: 1 Super, 2 Ctrl, 4 Alt, 8 Shift.
+    property <int> mods: 1;
+    property <string> key-text;
+    property <string> new-name;
+    property <string> new-command;
+
+    // Gravou: fecha o editor.
+    property <int> saved: Device.shortcut-saved;
+    changed saved => { root.editing = ""; }
+
+    function open-editor(id: string, name: string) {
+        root.editing = id;
+        root.editing-name = name;
+        root.mods = 1;
+        root.key-text = "";
+        root.new-name = "";
+        root.new-command = "";
+    }
+
+    Flickable {
+        y: Page.top - 12px;
+        height: parent.height - self.y;
+        content-height: region-col.preferred-height + 36px;
+        region-col := VerticalLayout {
+            x: 0;
+            y: 12px;
+            width: min(Page.max-width, parent.width);
+            alignment: start;
+            spacing: 16px;
+
+            Panel {
+                height: 2 * 67px;
+                VerticalLayout {
+                    Row {
+                        title: @tr("Language");
+                        subtitle: @tr("Menus, settings and apps");
+                        divider: false;
+                        Dropdown {
+                            // Encolhe em janela estreita.
+                            width: clamp(parent.width * 0.4, 150px, 250px);
+                            x: parent.width - self.width - 20px;
+                            options: Device.languages;
+                            selected: Device.language-index;
+                            chosen(i) => { Device.set-language(i); }
+                        }
                     }
-                }
-                Row {
-                    title: @tr("Keyboard");
-                    subtitle: Device.keyboard-message != "" ? Device.keyboard-message : @tr("Layout of the keys");
-                    Dropdown {
-                        // Encolhe em janela estreita.
-                        width: clamp(parent.width * 0.4, 150px, 250px);
-                        x: parent.width - self.width - 20px;
-                        options: Device.keyboard-layouts;
-                        selected: Device.keyboard-index;
-                        chosen(i) => { Device.set-keyboard(i); }
+                    Row {
+                        title: @tr("Keyboard");
+                        subtitle: Device.keyboard-message != "" ? Device.keyboard-message : @tr("Layout of the keys");
+                        Dropdown {
+                            // Encolhe em janela estreita.
+                            width: clamp(parent.width * 0.4, 150px, 250px);
+                            x: parent.width - self.width - 20px;
+                            options: Device.keyboard-layouts;
+                            selected: Device.keyboard-index;
+                            chosen(i) => { Device.set-keyboard(i); }
+                        }
                     }
                 }
             }
-        }
 
-        if Device.language-pending: Panel {
-            height: 67px;
-            Row {
-                title: @tr("Sign out to change the language");
-                subtitle: @tr("Open apps keep the current language until then");
-                divider: false;
-                PillButton {
-                    x: parent.width - self.width - 20px;
-                    text: @tr("Log out");
-                    primary: true;
-                    clicked => { Shell.open-app("logout"); }
+            if Device.language-pending: Panel {
+                height: 67px;
+                Row {
+                    title: @tr("Sign out to change the language");
+                    subtitle: @tr("Open apps keep the current language until then");
+                    divider: false;
+                    PillButton {
+                        x: parent.width - self.width - 20px;
+                        text: @tr("Log out");
+                        primary: true;
+                        clicked => { Shell.open-app("logout"); }
+                    }
                 }
+            }
+
+            // --- Atalhos de teclado ---
+            if Shell.native: HorizontalLayout {
+                height: 24px;
+                SectionLabel { text: @tr("KEYBOARD SHORTCUTS"); vertical-alignment: center; }
+                Rectangle { horizontal-stretch: 1; }
+                PillButton {
+                    height: 24px;
+                    text: @tr("Add shortcut");
+                    clicked => { root.open-editor("+novo", ""); }
+                }
+            }
+            if Shell.native: Panel {
+                height: max(1, Device.shortcuts.length) * 60px;
+                VerticalLayout {
+                    for sc[i] in Device.shortcuts: Rectangle {
+                        height: 60px;
+                        if i > 0: Rectangle { x: 20px; y: 0; width: parent.width - 40px; height: 1px; background: Theme.border; }
+                        VerticalLayout {
+                            x: 20px;
+                            width: parent.width * 0.42;
+                            alignment: center;
+                            spacing: 2px;
+                            Text { text: sc.name; color: Theme.text; font-family: Theme.sans; font-size: 14.5px; font-weight: 600; overflow: elide; }
+                            if sc.custom || sc.changed: Text {
+                                text: sc.custom ? sc.command : @tr("Changed");
+                                color: Theme.text-muted;
+                                font-family: sc.custom ? Theme.mono : Theme.sans;
+                                font-size: 12.5px;
+                                overflow: elide;
+                            }
+                        }
+                        // A tecla, num "botão de teclado".
+                        Rectangle {
+                            x: parent.width * 0.45;
+                            width: keys-text.preferred-width + 20px;
+                            height: 28px;
+                            border-radius: 6px;
+                            background: Theme.sunken;
+                            border-width: 1px;
+                            border-color: Theme.border;
+                            keys-text := Text {
+                                text: sc.keys;
+                                color: Theme.text;
+                                font-family: Theme.mono;
+                                font-size: 12.5px;
+                            }
+                        }
+                        HorizontalLayout {
+                            x: parent.width - self.preferred-width - 20px;
+                            height: 32px;
+                            y: (parent.height - self.height) / 2;
+                            spacing: 8px;
+                            if sc.changed: PillButton {
+                                text: @tr("Default");
+                                clicked => { Device.reset-shortcut(sc.id); }
+                            }
+                            PillButton {
+                                text: sc.custom ? @tr("Remove") : @tr("Change");
+                                clicked => {
+                                    if (sc.custom) {
+                                        Device.remove-shortcut(sc.id);
+                                    } else {
+                                        root.open-editor(sc.id, sc.name);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Editor: trocar a tecla de um atalho ou criar um atalho próprio.
+            if Shell.native && root.editing != "": Panel {
+                height: editor.preferred-height + 36px;
+                editor := VerticalLayout {
+                    x: 20px;
+                    y: 18px;
+                    width: parent.width - 40px;
+                    spacing: 12px;
+                    Text {
+                        text: root.editing == "+novo" ? @tr("New shortcut") : @tr("New key for \"{}\"", root.editing-name);
+                        color: Theme.text;
+                        font-family: Theme.sans;
+                        font-size: 14.5px;
+                        font-weight: 600;
+                    }
+                    if root.editing == "+novo": HorizontalLayout {
+                        spacing: 10px;
+                        FieldBox {
+                            text <=> root.new-name;
+                            horizontal-stretch: 1;
+                            hint: @tr("Name (e.g. Image editor)");
+                        }
+                        FieldBox {
+                            text <=> root.new-command;
+                            horizontal-stretch: 2;
+                            hint: @tr("Command (e.g. gimp)");
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        for m[k] in [{ name: "Super", bit: 1 }, { name: "Ctrl", bit: 2 }, { name: "Alt", bit: 4 }, { name: "Shift", bit: 8 }]: ModChip {
+                            text: m.name;
+                            on: Math.mod(floor(root.mods / m.bit), 2) == 1;
+                            clicked => {
+                                root.mods = self.on ? root.mods - m.bit : root.mods + m.bit;
+                            }
+                        }
+                        Text {
+                            text: "+";
+                            color: Theme.text-muted;
+                            font-family: Theme.mono;
+                            font-size: 15px;
+                            vertical-alignment: center;
+                        }
+                        FieldBox {
+                            width: 190px;
+                            text <=> root.key-text;
+                            hint: @tr("Key: T, Enter, F5, Print...");
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: end;
+                        PillButton {
+                            text: @tr("Cancel");
+                            clicked => { root.editing = ""; }
+                        }
+                        PillButton {
+                            text: @tr("Save");
+                            primary: true;
+                            enabled: root.key-text != "" && (root.editing != "+novo" || root.new-command != "");
+                            clicked => {
+                                if (root.editing == "+novo") {
+                                    Device.add-shortcut(root.new-name, root.new-command, root.mods, root.key-text);
+                                } else {
+                                    Device.set-shortcut(root.editing, root.mods, root.key-text);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if Shell.native && Device.shortcut-message != "": Text {
+                text: Device.shortcut-message;
+                color: Theme.danger;
+                font-family: Theme.sans;
+                font-size: 13.5px;
+                wrap: word-wrap;
             }
         }
     }

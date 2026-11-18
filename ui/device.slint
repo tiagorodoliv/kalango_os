@@ -60,6 +60,20 @@ export struct DisplayOutput {
     primary: bool,
 }
 
+/// Atalho de teclado (Configurações → Idioma e região).
+export struct ShortcutItem {
+    /// Id do atalho padrão ("terminal") ou, nos próprios, a tecla.
+    id: string,
+    name: string,
+    /// Para mostrar: "Super + Enter".
+    keys: string,
+    /// Comando (só nos próprios).
+    command: string,
+    custom: bool,
+    /// Atalho padrão com a tecla trocada.
+    changed: bool,
+}
+
 /// Porta liberada no firewall (Configurações → Compartilhamento → Firewall).
 export struct FirewallRule {
     /// Para mostrar: "8000 · TCP", "6000–6010 · UDP".
@@ -431,6 +445,19 @@ export global Device {
     /// Abre um endereço digitado ("192.168.0.10", "\\\\pc\\pasta", "sftp://...").
     callback connect-server(string);
     callback set-keyboard(int);
+
+    // --- Atalhos de teclado (src/settings/shortcuts.rs) ---
+    in property <[ShortcutItem]> shortcuts: [];
+    in property <string> shortcut-message: "";
+    /// Conta as gravações que deram certo (a página fecha o editor).
+    in-out property <int> shortcut-saved: 0;
+    /// Troca a tecla de um atalho padrão: id, modificadores (1 Super, 2 Ctrl,
+    /// 4 Alt, 8 Shift) e o nome da tecla.
+    callback set-shortcut(string, int, string);
+    callback reset-shortcut(string);
+    /// Atalho próprio: nome, comando, modificadores e tecla.
+    callback add-shortcut(string, string, int, string);
+    callback remove-shortcut(string);
 
     // --- Firewall (src/settings/firewall.rs) ---
     /// ufw e o script do firewall instalados (sessão real).

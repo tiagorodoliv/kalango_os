@@ -193,6 +193,8 @@ struct Wanted {
     /// Botões das janelas (`src/settings/window_buttons.rs`): nome do tema
     /// do labwc e ordem dos botões. `None` = os do labwc.
     window_theme: Option<(String, String)>,
+    /// Atalhos de teclado da pessoa (`src/settings/shortcuts.rs`).
+    shortcuts: Option<crate::settings::shortcuts::Conf>,
 }
 
 static WANTED: std::sync::Mutex<Option<Wanted>> = std::sync::Mutex::new(None);
@@ -209,6 +211,11 @@ fn update(f: impl FnOnce(&mut Wanted)) -> bool {
 /// `rc.xml` próprio.
 pub fn set_dock_margins(margins: Margins) {
     update(|w| w.margins = Some(margins));
+}
+
+/// Atalhos de teclado trocados e próprios (Configurações → Idioma e região).
+pub fn set_shortcuts(conf: crate::settings::shortcuts::Conf) -> bool {
+    update(|w| w.shortcuts = (conf != Default::default()).then_some(conf))
 }
 
 /// Posição e tamanho da janela da dock (`src/shell/dock.rs`); `None` = a do
@@ -365,6 +372,9 @@ pub fn set_outputs(primary: Option<(String, i32, i32)>, backgrounds: Vec<(String
 /// Monta o `rc.xml` do usuário a partir do do sistema (`None` = algo faltou).
 fn build(system_xml: &str, w: &Wanted) -> Option<String> {
     let mut xml = ensure_capture(system_xml);
+    if let Some(conf) = &w.shortcuts {
+        xml = crate::settings::shortcuts::apply(&xml, conf);
+    }
     if let Some(m) = w.margins {
         if margins_of(&xml) != Some(m) {
             xml = replace_margins(&xml, m)?;
@@ -576,11 +586,24 @@ mod tests {
             primary: Some(("HDMI-A-1".into(), 0, 0)),
             backgrounds: vec![("DP-1".into(), 2560, 0)],
             window_theme: Some(("Kalango-Janelas".into(), "close,iconify,max:".into())),
+            shortcuts: Some(crate::settings::shortcuts::Conf {
+                changed: vec![("terminal".into(), "C-A-t".into()), ("record".into(), "W-r".into())],
+                custom: vec![crate::settings::shortcuts::Custom {
+                    key: "W-g".into(),
+                    name: "GIMP".into(),
+                    command: "sh -c 'gimp && echo <ok>'".into(),
+                }],
+            }),
         };
         let xml = build(system, &w).expect("build");
         comments_ok(&xml).unwrap();
         comments_ok(TRIGGER_RULE).unwrap();
         assert!(xml.contains("kalango-dock-gatilho") && xml.contains("width=\"443\" height=\"2\""));
+        // Atalhos: a tecla do terminal e a da gravação trocadas no próprio
+        // atalho do sistema, e o próprio com o comando escapado.
+        assert!(xml.contains("<keybind key=\"C-A-t\">\n      <action name=\"Execute\" command=\"foot\" />"));
+        assert!(!xml.contains("key=\"W-Return\"") && !xml.contains("key=\"C-S-A-r\""));
+        assert!(xml.contains("command=\"sh -c 'gimp &amp;&amp; echo &lt;ok&gt;'\""));
     }
 
     #[test]

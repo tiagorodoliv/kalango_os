@@ -1704,3 +1704,30 @@ msgstr "Qualquer um"
 
 msgid "TCP is used by most programs (web, SSH, games); UDP by voice, video and some games. \"Local network\" accepts only computers on your home or office network."
 msgstr "TCP é o usado pela maioria dos programas (web, SSH, jogos); UDP por voz, vídeo e alguns jogos. \"Rede local\" aceita só computadores da sua casa ou do escritório."
+
+msgid "KEYBOARD SHORTCUTS"
+msgstr "ATALHOS DE TECLADO"
+
+msgid "Add shortcut"
+msgstr "Adicionar atalho"
+
+msgid "Changed"
+msgstr "Trocado"
+
+msgid "Change"
+msgstr "Trocar"
+
+msgid "New shortcut"
+msgstr "Novo atalho"
+
+msgid "New key for \"{}\""
+msgstr "Nova tecla para \"{}\""
+
+msgid "Name (e.g. Image editor)"
+msgstr "Nome (ex.: Editor de imagens)"
+
+msgid "Command (e.g. gimp)"
+msgstr "Comando (ex.: gimp)"
+
+msgid "Key: T, Enter, F5, Print..."
+msgstr "Tecla: T, Enter, F5, Print..."

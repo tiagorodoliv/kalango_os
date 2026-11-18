@@ -177,6 +177,15 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (`labwc::ensure_capture`, bloco `MEDIA_KEYS`). Pacote depende de playerctl e brightnessctl. Segurando a tecla o
   labwc repete o atalho: o script usa `flock -n` (aperto com outro rodando é descartado, sem fila) e a área de
   trabalho lê o `kalango-aviso` a cada 100 ms (antes 1 s: o valor parecia "travado").
+- **Atalhos de teclado (2026-11-18, Configurações → Idioma e região):** `src/settings/shortcuts.rs` + `RegionPage`
+  (agora com rolagem). Atalhos padrão com tecla trocável (`shortcuts::DEFAULTS`: menu, terminal, arquivos, navegador,
+  bloquear, layouts, captura, foto da tela, gravar) e atalhos próprios (nome, comando, tecla). Arquivo
+  `~/.config/kalango/atalhos.conf` (`troca=ID TECLA`, `proprio=TECLA<TAB>NOME<TAB>COMANDO`); as Configurações só
+  gravam, a área de trabalho vê a mudança (1 s) e o `labwc::set_shortcuts` aplica no rc.xml do usuário
+  (`shortcuts::apply`: troca o `key=` do atalho do sistema e põe os próprios antes de `</keyboard>`, com o comando
+  escapado). Editor com chips Super/Ctrl/Alt/Shift + nome da tecla (não dá para "gravar" a tecla: o labwc pega os
+  atalhos antes da janela); recusa tecla já usada (`canon`) e tecla de digitar sem modificador. Testado na VM:
+  Ctrl+Alt+T abre o terminal e um atalho próprio Super+G abre o Thunar.
 - **Aviso flutuante de volume/microfone/brilho (2026-11-18), como no macOS/Ubuntu:** `kalango-shell --osd=volume:45`
   (`volume:mudo:45`, `microfone:N`, `brilho:N`; `src/shell/osd.rs`, `ui/screens/osd.slint` = `OsdView`, exportado no
   `app_window.slint`). O 1º pedido vira o processo do aviso (socket `$XDG_RUNTIME_DIR/kalango-osd.sock`, como o
