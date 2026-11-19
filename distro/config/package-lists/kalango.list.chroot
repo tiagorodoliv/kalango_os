@@ -46,6 +46,10 @@ htop
 # "Monitor" do menu: gráficos de CPU, memória, rede e disco (o htop fica de reserva)
 gnome-system-monitor
 parole
+# Fotos (galeria que organiza fotos e vídeos, importa do celular e edita o
+# básico) e Vídeos (player do mpv). O Ristretto continua para abrir uma foto.
+shotwell
+celluloid
 xdg-user-dirs
 
 # Agente do polkit: a janela que pede a senha do administrador (Loja,

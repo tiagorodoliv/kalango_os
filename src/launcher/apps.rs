@@ -97,8 +97,15 @@ pub fn themed_icon_names(id: &str) -> &'static [&'static str] {
         "code" => &["geany", "accessories-text-editor"],
         "store" => &["org.gnome.Software", "gnome-software", "system-software-install"],
         "settings" => &["preferences-system", "org.gnome.Settings", "preferences-desktop"],
+        // O mesmo app que `session::command_for` abre (o ícone acompanha).
+        "images" if crate::shell::session::find_in_path("shotwell").is_some() => {
+            &["org.gnome.Shotwell", "shotwell", "multimedia-photo-manager"]
+        }
         "images" => &["org.xfce.ristretto", "ristretto", "image-viewer"],
-        "music" => &["org.xfce.parole", "parole", "multimedia-audio-player"],
+        "music" if crate::shell::session::find_in_path("celluloid").is_some() => {
+            &["io.github.celluloid_player.Celluloid", "celluloid", "multimedia-video-player"]
+        }
+        "music" => &["org.xfce.parole", "parole", "multimedia-video-player"],
         "documents" => &["folder-documents"],
         "calendar" => &["org.gnome.Calendar", "office-calendar"],
         "monitor" => &["org.gnome.SystemMonitor", "utilities-system-monitor", "htop"],

@@ -67,8 +67,11 @@ export global Apps {
         { id: "code", name: @tr("Code"), icon: Icons.code, tint: #a78bfa },
         { id: "store", name: @tr("Store"), icon: Icons.bag, tint: #e8b04b },
         { id: "settings", name: @tr("Settings"), icon: Icons.settings, tint: #9aa5b1 },
-        { id: "images", name: @tr("Images"), icon: Icons.image, tint: #f28b95 },
-        { id: "music", name: @tr("Music"), icon: Icons.music, tint: #5fd38d },
+        // "images" = Fotos (Shotwell) e "music" = Vídeos (Celluloid, que também
+        // toca música): os ids antigos ficam, porque a dock de quem já usa guarda
+        // os ids.
+        { id: "images", name: @tr("Photos"), icon: Icons.image, tint: #f28b95 },
+        { id: "music", name: @tr("Videos"), icon: Icons.video, tint: #5fd38d },
         { id: "documents", name: @tr("Documents"), icon: Icons.file-text, tint: #7ea6f7 },
         { id: "calendar", name: @tr("Calendar"), icon: Icons.calendar, tint: #e8b04b },
         { id: "monitor", name: "Monitor", icon: Icons.activity, tint: #3dd6f5 },

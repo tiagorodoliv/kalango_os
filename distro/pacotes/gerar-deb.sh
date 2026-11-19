@@ -65,10 +65,9 @@ for d in usr/local/bin usr/local/sbin usr/local/lib/kalango; do
 	done
 done
 install -D -m 0755 "$INC/usr/lib/systemd/system-sleep/kalango-radios" "$P/usr/lib/systemd/system-sleep/kalango-radios"
-# Papéis de parede em JPEG (as fotos do Sertão, da versão 0.1 Mandacaru): no
-# pacote, para quem atualiza pelo apt. Os desenhados (PNG) vêm só na ISO.
-mkdir -p "$P/usr/share/backgrounds/kalango"
-cp -p "$ROOT"/assets/wallpapers/16x9/Kalango_*.jpg "$P/usr/share/backgrounds/kalango/"
+# Papéis de parede em JPEG (fotos do Sertão e da Chapada): no pacote próprio
+# kalango-papeis-de-parede (gerar-deb-papeis.sh), do qual este depende. Os
+# desenhados (PNG) vêm só na ISO.
 # Firewall: liga o ufw na primeira vez (kalango-firewall iniciar).
 install -D -m 0644 "$INC/usr/lib/systemd/system/kalango-firewall.service" \
 	"$P/usr/lib/systemd/system/kalango-firewall.service"
@@ -99,8 +98,8 @@ Architecture: amd64
 Maintainer: KalangOS <repo@kalangos.org>
 Section: x11
 Priority: optional
-Depends: labwc, libc6, foot, zsh, zsh-autosuggestions, zsh-syntax-highlighting, fonts-droid-fallback, grim, wf-recorder, wl-clipboard, ufw, playerctl, brightnessctl, ptyxis
-Recommends: sound-theme-freedesktop, steam-devices
+Depends: labwc, libc6, foot, zsh, zsh-autosuggestions, zsh-syntax-highlighting, fonts-droid-fallback, grim, wf-recorder, wl-clipboard, ufw, playerctl, brightnessctl, ptyxis, kalango-papeis-de-parede
+Recommends: sound-theme-freedesktop, steam-devices, shotwell, celluloid
 Installed-Size: $(du -sk "$P/usr" | cut -f1)
 Homepage: https://github.com/tiagorodoliv/kalango_os
 Description: Interface do KalangOS (barra, dock, menu e Configurações)

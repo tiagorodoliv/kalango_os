@@ -22,7 +22,7 @@ slint = { version = "1.8", default-features = false, features = [
 
 # Papel de parede com imagem própria: reduzir e gravar (src/shell/wallpaper.rs).
 # A mesma versão e os mesmos formatos que o Slint já usa: não entra código novo.
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 
 # Estilos Mandacaru dos ícones (src/launcher/icon_style.rs): desenhar o SVG do
 # ícone em pixels para tingi-lo. A mesma versão que o Slint já usa para os SVG.

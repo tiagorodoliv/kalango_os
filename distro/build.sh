@@ -168,7 +168,12 @@ fi
 # dono dos arquivos e as versões novas chegam pelo repositório apt (OTA). Uma
 # cópia do .deb fica em distro/out para publicar com distro/repo/publicar.sh.
 mkdir -p "$BUILDER/work/iso/config/packages.chroot" "$OUT"
-rm -f "$BUILDER/work/iso/config/packages.chroot"/kalango-shell_*.deb "$OUT"/kalango-shell_*.deb
+rm -f "$BUILDER/work/iso/config/packages.chroot"/kalango-shell_*.deb "$OUT"/kalango-shell_*.deb \
+	"$BUILDER/work/iso/config/packages.chroot"/kalango-papeis-de-parede_*.deb "$OUT"/kalango-papeis-de-parede_*.deb
+# Papéis de parede em foto (pacote próprio, dependência do kalango-shell). É
+# reprodutível: a mesma versão sai igual à publicada no apt.
+sh "$DISTRO/pacotes/gerar-deb-papeis.sh" "$BUILDER/work/iso/config/packages.chroot" >/dev/null
+cp "$BUILDER/work/iso/config/packages.chroot"/kalango-papeis-de-parede_*.deb "$OUT/"
 if [ -n "$DEB_PRONTO" ]; then
 	echo ">> Usando o pacote pronto $DEB_PRONTO"
 	cp "$DEB_PRONTO" "$BUILDER/work/iso/config/packages.chroot/"
@@ -177,7 +182,7 @@ else
 		"$BUILDER/work/iso/config/packages.chroot"
 fi
 cp "$BUILDER/work/iso/config/packages.chroot"/kalango-shell_*.deb "$OUT/"
-chown "$OWNER" "$OUT"/kalango-shell_*.deb
+chown "$OWNER" "$OUT"/kalango-shell_*.deb "$OUT"/kalango-papeis-de-parede_*.deb
 # A mesma versão já publicada no apt com outro conteúdo (cada compilação gera um
 # binário diferente) quebra o lb build lá no fim: o apt da ISO vê as duas e
 # tenta "voltar" de versão. Confere agora, antes da parte demorada.

@@ -22,10 +22,27 @@ use crate::{AppWindow, CustomWallpaper, Mode, Shell, Theme};
 /// Modelos na ordem de `Theme.wallpaper-names` (o índice 0 é "Circuitos",
 /// o desenho do próprio shell, que não tem arquivo). Os novos entram no fim:
 /// o `aparencia.conf` guarda o nome, mas a imagem própria vem logo depois
-/// ([`CUSTOM`]). Os do Sertão (versão 0.1 Mandacaru) são fotos em JPEG e vão
-/// também no pacote `kalango-shell` (quem atualiza pelo apt recebe).
-pub const MODELS: [&str; 9] =
-    ["PretoAzul", "Preto", "Azul", "Verde", "Roxo", "Laranja", "Branco", "SertaoDia", "SertaoNoite"];
+/// ([`CUSTOM`]). Os do Sertão e da Chapada (versão 0.1 Mandacaru) são fotos em
+/// JPEG (`assets/wallpapers/fotos.py`) e vão no pacote `kalango-papeis-de-parede`
+/// (quem atualiza pelo apt recebe; o `kalango-shell` depende dele).
+pub const MODELS: [&str; 16] = [
+    "PretoAzul",
+    "Preto",
+    "Azul",
+    "Verde",
+    "Roxo",
+    "Laranja",
+    "Branco",
+    "SertaoDia",
+    "SertaoNoite",
+    "SertaoPorDoSol",
+    "SertaoEntardecer",
+    "SertaoViaLactea",
+    "ChapadaPorDoSol",
+    "ChapadaLua",
+    "ChapadaEstrelas",
+    "CalangoPedra",
+];
 /// Resoluções disponíveis de cada modelo (largura × altura), da menor para a maior.
 const SIZES: [(u32, u32); 3] = [(1920, 1080), (2560, 1440), (3840, 2160)];
 
@@ -320,7 +337,7 @@ fn install_picker(ui: &AppWindow) {
                 .args([
                     "--file-selection".to_string(),
                     format!("--title={title}"),
-                    format!("--file-filter={filter} | *.jpg *.jpeg *.png *.JPG *.JPEG *.PNG"),
+                    format!("--file-filter={filter} | *.jpg *.jpeg *.png *.webp *.JPG *.JPEG *.PNG *.WEBP"),
                 ])
                 .stdin(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
@@ -356,6 +373,21 @@ fn install_picker(ui: &AppWindow) {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn le_webp_com_nome_de_jpg() {
+        // As fotos do Sertão vieram como WebP com o nome terminado em .jpg: o
+        // formato vem do conteúdo (como em `import`), não da extensão.
+        let dir = std::env::temp_dir().join(format!("kalango-webp-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let arq = dir.join("foto.jpg");
+        image::RgbImage::from_pixel(32, 18, image::Rgb([200, 120, 40]))
+            .save_with_format(&arq, image::ImageFormat::WebP)
+            .unwrap();
+        let img = image::ImageReader::open(&arq).unwrap().with_guessed_format().unwrap().decode().unwrap();
+        assert_eq!((img.width(), img.height()), (32, 18));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
     use super::*;
 
     #[test]

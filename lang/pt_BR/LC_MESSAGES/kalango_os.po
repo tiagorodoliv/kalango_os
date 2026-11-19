@@ -1764,3 +1764,30 @@ msgstr "Renomear"
 
 msgid "Properties"
 msgstr "Propriedades"
+
+msgid "Sertão at sunset"
+msgstr "Sertão ao pôr do sol"
+
+msgid "Sertão at dusk"
+msgstr "Entardecer no sertão"
+
+msgid "Milky Way over the sertão"
+msgstr "Via Láctea no sertão"
+
+msgid "Sunset over the chapada"
+msgstr "Pôr do sol na chapada"
+
+msgid "Full moon on the chapada"
+msgstr "Lua cheia na chapada"
+
+msgid "Chapada under the stars"
+msgstr "Chapada sob as estrelas"
+
+msgid "Calango on the rock"
+msgstr "Calango na pedra"
+
+msgid "Photos"
+msgstr "Fotos"
+
+msgid "Videos"
+msgstr "Vídeos"

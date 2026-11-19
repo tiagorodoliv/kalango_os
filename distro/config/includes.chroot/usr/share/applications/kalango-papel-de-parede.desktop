@@ -8,6 +8,6 @@ Comment=Use this image as the desktop background
 Comment[pt_BR]=Usar esta imagem como fundo da área de trabalho
 Icon=preferences-desktop-wallpaper
 Exec=kalango-shell --papel-de-parede %f
-MimeType=image/jpeg;image/png;
+MimeType=image/jpeg;image/png;image/webp;
 NoDisplay=true
 Terminal=false

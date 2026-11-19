@@ -212,6 +212,21 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   separado** (`--osd=servidor`, grupo de processos próprio) e sai em ~20 ms: na 0.1.1-13 o 1º aperto *virava* o aviso,
   o script ficava esperando por ele com a trava e todas as teclas seguintes eram descartadas. Tecla de e-mail (`XF86Mail`) =
   `xdg-email`. Teclado do Tiago: só a tecla de e-mail chegava aos apps; as outras já eram atalhos.
+- **Papéis de parede em foto (2026-11-19):** pacote próprio **`kalango-papeis-de-parede`** (arch all,
+  `distro/pacotes/gerar-deb-papeis.sh`, versão `AAAA.MM.DD-N` no script; **reprodutível**: datas, dono e permissões fixos,
+  a mesma versão sai igual byte a byte, então o `build.sh` o gera de novo para a ISO sem conflitar com o apt). O
+  `kalango-shell` depende dele e não leva mais JPEG (atualização da interface não baixa 30 MB de fotos). Fotos novas:
+  `assets/wallpapers/fotos.py PASTA` (tabela origem → modelo; lê pelo conteúdo, recorta 16:9, Lanczos + nitidez, 3
+  resoluções + miniatura) + `MODELS` em `wallpaper.rs` + `wallpaper-names` no `theme.slint` + `.po`, e suba a versão do
+  pacote. **As fotos do Sertão vieram como WebP com nome `.jpg`**: a crate `image` tem a feature `webp`.
+- **Fotos e Vídeos (2026-11-19):** fixados "images" = **Fotos** (Shotwell; sem ele, Ristretto) e "music" = **Vídeos**
+  (Celluloid; sem ele, Parole); ids antigos mantidos (a dock guarda os ids). Vídeos abrem no Celluloid (`mimeapps.list`).
+  O pacote recomenda shotwell e celluloid.
+- **Jogos (2026-11-19):** `steam-devices` na ISO e recomendado (sem ele o Steam mostra o controle e o jogo não recebe:
+  `/dev/uinput` só do root). Com app em tela cheia em foco, o `swayidle` roda sem tempos (`power::swayidle_args`): o
+  controle não conta como atividade para o labwc e a tela apagava no meio do jogo. **Pendente:** o Steam troca o controle
+  para a "configuração da área de trabalho" (app 413080, modo mouse) quando acha que o jogo perdeu o foco; no Far Cry 5
+  "Desativar Steam Input" resolveu. Investigar qual janela do shell rouba o foco (suspeita: a dock reabrindo).
 - **Tela cheia sem dock (2026-11-18):** `toplevels` lê o estado 3 (tela cheia); app em foco em tela cheia →
   `Shell.app-fullscreen` → `dock::install` fecha a dock em janela própria/faixa (sem mexer no rc.xml) e reabre depois.
 - **Ícones em pixel inteiro:** `AppIcon` arredonda tamanho e posição (frações deformavam a borda dos ícones).

@@ -212,8 +212,15 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
         // Editor de código (Geany com o tema Dark Modern); sem ele, o Mousepad.
         "code" => vec![if find_in_path("geany").is_some() { "geany" } else { "mousepad" }.into()],
         "documents" => vec!["thunar".into(), documents_dir(&home)],
-        "images" => vec!["ristretto".into(), pictures_dir(&home)],
-        "music" => vec!["parole".into()],
+        // Fotos: galeria do Shotwell (organiza fotos e vídeos); sem ele, o
+        // Ristretto na pasta Imagens.
+        "images" => match find_in_path("shotwell") {
+            Some(_) => vec!["shotwell".into()],
+            None => vec!["ristretto".into(), pictures_dir(&home)],
+        },
+        // Vídeos (o id "music" é o antigo): Celluloid (mpv), que também toca
+        // música; sem ele, o Parole.
+        "music" => vec![if find_in_path("celluloid").is_some() { "celluloid" } else { "parole" }.into()],
         // Monitor do Sistema do GNOME (gráficos de CPU, memória, rede e disco);
         // sem ele, o htop no terminal.
         "monitor" => match find_in_path("gnome-system-monitor") {
@@ -640,7 +647,9 @@ mod tests {
 
     #[test]
     fn apps_do_catalogo_tem_comando() {
-        assert_eq!(command_for("terminal").unwrap(), ["foot"]);
+        // Ptyxis (kalango-terminal) onde está instalado; senão o foot.
+        let terminal = command_for("terminal").unwrap();
+        assert!(terminal == ["kalango-terminal"] || terminal == ["foot"]);
         let code = command_for("code").unwrap();
         assert!(code == ["geany"] || code == ["mousepad"]);
         assert_eq!(command_for("documents").unwrap()[0], "thunar");
@@ -650,7 +659,9 @@ mod tests {
         assert_eq!(command_for("installer").unwrap(), ["kalango-instalar"]);
         assert!(command_for("inexistente").is_none());
         assert_eq!(command_for("lock").unwrap(), ["kalango-bloquear"]);
-        assert_eq!(command_for("music").unwrap(), ["parole"]);
+        let videos = command_for("music").unwrap();
+        assert!(videos == ["celluloid"] || videos == ["parole"]);
+        assert!(["shotwell", "ristretto"].contains(&command_for("images").unwrap()[0].as_str()));
     }
 
     #[test]
