@@ -150,10 +150,17 @@ impl Prefs {
 }
 
 /// Argumentos do `swayidle` para as escolhas (`on_ac` = na tomada).
-pub fn swayidle_args(p: &Prefs, on_ac: bool) -> Vec<String> {
+///
+/// `fullscreen`: um app em tela cheia está em foco (jogo, vídeo, filme). Aí
+/// não há tempo para apagar, bloquear nem suspender, como no Windows e no
+/// Ubuntu: o controle de jogo não conta como atividade para o labwc (quem o lê
+/// é o jogo) e jogos pelo Proton não pedem para a tela ficar acesa, então a
+/// tela apagava e bloqueava a cada 5 minutos no meio do jogo. Bloquear ao
+/// suspender e pela tampa continua valendo.
+pub fn swayidle_args(p: &Prefs, on_ac: bool, fullscreen: bool) -> Vec<String> {
     let mut a: Vec<String> = vec!["-w".into()];
     let mut push = |v: &[&str]| a.extend(v.iter().map(|s| s.to_string()));
-    if p.blank > 0 {
+    if p.blank > 0 && !fullscreen {
         let secs = (p.blank * 60).to_string();
         if p.lock {
             push(&["timeout", &secs, "kalango-bloquear &"]);
@@ -161,7 +168,7 @@ pub fn swayidle_args(p: &Prefs, on_ac: bool) -> Vec<String> {
         push(&["timeout", &secs, "wlopm --off '*'", "resume", "wlopm --on '*'"]);
     }
     let suspend = if on_ac { p.suspend_ac } else { p.suspend_battery };
-    if suspend > 0 {
+    if suspend > 0 && !fullscreen {
         push(&["timeout", &(suspend * 60).to_string(), "systemctl suspend"]);
     }
     if p.lock {
@@ -407,8 +414,11 @@ fn spawn_swayidle(args: &[String]) -> Option<Child> {
 }
 
 /// Mantém o `swayidle` com as escolhas (área de trabalho da sessão real).
-fn install_idle() -> Timer {
+/// Com um app em tela cheia em foco (`Shell.app-fullscreen`), sem os tempos
+/// (ver [`swayidle_args`]); a troca acontece em até 3 s.
+fn install_idle(ui: &AppWindow) -> Timer {
     kill_previous();
+    let weak = ui.as_weak();
     let mut current: Option<(Vec<String>, Child)> = None;
     // Argumentos com que o swayidle não abriu (não instalado): sem tentar de
     // novo a cada 3 s, só quando a escolha mudar.
@@ -424,7 +434,8 @@ fn install_idle() -> Timer {
             prefs = read_prefs();
         }
         first = false;
-        let args = swayidle_args(&prefs, on_ac());
+        let fullscreen = weak.upgrade().is_some_and(|ui| ui.global::<crate::Shell>().get_app_fullscreen());
+        let args = swayidle_args(&prefs, on_ac(), fullscreen);
         let dead = current.as_mut().is_some_and(|(_, c)| c.try_wait().ok().flatten().is_some());
         if !dead && current.as_ref().is_some_and(|(a, _)| *a == args) || failed.as_ref() == Some(&args) {
             return;
@@ -449,7 +460,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             install_settings(ui);
             None
         }
-        Mode::Desktop if crate::shell::session::is_native() => Some(install_idle()),
+        Mode::Desktop if crate::shell::session::is_native() => Some(install_idle(ui)),
         _ => None,
     }
 }
@@ -483,17 +494,22 @@ mod tests {
     #[test]
     fn argumentos_do_swayidle() {
         let p = Prefs { blank: 5, suspend_battery: 15, suspend_ac: 0, lock: true };
-        let bat = swayidle_args(&p, false).join(" | ");
+        let bat = swayidle_args(&p, false, false).join(" | ");
         assert!(bat.contains("timeout | 300 | kalango-bloquear &"));
         assert!(bat.contains("timeout | 300 | wlopm --off '*' | resume | wlopm --on '*'"));
         assert!(bat.contains("timeout | 900 | systemctl suspend"));
         assert!(bat.contains("before-sleep | kalango-bloquear & sleep 1"));
         // Na tomada, "nunca" suspende.
-        let ac = swayidle_args(&p, true).join(" | ");
+        let ac = swayidle_args(&p, true, false).join(" | ");
         assert!(!ac.contains("systemctl suspend"));
         // Sem apagar nem bloquear.
-        let none = swayidle_args(&Prefs { blank: 0, suspend_battery: 0, suspend_ac: 0, lock: false }, false).join(" ");
+        let none = swayidle_args(&Prefs { blank: 0, suspend_battery: 0, suspend_ac: 0, lock: false }, false, false).join(" ");
         assert!(!none.contains("wlopm --off") && !none.contains("before-sleep"));
+        // Jogo ou vídeo em tela cheia: sem apagar, bloquear nem suspender por
+        // tempo; bloquear ao suspender continua.
+        let jogo = swayidle_args(&p, false, true).join(" | ");
+        assert!(!jogo.contains("timeout"));
+        assert!(jogo.contains("before-sleep | kalango-bloquear & sleep 1") && jogo.contains("lock | kalango-bloquear &"));
     }
 
     #[test]
