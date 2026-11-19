@@ -5,6 +5,12 @@ Distro Linux baseada no **Debian 13 (trixie)**, com uma interface própria (shel
 
 Software livre sob a [GPL-3.0](LICENSE). Quer ajudar? Veja [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Documentação
+
+Para entender e manter o projeto (arquitetura, Rust e Slint, mapa do código,
+sistema e hardware, pacotes e atualizações, ISO, segurança e rotina de
+manutenção), comece por [`docs/README.md`](docs/README.md).
+
 ## Por que Rust + Slint
 
 - Binário nativo, pequeno e sem coletor de lixo: inicia rápido e usa pouca RAM.
