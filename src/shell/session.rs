@@ -202,7 +202,8 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
         "files" => vec!["thunar".into()],
         // Lixeira da dock e da área de trabalho.
         "trash" => vec!["thunar".into(), "trash:///".into()],
-        "terminal" => vec!["foot".into()],
+        // Ptyxis com abas (kalango-terminal); sem o script, o foot.
+        "terminal" => vec![if find_in_path("kalango-terminal").is_some() { "kalango-terminal" } else { "foot" }.into()],
         "browser" => vec!["firefox-esr".into()],
         "store" => vec!["gnome-software".into()],
         "calendar" => vec!["gnome-calendar".into()],

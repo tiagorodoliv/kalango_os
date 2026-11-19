@@ -24,17 +24,24 @@ const UNIQUE_ID: &str = "kalango-papel-de-parede";
 /// Comando do "Abrir terminal aqui" no padrão do Debian (não funciona aqui).
 const EXO_TERMINAL: &str = "exo-open --working-directory %f --launch TerminalEmulator";
 
-/// O mesmo com o terminal do KalangOS.
-pub const TERMINAL_COMMAND: &str = "foot -D %f";
+/// O mesmo com o terminal do KalangOS (Ptyxis com abas; sem ele, o foot).
+pub const TERMINAL_COMMAND: &str = "kalango-terminal -D %f";
+
+/// Versão anterior (só o foot), trocada pela de cima.
+const FOOT_TERMINAL: &str = "foot -D %f";
 
 /// `uca.xml` com o "Abrir terminal aqui" no foot (e o nome no idioma), ou
 /// `None` se não há a ação do exo-open.
 pub fn with_foot_terminal(xml: &str) -> Option<String> {
-    let old = format!("<command>{EXO_TERMINAL}</command>");
-    if !xml.contains(&old) {
+    let new = format!("<command>{TERMINAL_COMMAND}</command>");
+    let Some(old) = [EXO_TERMINAL, FOOT_TERMINAL]
+        .iter()
+        .map(|c| format!("<command>{c}</command>"))
+        .find(|old| xml.contains(old.as_str()))
+    else {
         return None;
-    }
-    let xml = xml.replace(&old, &format!("<command>{TERMINAL_COMMAND}</command>"));
+    };
+    let xml = xml.replace(&old, &new);
     Some(xml.replace(
         "<name>Open Terminal Here</name>",
         &format!("<name>{}</name>", tr("Open Terminal Here", "Abrir terminal aqui")),
@@ -108,7 +115,10 @@ mod tests {
         let xml = "<actions>\n<action>\n\t<name>Open Terminal Here</name>\n\t\
                    <command>exo-open --working-directory %f --launch TerminalEmulator</command>\n</action>\n</actions>\n";
         let novo = with_foot_terminal(xml).unwrap();
-        assert!(novo.contains("<command>foot -D %f</command>") && !novo.contains("exo-open"));
+        assert!(novo.contains("<command>kalango-terminal -D %f</command>") && !novo.contains("exo-open"));
+        // Quem já tinha o "Abrir terminal aqui" no foot passa para o kalango-terminal.
+        let foot = xml.replace("exo-open --working-directory %f --launch TerminalEmulator", "foot -D %f");
+        assert!(with_foot_terminal(&foot).unwrap().contains("<command>kalango-terminal -D %f</command>"));
         // Já corrigido (ou mudado pela pessoa): não mexe.
         assert_eq!(with_foot_terminal(&novo), None);
     }

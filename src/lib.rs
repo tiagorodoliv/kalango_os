@@ -108,6 +108,7 @@ pub fn build_mode(mode: Mode) -> Result<(AppWindow, Vec<slint::Timer>), slint::P
     timers.extend(power::install(&ui, mode));
     if mode == Mode::Desktop && native {
         shell::thunar::ensure_wallpaper_action();
+        crate::settings::terminal::ensure_palette();
         shell::integrity::start();
         shell::firewall::start();
         shell::update::start();

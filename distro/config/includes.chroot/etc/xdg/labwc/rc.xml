@@ -102,7 +102,7 @@
     </keybind>
     <!-- O padrão do labwc chama o alacritty, que não vem no sistema. -->
     <keybind key="W-Return">
-      <action name="Execute" command="foot" />
+      <action name="Execute" command="kalango-terminal" />
     </keybind>
     <keybind key="W-e">
       <action name="Execute" command="thunar" />

@@ -1,4 +1,7 @@
-//! Temas do terminal (foot): Configurações → Aparência → Terminal.
+//! Temas do terminal (foot e Ptyxis): Configurações → Aparência → Terminal.
+//!
+//! O terminal do sistema é o Ptyxis (com abas, `kalango-terminal`): o tema
+//! escolhido vira também a paleta `kalango` dele ([`ptyxis_palette`]).
 //!
 //! Os temas ficam em `/usr/share/kalango/terminal/*.ini` (nome em inglês e
 //! português nos comentários `# name:`/`# nome:` e a seção `[colors]`). Escolher
@@ -122,6 +125,10 @@ fn apply(themes: &[Theme], id: &str) -> Result<(), String> {
             .into());
         }
     }
+    // O Ptyxis (terminal com abas) recebe o tema também.
+    if let Some(theme) = themes.iter().find(|t| t.id == id) {
+        write_palette(theme);
+    }
     if id == DEFAULT_THEME {
         let _ = fs::remove_file(&path);
         return Ok(());
@@ -130,6 +137,64 @@ fn apply(themes: &[Theme], id: &str) -> Result<(), String> {
     let system = fs::read_to_string("/etc/xdg/foot/foot.ini").unwrap_or_default();
     fs::create_dir_all(path.parent().ok_or("foot")?).map_err(|e| e.to_string())?;
     fs::write(&path, user_ini(&system, theme)).map_err(|e| e.to_string())
+}
+
+/// Paleta do Ptyxis (o terminal com abas, `kalango-terminal`) com as cores
+/// do tema. `UseSystemAccent`: abas e seleção na cor de destaque, como no
+/// Ubuntu. Cor que o tema não tem vale a do texto.
+pub fn ptyxis_palette(theme: &Theme) -> String {
+    let hex = |k: &str| {
+        color_of(&theme.colors, k)
+            .or_else(|| color_of(&theme.colors, "foreground"))
+            .map(|c| format!("#{:02x}{:02x}{:02x}", c.red(), c.green(), c.blue()))
+            .unwrap_or_else(|| "#e6edf3".into())
+    };
+    let mut body = format!(
+        "Foreground={}\nBackground={}\nTitlebarForeground={}\nTitlebarBackground={}\nCursor={}\n",
+        hex("foreground"),
+        hex("background"),
+        hex("foreground"),
+        hex("background"),
+        hex("foreground")
+    );
+    for i in 0..16 {
+        let key = if i < 8 { format!("regular{i}") } else { format!("bright{}", i - 8) };
+        body.push_str(&format!("Color{i}={}\n", hex(&key)));
+    }
+    format!(
+        "# Gerado pelo kalango-shell (Configurações → Terminal: {}).\n[Palette]\nName=KalangOS\nUseSystemAccent=true\n\n[Light]\n{body}\n[Dark]\n{body}",
+        theme.id
+    )
+}
+
+fn palette_path() -> Option<PathBuf> {
+    let base = std::env::var_os("XDG_DATA_HOME")
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share")))?;
+    Some(base.join("org.gnome.Ptyxis/palettes/kalango.palette"))
+}
+
+/// Grava a paleta "kalango" do Ptyxis com o tema (só se mudou).
+fn write_palette(theme: &Theme) {
+    let Some(path) = palette_path() else { return };
+    let text = ptyxis_palette(theme);
+    if fs::read_to_string(&path).ok().as_deref() == Some(text.as_str()) {
+        return;
+    }
+    let _ = path.parent().map(fs::create_dir_all);
+    let _ = fs::write(&path, text);
+}
+
+/// Área de trabalho, ao entrar: a paleta do Ptyxis com o tema atual (quem
+/// atualizou pelo apt ainda não tinha a paleta).
+pub fn ensure_palette() {
+    let themes = load_from(Path::new(THEMES_DIR));
+    let current = current_theme();
+    let id = if current.is_empty() { DEFAULT_THEME.to_string() } else { current };
+    if let Some(theme) = themes.iter().find(|t| t.id == id).or_else(|| themes.first()) {
+        write_palette(theme);
+    }
 }
 
 /// Lista para a UI (cores da prévia).

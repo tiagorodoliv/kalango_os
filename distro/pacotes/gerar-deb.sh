@@ -87,6 +87,7 @@ install -D -m 0644 "$INC/usr/lib/systemd/user/xdg-document-portal.service.d/50-k
 mkdir -p "$P/usr/share/kalango/terminal"
 cp -p "$INC/usr/share/kalango/terminal/"*.ini "$P/usr/share/kalango/terminal/"
 install -D -m 0644 "$INC/etc/skel/.zshrc" "$P/usr/share/kalango/zshrc"
+install -D -m 0644 "$INC/usr/share/kalango/terminal-cores.sh" "$P/usr/share/kalango/terminal-cores.sh"
 # Sem escrita para grupo/outros (as cópias do repositório vêm com 775/664).
 chmod -R go-w "$P"
 
@@ -98,7 +99,7 @@ Architecture: amd64
 Maintainer: KalangOS <repo@kalangos.org>
 Section: x11
 Priority: optional
-Depends: labwc, libc6, foot, zsh, zsh-autosuggestions, zsh-syntax-highlighting, fonts-droid-fallback, grim, wf-recorder, wl-clipboard, ufw, playerctl, brightnessctl
+Depends: labwc, libc6, foot, zsh, zsh-autosuggestions, zsh-syntax-highlighting, fonts-droid-fallback, grim, wf-recorder, wl-clipboard, ufw, playerctl, brightnessctl, ptyxis
 Recommends: sound-theme-freedesktop
 Installed-Size: $(du -sk "$P/usr" | cut -f1)
 Homepage: https://github.com/tiagorodoliv/kalango_os
@@ -132,6 +133,18 @@ if [ "$1" = configure ]; then
 	else
 		echo 'SHELL=/bin/zsh' >>/etc/default/useradd
 	fi
+	# Seleção do terminal na cor de destaque: quem já tem o .zshrc do KalangOS
+	# (1ª linha nossa) ganha a linha que lê o terminal-cores.sh; um .zshrc
+	# feito pela pessoa não é tocado.
+	getent passwd | while IFS=: read -r _ _ uid _ _ casa _; do
+		[ "$uid" -ge 1000 ] && [ "$uid" -lt 60000 ] || continue
+		z="$casa/.zshrc"
+		[ -f "$z" ] && [ ! -L "$z" ] || continue
+		head -n 1 "$z" | grep -q '^# ~/.zshrc do Kalang' || continue
+		grep -q 'terminal-cores.sh' "$z" && continue
+		printf '\n# Seleção do terminal na cor de destaque (Configurações → Aparência).\n%s\n' \
+			'[ -r /usr/share/kalango/terminal-cores.sh ] && . /usr/share/kalango/terminal-cores.sh' >>"$z"
+	done
 	# Uma vez por máquina: pessoas (UID 1000–59999) ganham o .zshrc que falta e
 	# quem está no bash passa para o zsh. A marca impede repetir a troca.
 	MARCA=/var/lib/kalango/terminal-zsh

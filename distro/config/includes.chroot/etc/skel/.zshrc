@@ -133,3 +133,6 @@ fi
 if [[ -o interactive ]] && (( $+commands[kalango-ficha] )); then
     kalango-ficha --uma-vez
 fi
+
+# Seleção do terminal na cor de destaque (Configurações → Aparência).
+[ -r /usr/share/kalango/terminal-cores.sh ] && . /usr/share/kalango/terminal-cores.sh

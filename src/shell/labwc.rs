@@ -372,6 +372,13 @@ pub fn set_outputs(primary: Option<(String, i32, i32)>, backgrounds: Vec<(String
 /// Monta o `rc.xml` do usuário a partir do do sistema (`None` = algo faltou).
 fn build(system_xml: &str, w: &Wanted) -> Option<String> {
     let mut xml = ensure_capture(system_xml);
+    // Terminal com abas (Ptyxis pelo kalango-terminal) no Super+Enter, também
+    // para quem tem o rc.xml de uma ISO anterior (ainda com o foot).
+    xml = xml.replacen(
+        "<keybind key=\"W-Return\">\n      <action name=\"Execute\" command=\"foot\" />",
+        "<keybind key=\"W-Return\">\n      <action name=\"Execute\" command=\"kalango-terminal\" />",
+        1,
+    );
     if let Some(conf) = &w.shortcuts {
         xml = crate::settings::shortcuts::apply(&xml, conf);
     }
@@ -601,7 +608,7 @@ mod tests {
         assert!(xml.contains("kalango-dock-gatilho") && xml.contains("width=\"443\" height=\"2\""));
         // Atalhos: a tecla do terminal e a da gravação trocadas no próprio
         // atalho do sistema, e o próprio com o comando escapado.
-        assert!(xml.contains("<keybind key=\"C-A-t\">\n      <action name=\"Execute\" command=\"foot\" />"));
+        assert!(xml.contains("<keybind key=\"C-A-t\">\n      <action name=\"Execute\" command=\"kalango-terminal\" />"));
         assert!(!xml.contains("key=\"W-Return\"") && !xml.contains("key=\"C-S-A-r\""));
         assert!(xml.contains("command=\"sh -c 'gimp &amp;&amp; echo &lt;ok&gt;'\""));
     }

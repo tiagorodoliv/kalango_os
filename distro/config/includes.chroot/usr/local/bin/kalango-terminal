@@ -1,0 +1,55 @@
+#!/bin/sh
+# Terminal do KalangOS: o Ptyxis (o terminal novo do Ubuntu, com abas), na
+# cor de destaque da Aparência (abas e seleção); sem ele, o foot.
+#
+#   kalango-terminal             janela nova
+#   kalango-terminal -D PASTA    janela nova nessa pasta ("Abrir terminal aqui")
+#
+# A sessão não tem o portal de configurações do GNOME, de onde o libadwaita
+# leria a cor de destaque: ela vai pela variável ADW_DEBUG_ACCENT_COLOR. As
+# cores do terminal são a paleta "kalango" (Configurações → Terminal), que o
+# shell grava em ~/.local/share/org.gnome.Ptyxis/palettes.
+set -u
+
+PASTA=
+if [ "${1:-}" = "-D" ] && [ -n "${2:-}" ]; then
+	PASTA=$2
+	shift 2
+fi
+
+if ! command -v ptyxis >/dev/null 2>&1; then
+	if [ -n "$PASTA" ]; then exec foot -D "$PASTA" "$@"; fi
+	exec foot "$@"
+fi
+
+# Cor de destaque (ordem da Aparência) → nome do libadwaita.
+CONF=${XDG_CONFIG_HOME:-$HOME/.config}/kalango/aparencia.conf
+case "$(sed -n 's/^destaque=//p' "$CONF" 2>/dev/null | head -n 1)" in
+1) ADW_DEBUG_ACCENT_COLOR=purple ;;
+2) ADW_DEBUG_ACCENT_COLOR=blue ;;
+3) ADW_DEBUG_ACCENT_COLOR=green ;;
+4) ADW_DEBUG_ACCENT_COLOR=yellow ;;
+5) ADW_DEBUG_ACCENT_COLOR=pink ;;
+*) ADW_DEBUG_ACCENT_COLOR=teal ;;
+esac
+export ADW_DEBUG_ACCENT_COLOR
+
+# Primeira vez: perfil padrão com a paleta do KalangOS e a fonte do sistema.
+MARCA=${XDG_STATE_HOME:-$HOME/.local/state}/kalango/ptyxis-perfil
+if [ ! -e "$MARCA" ] && command -v gsettings >/dev/null 2>&1; then
+	UUID=$(gsettings get org.gnome.Ptyxis default-profile-uuid 2>/dev/null | tr -d "'")
+	if [ -z "$UUID" ]; then
+		UUID=$(tr -d '-' </proc/sys/kernel/random/uuid)
+		gsettings set org.gnome.Ptyxis profile-uuids "['$UUID']"
+		gsettings set org.gnome.Ptyxis default-profile-uuid "$UUID"
+	fi
+	gsettings set "org.gnome.Ptyxis.Profile:/org/gnome/Ptyxis/Profiles/$UUID/" palette 'kalango'
+	gsettings set org.gnome.Ptyxis use-system-font false
+	gsettings set org.gnome.Ptyxis font-name 'JetBrains Mono 11'
+	mkdir -p "${MARCA%/*}" && date -Iseconds >"$MARCA"
+fi
+
+if [ -n "$PASTA" ]; then
+	exec ptyxis --new-window --working-directory="$PASTA" "$@"
+fi
+exec ptyxis --new-window "$@"

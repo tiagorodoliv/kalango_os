@@ -271,6 +271,15 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `$XDG_RUNTIME_DIR/kalango-aviso` (a área de trabalho lê a cada 1 s; `Shell.recording` = "Gravando a tela").
   Sistemas de ISO antiga recebem atalhos e regra pelo `rc.xml` do usuário (`labwc::ensure_capture`); o pacote
   depende de grim, wf-recorder e wl-clipboard.
+- **Terminal com abas (2026-11-18, como o do Ubuntu 26):** Ptyxis (dependência do pacote) pelo
+  `/usr/local/bin/kalango-terminal [-D PASTA]` (sem ptyxis, foot): dock, Super+Enter (rc.xml do sistema e, para ISO
+  antiga, troca no `labwc::build`) e "Abrir terminal aqui" do Thunar (`thunar::TERMINAL_COMMAND`, também troca o
+  `foot -D %f` antigo). Destaque do libadwaita por `ADW_DEBUG_ACCENT_COLOR` (a sessão não tem portal); 1ª vez:
+  perfil com a paleta `kalango` e JetBrains Mono. O tema de Configurações → Terminal vira a paleta
+  `~/.local/share/org.gnome.Ptyxis/palettes/kalango.palette` (`terminal::ptyxis_palette`, `UseSystemAccent`; a área
+  de trabalho a grava ao entrar). **Cor da seleção:** o Ptyxis 48 do Debian não tem opção e ignora CSS; o VTE aceita
+  OSC 17/19, mandado a cada aba por `/usr/share/kalango/terminal-cores.sh` (só com `VTE_VERSION`), lido pelo
+  `.zshrc` do KalangOS (o postinst acrescenta a linha nos `.zshrc` que são nossos, 1ª linha "# ~/.zshrc do Kalang").
 - **Thunar "Abrir terminal aqui":** o padrão do Debian usa `exo-open --launch TerminalEmulator`, que no Xfce 4.20
   precisa do `xfce4-helpers` (não instalado) e falha calado; `shell::thunar` troca por `foot -D %f` no `uca.xml`.
 - **Proteção contra cascata (2026-11-17):** o `examples/snapshot`, rodado dentro da sessão (herdava
