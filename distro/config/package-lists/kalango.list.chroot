@@ -71,6 +71,11 @@ accountsservice
 gnome-software
 gnome-software-plugin-flatpak
 flatpak
+# Controles de jogo no Steam (Xbox, PlayStation, Switch, Steam Controller): regras do
+# udev que liberam o /dev/uinput e o hidraw para a sessão. Sem elas o Steam (inclusive
+# o Flatpak) mostra o controle, mas o jogo não recebe nada (o Steam Input não cria o
+# controle virtual).
+steam-devices
 gnome-calendar
 # Abrir arquivos recentes no app padrão (xdg-open)
 xdg-utils
