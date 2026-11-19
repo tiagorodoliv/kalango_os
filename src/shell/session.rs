@@ -200,6 +200,8 @@ pub fn command_for(id: &str) -> Option<Vec<String>> {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
     let cmd: Vec<String> = match id {
         "files" => vec!["thunar".into()],
+        // Lixeira da dock e da área de trabalho.
+        "trash" => vec!["thunar".into(), "trash:///".into()],
         "terminal" => vec!["foot".into()],
         "browser" => vec!["firefox-esr".into()],
         "store" => vec!["gnome-software".into()],

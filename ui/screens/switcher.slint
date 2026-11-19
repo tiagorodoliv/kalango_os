@@ -137,6 +137,9 @@ export global DockMenu {
     in property <bool> can-pin: true;
     /// Pode abrir outra janela (tem comando para abrir).
     in property <bool> can-open: true;
+    /// Menu da Lixeira: "Esvaziar lixeira" (só com algo dentro).
+    in property <bool> can-empty-trash: false;
+    callback empty-trash();
     /// Janelas abertas do app.
     in property <[DockMenuWindow]> windows;
     /// Centro do item ao longo da dock e quantos apps ela tem (para achar
@@ -180,7 +183,8 @@ export component DockMenuView inherits Rectangle {
     property <bool> vertical: Theme.dock-position != 0;
     property <bool> bar: Theme.dock-style == 1;
     property <length> pad: (Theme.dock-thickness - Theme.dock-item) / 2;
-    property <length> run: DockMenu.total * (Theme.dock-item + 8px) + 17px + Theme.dock-item;
+    property <length> run: DockMenu.total * (Theme.dock-item + 8px) + 17px + Theme.dock-item
+        + (Theme.dock-trash ? Theme.dock-item + 8px : 0) + (Theme.dock-apps-button != 2 ? Theme.dock-item + 8px : 0);
     property <length> side: root.height - Theme.bar-height;
     property <length> along: root.bar ? (root.vertical ? root.side : root.width) : root.run + 2 * root.pad;
     /// Começo da dock ao longo da borda.
@@ -240,6 +244,11 @@ export component DockMenuView inherits Rectangle {
             if DockMenu.can-open: MenuItem {
                 text: DockMenu.windows.length > 0 ? @tr("New window") : @tr("Open");
                 clicked => { DockMenu.new-window(); }
+            }
+            if DockMenu.can-empty-trash: MenuItem {
+                text: @tr("Empty trash");
+                danger: true;
+                clicked => { DockMenu.empty-trash(); }
             }
             if DockMenu.can-pin: MenuItem {
                 text: DockMenu.pinned ? @tr("Unpin from dock") : @tr("Pin to dock");

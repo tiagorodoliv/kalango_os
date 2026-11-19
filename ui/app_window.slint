@@ -28,6 +28,7 @@ import { TopBar } from "components/top_bar.slint";
 import { Dock } from "components/dock.slint";
 import { DesktopMenuArea } from "components/desktop_menu.slint";
 import { InstallIcon } from "components/install_icon.slint";
+import { DesktopIconsLayer, DesktopIcons, DesktopIcon } from "components/desktop_icons.slint";
 import { WindowFrame } from "components/window_frame.slint";
 import { CalendarView, Calendar, CalendarDay } from "screens/calendar.slint";
 import { CaptureView, Capture } from "screens/capture.slint";
@@ -45,6 +46,7 @@ import { Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution, Power,
 export { Theme, ThemeMode, Shell, Apps, AppEntry, RecentEntry, IconPreview, CustomWallpaper, Device, InfoItem, WifiNetwork, DisplayOutput, DisplayResolution }
 export { Calc, CalcHistory }
 export { OsdView } from "screens/osd.slint";
+export { DesktopIcons, DesktopIcon }
 export { Switcher, SwitcherItem, DockMenu, DockMenuWindow, Power, Accounts, UserAccount, Printers, Printer, PrinterDevice, Calendar, CalendarDay, Updates, UpdateItem, Capture }
 
 /// Telas de nível superior.
@@ -316,7 +318,12 @@ export component AppWindow inherits Window {
                 z: self.open ? 10 : 0;
                 settings(page) => { root.open-settings(page); }
                 launch(id) => { root.launch(id); }
+                background-pressed => { DesktopIcons.selected = ""; }
             }
+
+            // Ícones da pasta Desktop e a Lixeira (src/shell/desktop_icons.rs).
+            // Na ISO live a grade começa abaixo do "Instalar KalangOS".
+            if Shell.native && Theme.desktop-icons: DesktopIconsLayer { }
 
             // ISO live: "Instalar KalangOS" no canto de cima (à direita da
             // dock, quando ela fica na esquerda).

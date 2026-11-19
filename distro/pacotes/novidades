@@ -2,6 +2,7 @@
 # descrição do pacote e a página Configurações → Atualizações as mostra antes
 # de instalar. Uma linha curta por novidade; [pt] e [en]. Troque a cada versão.
 [pt]
+Ícones na área de trabalho e Lixeira na dock (ligue em Aparência e Barra de tarefas)
 Teclas de volume não travam mais depois do primeiro aperto
 Papéis de parede do Sertão (dia e noite) e todas as suas imagens na Aparência
 Aviso flutuante de volume, microfone e brilho acima da dock, como no macOS e no Ubuntu
@@ -10,6 +11,7 @@ Tecla de e-mail abre o programa de e-mail
 Atalhos de teclado em Idioma e região: troque as teclas e crie os seus
 Firewall com página própria nas Configurações, com faixas de portas e ativar/desativar
 [en]
+Desktop icons and a Trash in the dock (turn on in Appearance and Taskbar)
 Volume keys no longer get stuck after the first press
 Sertão wallpapers (day and night) and all your own images in Appearance
 Floating volume, microphone and brightness indicator above the dock, like macOS and Ubuntu

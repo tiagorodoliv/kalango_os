@@ -179,6 +179,17 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   (`labwc::ensure_capture`, bloco `MEDIA_KEYS`). Pacote depende de playerctl e brightnessctl. Segurando a tecla o
   labwc repete o atalho: o script usa `flock -n` (aperto com outro rodando é descartado, sem fila) e a área de
   trabalho lê o `kalango-aviso` a cada 100 ms (antes 1 s: o valor parecia "travado").
+- **Ícones na área de trabalho e Lixeira (2026-11-18), como no Ubuntu:** `src/shell/desktop_icons.rs` +
+  `ui/components/desktop_icons.slint` (global `DesktopIcons`, camada por cima do `DesktopMenuArea`: só os quadrados
+  recebem clique). Pasta `XDG_DESKTOP_DIR` relida a cada 1,5 s (nomes+datas); Lixeira primeiro, pastas, depois por
+  nome; grade de 96×104 de cima para baixo, fora da barra/dock (na ISO live começa abaixo do "Instalar"). Ícone do
+  `.desktop` (atalhos de apps do Chrome), miniatura das imagens, tipo pela extensão (`mime_icon`); sem ícone no tema,
+  o de traço do shell. Dois cliques abrem (`desktop:` / Thunar / `xdg-open`); arrastar encaixa na grade e troca de
+  lugar com quem estava lá (`~/.config/kalango/area-de-trabalho.conf`); botão direito: Abrir, Renomear (zenity),
+  Mover para a lixeira (`gio trash`), Propriedades (D-Bus do Thunar). **Lixeira na dock** depois das Configurações
+  (`Theme.dock-trash`, conta em `dock.slint`/`dock::geometry`/`DockMenuView`), cheia/vazia pelo `src/shell/trash.rs`,
+  menu com "Esvaziar lixeira" (zenity + `gio trash --empty`). Opções `dock-lixeira` e `area-de-trabalho-icones`
+  (em `LEGACY` = false: quem atualiza liga na Aparência/Barra de tarefas).
 - **Atalhos de teclado (2026-11-18, Configurações → Idioma e região):** `src/settings/shortcuts.rs` + `RegionPage`
   (agora com rolagem). Atalhos padrão com tecla trocável (`shortcuts::DEFAULTS`: menu, terminal, arquivos, navegador,
   bloquear, layouts, captura, foto da tela, gravar) e atalhos próprios (nome, comando, tecla). Arquivo

@@ -85,6 +85,8 @@ export component DesktopMenu inherits Rectangle {
 export component DesktopMenuArea inherits Rectangle {
     callback settings(int);
     callback launch(string);
+    /// Clique (qualquer botão) no fundo: tira a seleção dos ícones.
+    callback background-pressed();
     /// Menu aberto (a área de trabalho põe a camada por cima das janelas
     /// de demonstração só enquanto ele está aberto).
     out property <bool> open: false;
@@ -93,6 +95,9 @@ export component DesktopMenuArea inherits Rectangle {
 
     TouchArea {
         pointer-event(ev) => {
+            if (ev.kind == PointerEventKind.down) {
+                root.background-pressed();
+            }
             if (ev.button == PointerEventButton.right && ev.kind == PointerEventKind.down) {
                 root.menu-x = self.mouse-x;
                 root.menu-y = self.mouse-y;

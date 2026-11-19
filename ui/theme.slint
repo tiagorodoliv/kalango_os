@@ -53,6 +53,11 @@ export global Theme {
     /// fica a `dock-gap` da borda e com os quatro cantos arredondados. Só no
     /// estilo dock (0); a barra continua encostada.
     in-out property <bool> dock-detached: false;
+    /// Lixeira na dock, depois das Configurações (como no Ubuntu).
+    in-out property <bool> dock-trash: true;
+    /// Ícones da pasta Desktop e a Lixeira na área de trabalho
+    /// (`src/shell/desktop_icons.rs`).
+    in-out property <bool> desktop-icons: true;
     /// Botão do menu de programas (grade de 9 pontos) na dock:
     /// 0 = no começo, 1 = no fim (padrão, como no Ubuntu), 2 = escondido.
     in-out property <int> dock-apps-button: 1;

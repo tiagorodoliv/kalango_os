@@ -3475,7 +3475,7 @@ export component TaskbarPage inherits Rectangle {
 
             SectionLabel { text: "DOCK"; }
             Panel {
-                height: 11 * 67px;
+                height: 12 * 67px;
                 VerticalLayout {
                     Row {
                         title: @tr("Position");
@@ -3505,6 +3505,12 @@ export component TaskbarPage inherits Rectangle {
                         subtitle: Theme.dock-style == 1 ? @tr("Only in the Dock style")
                             : @tr("A gap between the dock and the edge, like Ubuntu");
                         Toggle { x: parent.width - self.width - 20px; checked <=> Theme.dock-detached; }
+                    }
+                    // Lixeira depois das Configurações, como no Ubuntu.
+                    Row {
+                        title: @tr("Trash in the dock");
+                        subtitle: @tr("Shows when it has something; right-click to empty it");
+                        Toggle { x: parent.width - self.width - 20px; checked <=> Theme.dock-trash; }
                     }
                     // Grade de 9 pontos que abre o menu de programas.
                     Row {

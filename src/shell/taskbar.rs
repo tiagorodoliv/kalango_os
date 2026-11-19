@@ -23,6 +23,7 @@ use std::time::{Duration, Instant};
 
 use slint::{ComponentHandle, Model, ModelRc, Timer, TimerMode, VecModel};
 
+use crate::common::i18n::tr;
 use crate::launcher::desktop::{self, DesktopApp};
 use crate::shell::session::Mode;
 use crate::shell::toplevels::{Tracker, Window};
@@ -332,6 +333,16 @@ fn install_menu(ui: &AppWindow) {
         || (id.starts_with(desktop::ID_PREFIX) && Path::new(&id[desktop::ID_PREFIX.len()..]).is_file())
         || crate::shell::session::command_for(&id).is_some();
     menu.set_can_open(can_open);
+    // Lixeira: sem fixar; "Abrir" e "Esvaziar lixeira".
+    if id == "trash" {
+        menu.set_app(AppEntry { id: "trash".into(), name: tr("Trash", "Lixeira").into(), ..Default::default() });
+        menu.set_can_pin(false);
+        menu.set_can_empty_trash(crate::shell::trash::is_full());
+        menu.on_empty_trash(|| {
+            crate::shell::trash::empty();
+            let _ = slint::quit_event_loop();
+        });
+    }
 
     let tracker = Tracker::start(|_| {});
     let windows: Vec<Window> = tracker

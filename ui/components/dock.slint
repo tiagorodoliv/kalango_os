@@ -88,9 +88,10 @@ export component Dock inherits Rectangle {
     property <bool> apps-button: Theme.dock-apps-button != 2;
     property <bool> apps-first: Theme.dock-apps-button == 0;
     property <length> lead: root.apps-first ? root.step : 0;
-    /// Comprimento dos itens: [botão], apps, separador, Configurações [, botão].
-    /// Mesma conta de `geometry` em src/shell/dock.rs.
-    property <length> run: root.count * root.step + 17px + Theme.dock-item + (root.apps-button ? root.step : 0);
+    /// Comprimento dos itens: [botão], apps, separador, Configurações
+    /// [, Lixeira] [, botão]. Mesma conta de `geometry` em src/shell/dock.rs.
+    property <length> run: root.count * root.step + 17px + Theme.dock-item + (Theme.dock-trash ? root.step : 0)
+        + (root.apps-button ? root.step : 0);
     /// Posição das Configurações ao longo da dock.
     property <length> settings-at: root.start + root.lead + root.count * root.step + 17px;
     property <length> along: root.bar ? root.bar-length : root.run + 2 * root.pad;
@@ -172,11 +173,28 @@ export component Dock inherits Rectangle {
         menu => { root.menu("settings", root.settings-at + Theme.dock-item / 2); }
     }
 
+    // Lixeira (como a do Ubuntu): cheia ou vazia; clique abre no Thunar e o
+    // botão direito tem "Esvaziar lixeira" (src/shell/trash.rs).
+    property <bool> trash-themed: Shell.trash-icon.width > 0;
+    if Theme.dock-trash: DockItem {
+        x: root.vertical ? root.pad : root.settings-at + root.step;
+        y: root.vertical ? root.settings-at + root.step : root.pad;
+        app: {
+            id: "trash",
+            name: @tr("Trash"),
+            icon: !root.trash-themed ? Icons.trash : Shell.trash-full && Shell.trash-icon-full.width > 0 ? Shell.trash-icon-full : Shell.trash-icon,
+            tint: root.trash-themed ? transparent : Theme.text,
+        };
+        edge: Theme.dock-position;
+        clicked => { root.launch("trash"); }
+        menu => { root.menu("trash", root.settings-at + root.step + Theme.dock-item / 2); }
+    }
+
     // Menu de programas (grade de 9 pontos, como o "Mostrar aplicativos" do
     // Ubuntu): no começo ou depois das Configurações. Abre/fecha o menu de
     // apps (`dock-launch` trata o id "apps-menu"); não tem menu de contexto.
     if root.apps-button: DockItem {
-        property <length> at: root.apps-first ? root.start : root.settings-at + root.step;
+        property <length> at: root.apps-first ? root.start : root.settings-at + root.step * (Theme.dock-trash ? 2 : 1);
         x: root.vertical ? root.pad : self.at;
         y: root.vertical ? self.at : root.pad;
         app: { id: "apps-menu", name: @tr("Show apps"), icon: Icons.grid, tint: Theme.text };

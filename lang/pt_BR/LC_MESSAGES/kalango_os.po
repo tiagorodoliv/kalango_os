@@ -1737,3 +1737,30 @@ msgstr "Sertão de dia"
 
 msgid "Sertão by night"
 msgstr "Sertão à noite"
+
+msgid "Desktop icons"
+msgstr "Ícones na área de trabalho"
+
+msgid "The Trash and the files in the Desktop folder"
+msgstr "A Lixeira e os arquivos da pasta Área de trabalho"
+
+msgid "Trash in the dock"
+msgstr "Lixeira na dock"
+
+msgid "Shows when it has something; right-click to empty it"
+msgstr "Mostra quando tem algo dentro; botão direito para esvaziar"
+
+msgid "Empty trash"
+msgstr "Esvaziar lixeira"
+
+msgid "Move to trash"
+msgstr "Mover para a lixeira"
+
+msgid "Trash"
+msgstr "Lixeira"
+
+msgid "Rename"
+msgstr "Renomear"
+
+msgid "Properties"
+msgstr "Propriedades"

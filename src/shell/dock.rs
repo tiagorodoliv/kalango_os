@@ -65,6 +65,8 @@ pub struct DockSpec {
     pub count: usize,
     /// Botão do menu de programas visível (mais um item, no começo ou no fim).
     pub apps_button: bool,
+    /// Lixeira depois das Configurações (mais um item).
+    pub trash: bool,
     /// Folga até a borda da tela (dock solta, `Theme.dock-gap`); 0 = encostada.
     pub gap: f32,
 }
@@ -79,7 +81,11 @@ pub fn geometry(screen: (u32, u32), spec: DockSpec, bar_height: u32) -> crate::s
     // de programas, um passo a mais] + respiro. Mesma conta de `run` em
     // ui/components/dock.slint.
     let step = spec.item + 8.0;
-    let run = spec.count as f32 * step + 17.0 + spec.item + if spec.apps_button { step } else { 0.0 };
+    let run = spec.count as f32 * step
+        + 17.0
+        + spec.item
+        + if spec.trash { step } else { 0.0 }
+        + if spec.apps_button { step } else { 0.0 };
     let edge = if spec.position == 0 { w } else { side };
     let along = if spec.bar { edge } else { (run + 2.0 * pad).min(edge) };
     let t = spec.thickness.round() as u32;
@@ -178,6 +184,7 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
             // Fixados + abertos que não estão fixados.
             count: ui.global::<crate::Apps>().get_dock().row_count() + shell.get_running_extra().row_count(),
             apps_button: theme.get_dock_apps_button() != 2,
+            trash: theme.get_dock_trash(),
             gap: theme.get_dock_gap(),
         };
         // No monitor principal (com vários monitores, a origem dele).
@@ -327,7 +334,7 @@ mod tests {
     #[test]
     fn janela_do_tamanho_da_dock() {
         // 5 apps, botão de 36 px, dock (respiro 9): 5×44 + 17 + 36 + 18 = 291.
-        let spec = DockSpec { position: 0, bar: false, item: 36.0, thickness: 54.0, count: 5, apps_button: false, gap: 0.0 };
+        let spec = DockSpec { position: 0, bar: false, item: 36.0, thickness: 54.0, count: 5, apps_button: false, trash: false, gap: 0.0 };
         let g = geometry((1366, 768), spec, 35);
         assert_eq!((g.x, g.y, g.width, g.height), (538, 714, 291, 54));
         // Barra: a borda inteira.
@@ -341,7 +348,7 @@ mod tests {
 
     #[test]
     fn botao_de_programas_e_dock_solta() {
-        let spec = DockSpec { position: 0, bar: false, item: 36.0, thickness: 54.0, count: 5, apps_button: true, gap: 8.0 };
+        let spec = DockSpec { position: 0, bar: false, item: 36.0, thickness: 54.0, count: 5, apps_button: true, trash: false, gap: 8.0 };
         // Faixa da dock escondida: 2 px na borda, do comprimento da dock.
         let dock = geometry((1366, 768), spec, 35);
         let t = trigger_strip((1366, 768), (0, 0), 0, dock);
@@ -354,6 +361,9 @@ mod tests {
         assert_eq!((g.x, g.y), (516, 768 - 54 - 8));
         // Nas laterais, afastada da borda pela folga.
         assert_eq!(geometry((1366, 768), DockSpec { position: 1, ..spec }, 35).x, 8);
+        // Lixeira: mais um passo (item + 8).
+        let sem = geometry((1366, 768), spec, 35).width;
+        assert_eq!(geometry((1366, 768), DockSpec { trash: true, ..spec }, 35).width, sem + 44);
         assert_eq!(geometry((1366, 768), DockSpec { position: 2, ..spec }, 35).x, 1366 - 54 - 8);
     }
 }

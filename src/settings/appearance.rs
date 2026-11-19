@@ -55,6 +55,10 @@ pub struct Prefs {
     pub dock_corners: i32,
     /// Dock solta da borda ([`DOCK_GAP`] px), como no Ubuntu; só no estilo dock.
     pub dock_detached: bool,
+    /// Lixeira na dock (depois das Configurações), como no Ubuntu.
+    pub dock_trash: bool,
+    /// Ícones da pasta Desktop (e a Lixeira) na área de trabalho.
+    pub desktop_icons: bool,
     /// Botão do menu de programas: 0 = no começo, 1 = no fim, 2 = escondido.
     pub dock_apps_button: i32,
     /// 0 = circuitos; 1 em diante, os modelos de [`crate::shell::wallpaper::MODELS`];
@@ -93,6 +97,9 @@ const DOCK_APPS_BUTTON: [&str; 3] = ["inicio", "fim", "oculto"];
 const LEGACY: &[(&str, &str)] = &[
     // 0.1.1-2: botão do menu de programas na dock (padrão novo: no fim).
     ("dock-botao-apps", "oculto"),
+    // 0.1.1-15: Lixeira na dock e ícones na área de trabalho.
+    ("dock-lixeira", "false"),
+    ("area-de-trabalho-icones", "false"),
 ];
 
 /// Folga entre a dock solta e a borda da tela, em px lógicos (o mesmo de
@@ -252,6 +259,8 @@ impl Prefs {
             dock_icon_transparency: t.get_dock_icon_transparency(),
             dock_corners: t.get_dock_corners(),
             dock_detached: t.get_dock_detached(),
+            dock_trash: t.get_dock_trash(),
+            desktop_icons: t.get_desktop_icons(),
             dock_apps_button: t.get_dock_apps_button(),
             blur: t.get_blur(),
             dock_always_visible: t.get_dock_always_visible(),
@@ -283,6 +292,8 @@ impl Prefs {
         t.set_dock_icon_transparency(self.dock_icon_transparency);
         t.set_dock_corners(self.dock_corners);
         t.set_dock_detached(self.dock_detached);
+        t.set_dock_trash(self.dock_trash);
+        t.set_desktop_icons(self.desktop_icons);
         t.set_dock_apps_button(self.dock_apps_button);
         t.set_blur(self.blur);
         t.set_dock_always_visible(self.dock_always_visible);
@@ -343,7 +354,7 @@ impl Prefs {
              barra-data={}\nbarra-segundos={}\nbarra-cpu={}\nbarra-bateria={}\n\
              dock-tamanho={}\ndock-apps={}\ndock-posicao={}\ndock-estilo={}\ndock-transparencia={}\n\
              dock-icones={}\ndock-icones-transparencia={}\ndock-cantos={}\n\
-             dock-solta={}\ndock-botao-apps={}\n\
+             dock-solta={}\ndock-botao-apps={}\ndock-lixeira={}\narea-de-trabalho-icones={}\n\
              papel-de-parede={}\npapel-de-parede-arquivo={}\nicones={}\nbotoes-janela={}\nbotoes-janela-lado={}\n",
             self.accent_index,
             mode,
@@ -365,6 +376,8 @@ impl Prefs {
             DOCK_CORNERS[self.dock_corners.clamp(0, 2) as usize],
             self.dock_detached,
             DOCK_APPS_BUTTON[self.dock_apps_button.clamp(0, 2) as usize],
+            self.dock_trash,
+            self.desktop_icons,
             crate::shell::wallpaper::name(self.wallpaper),
             self.wallpaper_file,
             ICON_FAMILIES[self.icon_theme.clamp(0, 2) as usize],
@@ -422,6 +435,8 @@ impl Prefs {
                     }
                 }
                 "dock-solta" => p.dock_detached = value.parse().unwrap_or(p.dock_detached),
+                "dock-lixeira" => p.dock_trash = value.parse().unwrap_or(p.dock_trash),
+                "area-de-trabalho-icones" => p.desktop_icons = value.parse().unwrap_or(p.desktop_icons),
                 "dock-botao-apps" => {
                     if let Some(i) = DOCK_APPS_BUTTON.iter().position(|s| *s == value) {
                         p.dock_apps_button = i as i32;
@@ -630,6 +645,8 @@ mod tests {
             dock_icon_transparency: 0.0,
             dock_corners: 1,
             dock_detached: false,
+            dock_trash: true,
+            desktop_icons: true,
             dock_apps_button: 1,
             blur: true,
             dock_always_visible: true,
@@ -661,6 +678,8 @@ mod tests {
             dock_icon_transparency: 0.2,
             dock_corners: 2,
             dock_detached: true,
+            dock_trash: false,
+            desktop_icons: false,
             dock_apps_button: 0,
             blur: false,
             dock_always_visible: false,
@@ -778,5 +797,11 @@ mod tests {
         assert_eq!(Prefs::parse("destaque=2\ndock-botao-apps=inicio\n", &padrao()).dock_apps_button, 0);
         // Sem arquivo (instalação nova): padrão novo.
         assert_eq!(Prefs::parse("", &padrao()).dock_apps_button, 1);
+        // Lixeira na dock e ícones na área de trabalho: desligados para quem já
+        // tinha o arquivo, ligados na instalação nova.
+        let antigo = Prefs::parse("destaque=2\n", &padrao());
+        assert!(!antigo.dock_trash && !antigo.desktop_icons);
+        let novo = Prefs::parse("", &padrao());
+        assert!(novo.dock_trash && novo.desktop_icons);
     }
 }

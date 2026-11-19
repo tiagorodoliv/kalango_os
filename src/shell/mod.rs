@@ -21,6 +21,7 @@
 pub mod calendar;
 #[cfg(target_os = "linux")]
 pub mod capture;
+pub mod desktop_icons;
 pub mod dock;
 pub mod firewall;
 pub mod osd;
@@ -36,6 +37,7 @@ pub mod taskbar;
 pub mod thunar;
 #[cfg(target_os = "linux")]
 pub mod toplevels;
+pub mod trash;
 pub mod update;
 pub mod usb;
 pub mod wallpaper;

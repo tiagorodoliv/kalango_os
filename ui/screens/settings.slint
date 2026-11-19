@@ -404,7 +404,7 @@ component AppearancePage inherits Rectangle {
             // --- Painel de opções ---
             Rectangle { height: 33px; }
             Rectangle {
-                height: 3 * 67px;
+                height: 4 * 67px;
                 border-radius: Theme.radius;
                 background: Theme.panel;
                 border-width: 1px;
@@ -448,6 +448,14 @@ component AppearancePage inherits Rectangle {
                         Toggle {
                             x: parent.width - self.width - 20px;
                             checked <=> Theme.reduce-motion;
+                        }
+                    }
+                    OptionRow {
+                        title: @tr("Desktop icons");
+                        subtitle: @tr("The Trash and the files in the Desktop folder");
+                        Toggle {
+                            x: parent.width - self.width - 20px;
+                            checked <=> Theme.desktop-icons;
                         }
                     }
                 }

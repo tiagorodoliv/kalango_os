@@ -244,6 +244,11 @@ export global Shell {
     /// O app em foco está em tela cheia (vídeo, jogo): a dock em janela
     /// própria fecha até ele sair (`src/shell/dock.rs`).
     in property <bool> app-fullscreen: false;
+    /// Lixeira (`src/shell/trash.rs`): tem algo dentro e os ícones do tema
+    /// de ícones (vazia e cheia; vazios sem tema, aí vale `Icons.trash`).
+    in property <bool> trash-full: false;
+    in property <image> trash-icon;
+    in property <image> trash-icon-full;
     /// Apps com janela aberta (sessão real, `src/shell/taskbar.rs`): ids da dock
     /// separados por vírgula ("files,desktop:/usr/share/...").
     in property <string> running-ids: "";

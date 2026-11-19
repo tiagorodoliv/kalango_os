@@ -1,0 +1,211 @@
+// Ícones da área de trabalho (como os do Ubuntu e do Windows): a Lixeira e o
+// que está na pasta Desktop, em grade a partir do canto de cima. Um clique
+// seleciona, dois abrem, arrastar muda de lugar (fica guardado) e o botão
+// direito abre o menu do ícone. Os dados e as ações vêm do Rust
+// (src/shell/desktop_icons.rs).
+//
+// Só os quadrados dos ícones recebem cliques: o resto da tela continua com o
+// menu da área de trabalho (`DesktopMenuArea`, que fica embaixo).
+
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+
+/// Um ícone na tela.
+export struct DesktopIcon {
+    /// Caminho do arquivo, ou "trash" (a Lixeira).
+    id: string,
+    name: string,
+    icon: image,
+    /// Cor do ícone de traço (sem ícone do tema); transparente = colorido.
+    tint: color,
+    /// "trash", "app", "folder", "image" ou "file".
+    kind: string,
+    /// Lugar na grade.
+    col: int,
+    row: int,
+}
+
+export global DesktopIcons {
+    in property <[DesktopIcon]> items;
+    /// Canto da grade (abaixo da barra, ao lado da dock na esquerda).
+    in property <length> origin-x: 16px;
+    in property <length> origin-y: 47px;
+    /// Tamanho de cada lugar da grade.
+    out property <length> cell-w: 96px;
+    out property <length> cell-h: 104px;
+    /// Selecionado e arrastando.
+    in-out property <string> selected;
+    in-out property <string> drag-id;
+    in-out property <length> drag-x;
+    in-out property <length> drag-y;
+    callback open(string);
+    /// Ação do menu: "open", "rename", "trash", "properties", "empty".
+    callback action(string, string);
+    /// Soltou o ícone arrastado no lugar (coluna, linha) da grade.
+    callback move-to(string, int, int);
+}
+
+component IconMenuItem inherits Rectangle {
+    in property <string> text;
+    in property <bool> danger: false;
+    callback clicked();
+    height: 34px;
+    border-radius: 8px;
+    background: touch.has-hover ? Theme.tile-hover : transparent;
+    Text {
+        x: 12px;
+        text: root.text;
+        color: root.danger ? Theme.danger : Theme.text;
+        font-family: Theme.sans;
+        font-size: 14px;
+        vertical-alignment: center;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component DesktopIconsLayer inherits Rectangle {
+    /// Menu do botão direito de um ícone.
+    property <string> menu-id;
+    property <string> menu-kind;
+    property <length> menu-x;
+    property <length> menu-y;
+
+    for icon in DesktopIcons.items: Rectangle {
+        property <length> base-x: DesktopIcons.origin-x + icon.col * DesktopIcons.cell-w;
+        property <length> base-y: DesktopIcons.origin-y + icon.row * DesktopIcons.cell-h;
+        property <bool> dragging: DesktopIcons.drag-id == icon.id;
+        property <bool> chosen: DesktopIcons.selected == icon.id;
+        x: self.dragging ? DesktopIcons.drag-x : self.base-x;
+        y: self.dragging ? DesktopIcons.drag-y : self.base-y;
+        width: DesktopIcons.cell-w - 6px;
+        height: DesktopIcons.cell-h - 6px;
+        border-radius: 10px;
+        opacity: self.dragging ? 0.8 : 1;
+        background: self.chosen ? Theme.accent.with-alpha(0.28) : touch.has-hover ? #ffffff1a : transparent;
+        border-width: self.chosen ? 1px : 0;
+        border-color: Theme.accent.with-alpha(0.6);
+
+        // Sem ícone no tema: o de traço do shell, em branco.
+        property <bool> has-icon: icon.icon.width > 0;
+        Image {
+            y: 8px;
+            width: parent.has-icon ? 52px : 40px;
+            height: parent.has-icon ? 52px : 40px;
+            source: parent.has-icon ? icon.icon : icon.kind == "trash" ? Icons.trash : icon.kind == "folder" ? Icons.folder : Icons.file;
+            colorize: parent.has-icon ? icon.tint : #e6edf3;
+            image-fit: contain;
+        }
+        // Nome em até duas linhas, com sombra para ler em qualquer fundo.
+        Text {
+            x: 5px + 1px;
+            y: 64px + 1px;
+            width: parent.width - 10px;
+            height: 34px;
+            text: icon.name;
+            color: #000000b0;
+            font-family: Theme.sans;
+            font-size: 12.5px;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+            overflow: elide;
+        }
+        Text {
+            x: 5px;
+            y: 64px;
+            width: parent.width - 10px;
+            height: 34px;
+            text: icon.name;
+            color: #ffffff;
+            font-family: Theme.sans;
+            font-size: 12.5px;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+            overflow: elide;
+        }
+
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { DesktopIcons.selected = icon.id; }
+            double-clicked => { DesktopIcons.open(icon.id); }
+            moved => {
+                if (self.pressed && DesktopIcons.drag-id == "" && (abs(self.mouse-x - self.pressed-x) > 6px || abs(self.mouse-y - self.pressed-y) > 6px)) {
+                    DesktopIcons.selected = icon.id;
+                    DesktopIcons.drag-id = icon.id;
+                    DesktopIcons.drag-x = parent.base-x;
+                    DesktopIcons.drag-y = parent.base-y;
+                }
+                if (parent.dragging) {
+                    // A área de toque anda junto com o ícone: soma só o quanto
+                    // o mouse saiu do ponto em que pegou.
+                    DesktopIcons.drag-x += self.mouse-x - self.pressed-x;
+                    DesktopIcons.drag-y += self.mouse-y - self.pressed-y;
+                }
+            }
+            pointer-event(ev) => {
+                if (ev.kind == PointerEventKind.up && ev.button == PointerEventButton.left && parent.dragging) {
+                    DesktopIcons.move-to(icon.id,
+                        max(0, round((DesktopIcons.drag-x - DesktopIcons.origin-x) / DesktopIcons.cell-w)),
+                        max(0, round((DesktopIcons.drag-y - DesktopIcons.origin-y) / DesktopIcons.cell-h)));
+                    DesktopIcons.drag-id = "";
+                }
+                if (ev.kind == PointerEventKind.down && ev.button == PointerEventButton.right) {
+                    DesktopIcons.selected = icon.id;
+                    root.menu-id = icon.id;
+                    root.menu-kind = icon.kind;
+                    root.menu-x = parent.x + self.mouse-x;
+                    root.menu-y = parent.y + self.mouse-y;
+                }
+            }
+        }
+    }
+
+    // Menu do ícone: um clique fora fecha.
+    if root.menu-id != "": TouchArea {
+        pointer-event(ev) => {
+            if (ev.kind == PointerEventKind.down) {
+                root.menu-id = "";
+            }
+        }
+        Rectangle {
+            x: min(root.menu-x, parent.width - self.width - 8px);
+            y: min(root.menu-y, parent.height - self.height - 8px);
+            width: 220px;
+            height: menu-col.preferred-height;
+            border-radius: 12px;
+            background: Theme.panel-solid;
+            border-width: 1px;
+            border-color: Theme.border;
+            drop-shadow-blur: 24px;
+            drop-shadow-color: #00000090;
+            TouchArea { }
+            menu-col := VerticalLayout {
+                padding: 5px;
+                IconMenuItem {
+                    text: @tr("Open");
+                    clicked => { DesktopIcons.action(root.menu-id, "open"); root.menu-id = ""; }
+                }
+                if root.menu-kind == "trash": IconMenuItem {
+                    text: @tr("Empty trash");
+                    danger: true;
+                    clicked => { DesktopIcons.action(root.menu-id, "empty"); root.menu-id = ""; }
+                }
+                if root.menu-kind != "trash": IconMenuItem {
+                    text: @tr("Rename");
+                    clicked => { DesktopIcons.action(root.menu-id, "rename"); root.menu-id = ""; }
+                }
+                if root.menu-kind != "trash": IconMenuItem {
+                    text: @tr("Move to trash");
+                    danger: true;
+                    clicked => { DesktopIcons.action(root.menu-id, "trash"); root.menu-id = ""; }
+                }
+                if root.menu-kind != "trash": IconMenuItem {
+                    text: @tr("Properties");
+                    clicked => { DesktopIcons.action(root.menu-id, "properties"); root.menu-id = ""; }
+                }
+            }
+        }
+    }
+}
