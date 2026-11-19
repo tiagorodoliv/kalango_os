@@ -16,10 +16,12 @@
 #   KALANGO_REVISAO  revisão do pacote kalango-shell compilado para a ISO
 #   KALANGO_DEB      usa este kalango-shell .deb (o publicado no apt) em vez de
 #                    compilar outro: a ISO e o apt ficam com o mesmo arquivo
-#   KALANGO_EDICAO   "novo" = edição para hardware novo: kernel, Mesa e firmware
-#                    do trixie-backports (processadores e placas recentes, como os
-#                    Intel Core Ultra que só funcionam com kernel 7.x); a ISO sai
-#                    como kalango-os-<versão>-<codinome>-hardware-novo.iso
+#   KALANGO_EDICAO   "hwe" = edição HWE (Hardware Enablement, como o kernel HWE do
+#                    Ubuntu): kernel, Mesa e firmware do trixie-backports, para
+#                    processadores e placas recentes (como os Intel Core Ultra que
+#                    só funcionam com kernel 7.x); a ISO sai como
+#                    kalango-os-<versão>-<codinome>-hwe.iso. "novo" (o nome antigo)
+#                    continua valendo.
 # O codinome (planta do sertão) vem de distro/codinomes.
 set -eu
 
@@ -43,10 +45,11 @@ CODINOME=$(awk -v s="$SERIE" '!/^#/ && $1 == s { print $2 }' "$DISTRO/codinomes"
 # Para o nome do arquivo: minúsculas e só letras, números e "-" ("Xique-xique" → "xique-xique").
 SLUG=$(printf '%s' "$CODINOME" | tr '[:upper:]' '[:lower:]' | iconv -f utf-8 -t ascii//TRANSLIT | tr -cd 'a-z0-9-')
 EDICAO="${KALANGO_EDICAO:-padrao}"
+[ "$EDICAO" = novo ] && EDICAO=hwe
 case "$EDICAO" in
 padrao) ISO_NAME="kalango-os-$VERSION-$SLUG.iso" ;;
-novo) ISO_NAME="kalango-os-$VERSION-$SLUG-hardware-novo.iso" ;;
-*) echo "KALANGO_EDICAO inválida: $EDICAO (use padrao ou novo)" >&2; exit 1 ;;
+hwe) ISO_NAME="kalango-os-$VERSION-$SLUG-hwe.iso" ;;
+*) echo "KALANGO_EDICAO inválida: $EDICAO (use padrao ou hwe)" >&2; exit 1 ;;
 esac
 DEB_PRONTO="${KALANGO_DEB:-}"
 [ -z "$DEB_PRONTO" ] || [ -f "$DEB_PRONTO" ] || { echo "KALANGO_DEB não existe: $DEB_PRONTO" >&2; exit 1; }
@@ -156,6 +159,11 @@ OSR="$BUILDER/work/iso/config/includes.chroot/usr/lib/os-release"
 sed -i -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"KalangOS $SERIE $CODINOME\"|" \
 	-e "s|^VERSION=.*|VERSION=\"$SERIE $CODINOME (base Debian 13 trixie)\"|" "$OSR"
 grep -q '^KALANGO_CODENAME=' "$OSR" || echo "KALANGO_CODENAME=$SLUG" >>"$OSR"
+# Edição HWE: campos padrão do os-release para a variante (o fastfetch e outros leem).
+if [ "$EDICAO" = hwe ]; then
+	sed -i -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"KalangOS $SERIE $CODINOME HWE\"|" "$OSR"
+	grep -q '^VARIANT=' "$OSR" || printf 'VARIANT="HWE (Hardware Enablement)"\nVARIANT_ID=hwe\n' >>"$OSR"
+fi
 # O shell vai como pacote (kalango-shell, distro/pacotes/gerar-deb.sh): o dpkg fica
 # dono dos arquivos e as versões novas chegam pelo repositório apt (OTA). Uma
 # cópia do .deb fica em distro/out para publicar com distro/repo/publicar.sh.
@@ -199,18 +207,18 @@ POWERBAR=$(sh "$DISTRO/gtklock/powerbar.sh" baixar "$DISTRO/.cache")
 cp "$POWERBAR" "$BUILDER/work/powerbar.tar.gz"
 cp "$DISTRO/gtklock/powerbar.sh" "$BUILDER/work/powerbar.sh"
 no_builder "sh /work/powerbar.sh compilar /work/powerbar.tar.gz /work/iso/config/includes.chroot/usr/lib/x86_64-linux-gnu/gtklock"
-# Edição para hardware novo: kernel, Mesa e firmware do trixie-backports. O
+# Edição HWE (Hardware Enablement): kernel, Mesa e firmware do trixie-backports. O
 # live-build só acrescenta o repositório; a prioridade (só para esses pacotes,
 # o resto do sistema continua no Debian estável) vale na montagem da ISO
 # (config/archives) e no sistema instalado (preferences.d, para continuar
 # recebendo os kernels novos).
 LB_EXTRA=""
-if [ "$EDICAO" = novo ]; then
+if [ "$EDICAO" = hwe ]; then
 	LB_EXTRA="--backports true"
-	PREF="$DISTRO/edicoes/hardware-novo.pref"
+	PREF="$DISTRO/edicoes/hwe.pref"
 	mkdir -p "$BUILDER/work/iso/config/archives" "$BUILDER/work/iso/config/includes.chroot/etc/apt/preferences.d"
-	cp "$PREF" "$BUILDER/work/iso/config/archives/kalango-hardware-novo.pref.chroot"
-	cp "$PREF" "$BUILDER/work/iso/config/includes.chroot/etc/apt/preferences.d/kalango-hardware-novo.pref"
+	cp "$PREF" "$BUILDER/work/iso/config/archives/kalango-hwe.pref.chroot"
+	cp "$PREF" "$BUILDER/work/iso/config/includes.chroot/etc/apt/preferences.d/kalango-hwe.pref"
 fi
 no_builder "cd /work/iso && lb config $LB_EXTRA"
 # O live-build às vezes falha ao desmontar o /proc do chroot ("target is busy"): um processo

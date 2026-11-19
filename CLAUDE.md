@@ -452,13 +452,15 @@ Comentários, docs e commits seguem as preferências globais do Tiago (pt-BR, Co
   `.deb` de `distro/out` é publicado junto: mesma versão com outro conteúdo faz o apt da ISO tentar "voltar" de
   versão e o `lb build` falha no fim (o `build.sh` confere isso no início).
   **Codinomes = plantas do sertão nordestino (2026-11-17, pedido do Tiago), um por série (`distro/codinomes`):
-  0.1 = Mandacaru.** O `build.sh` gera `kalango-os-<versão>-<codinome>[-hardware-novo].iso` e põe no os-release
+  0.1 = Mandacaru.** O `build.sh` gera `kalango-os-<versão>-<codinome>[-hwe].iso` e põe no os-release
   `PRETTY_NAME="KalangOS 0.1 Mandacaru"`, `VERSION=...` e `KALANGO_CODENAME=`; `VERSION_CODENAME` continua `trixie`
   (scripts de repositórios de terceiros, como Docker e VS Code, leem esse campo). O shell mostra o codinome em Sobre
   o sistema (`device::codename`, `include_str!` da tabela; o `build.sh` copia `distro/codinomes` para o builder).
   **Duas edições (2026-11-17, pedido do Tiago):** a padrão (kernel 6.12 do Debian 13, para máquinas antigas) e a
-  **hardware novo** (`KALANGO_EDICAO=novo` → `kalango-os-<versão>-hardware-novo.iso`): `lb config --backports true` +
-  `distro/edicoes/hardware-novo.pref` (pin 990 só para `linux-*`, `firmware-*`, `mesa-*` e libs do Mesa; o resto
+  **HWE** (Hardware Enablement, o nome que o Ubuntu usa; antes "hardware novo", trocado em 2026-11-18 a pedido do Tiago:
+  `KALANGO_EDICAO=hwe`, `novo` ainda vale → `kalango-os-<versão>-<codinome>-hwe.iso`, os-release com
+  `PRETTY_NAME="KalangOS 0.1 Mandacaru HWE"`, `VARIANT="HWE (Hardware Enablement)"`, `VARIANT_ID=hwe`): `lb config --backports true` +
+  `distro/edicoes/hwe.pref` (pin 990 só para `linux-*`, `firmware-*`, `mesa-*` e libs do Mesa; o resto
   fica estável), copiado para `config/archives` (montagem) e `/etc/apt/preferences.d` (o instalado segue nos kernels
   novos). Em 2026-11: kernel 7.2, Mesa 26.1, firmware 2026-09, como o Ubuntu 26.10 (o único que funcionou num
   notebook Core Ultra do Tiago). `KALANGO_DEB=<.deb publicado>` põe o pacote do apt na ISO sem compilar outro (ele
