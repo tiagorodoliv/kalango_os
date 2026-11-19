@@ -100,7 +100,7 @@ Maintainer: KalangOS <repo@kalangos.org>
 Section: x11
 Priority: optional
 Depends: labwc, libc6, foot, zsh, zsh-autosuggestions, zsh-syntax-highlighting, fonts-droid-fallback, grim, wf-recorder, wl-clipboard, ufw, playerctl, brightnessctl, ptyxis
-Recommends: sound-theme-freedesktop
+Recommends: sound-theme-freedesktop, steam-devices
 Installed-Size: $(du -sk "$P/usr" | cut -f1)
 Homepage: https://github.com/tiagorodoliv/kalango_os
 Description: Interface do KalangOS (barra, dock, menu e Configurações)
