@@ -1,23 +1,8 @@
 # Novidades da próxima versão do kalango-shell. O gerar-deb.sh as põe na
 # descrição do pacote e a página Configurações → Atualizações as mostra antes
-# de instalar. Uma linha curta por novidade; [pt] e [en]. Troque a cada versão.
-[pt]
-Terminal com abas (Ptyxis) e seleção na cor de destaque
-Ícones na área de trabalho e Lixeira na dock (ligue em Aparência e Barra de tarefas)
-Teclas de volume não travam mais depois do primeiro aperto
-Papéis de parede do Sertão (dia e noite) e todas as suas imagens na Aparência
-Aviso flutuante de volume, microfone e brilho acima da dock, como no macOS e no Ubuntu
-Volume mostrava 0% ou 100% com os formatos em português: corrigido
-Tecla de e-mail abre o programa de e-mail
-Atalhos de teclado em Idioma e região: troque as teclas e crie os seus
-Firewall com página própria nas Configurações, com faixas de portas e ativar/desativar
+# de instalar. Uma linha curta por novidade; [pt]
+Jogos e vídeos em tela cheia: a tela não apaga nem bloqueia sozinha no meio da partida
+Controles de jogo (Xbox, PlayStation, Switch) funcionando no Steam e em emuladores
 [en]
-Terminal with tabs (Ptyxis) and selection in the accent color
-Desktop icons and a Trash in the dock (turn on in Appearance and Taskbar)
-Volume keys no longer get stuck after the first press
-Sertão wallpapers (day and night) and all your own images in Appearance
-Floating volume, microphone and brightness indicator above the dock, like macOS and Ubuntu
-Volume showed 0% or 100% with Portuguese formats: fixed
-The mail key opens the mail program
-Keyboard shortcuts in Language & Region: change the keys and add your own
-Firewall has its own Settings page, with port ranges and on/off per rule
+Full-screen games and videos: the screen no longer turns off or locks by itself mid-game
+Game controllers (Xbox, PlayStation, Switch) work in Steam and emulators
