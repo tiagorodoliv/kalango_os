@@ -18,7 +18,10 @@
 #   KALANGO_SSH_CHAVE    chave SSH do envio (padrão ~/.ssh/id_tiago_desktop)
 #
 # O pacote é sempre o .deb mais novo do pool do apt: a ISO e as atualizações
-# ficam com o mesmo arquivo (ver distro/repo/LEIAME.md). O build.sh pede sudo.
+# ficam com o mesmo arquivo (ver distro/repo/LEIAME.md). O build.sh pede sudo:
+# a senha é pedida uma vez no começo e mantida viva até o fim, e todas as ISOs
+# são geradas antes do envio (o envio de uma ISO leva horas numa conexão lenta;
+# antes, o sudo expirava no meio e a segunda edição não era gerada).
 # Não atualiza a página do site: o link, o tamanho e o SHA-256 novos ficam no
 # resumo do fim, para pôr em kalangos-site/public/{,pt/}index.html.
 set -eu
@@ -65,7 +68,14 @@ DESTINO=${KALANGO_ISO_DESTINO:-root@10.8.0.1:/www/wwwroot/kalangos.org/download}
 CHAVE=${KALANGO_SSH_CHAVE:-$HOME/.ssh/id_tiago_desktop}
 SSH="ssh -i $CHAVE -o BatchMode=yes"
 
+# Senha do sudo agora, enquanto a pessoa está olhando, e mantida viva.
+sudo -v
+( while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null; sleep 50; done ) &
+MANTER_SUDO=$!
+trap 'kill $MANTER_SUDO 2>/dev/null' EXIT INT TERM
+
 RESUMO=""
+GERADAS=""
 for ed in $EDICOES; do
 	echo
 	echo ">> Gerando a edição $ed ($(date +%H:%M))"
@@ -83,18 +93,24 @@ for ed in $EDICOES; do
 	soma=$(cut -d' ' -f1 "$OUT/$nome.sha256")
 	tamanho=$(du -h --apparent-size "$iso" | cut -f1)
 	echo ">> Pronta: $nome ($tamanho)"
-
-	if [ "$ENVIAR" = 1 ]; then
-		echo ">> Enviando $nome para $DESTINO"
-		rsync -t --partial --progress --chmod=F644 -e "$SSH" "$iso" "$iso.sha256" "$DESTINO/"
-		host=${DESTINO%%:*}
-		pasta=${DESTINO#*:}
-		$SSH "$host" "cd '$pasta' && chown www:www '$nome' '$nome.sha256' && sha256sum -c '$nome.sha256'"
-	fi
+	GERADAS="$GERADAS $iso"
 	RESUMO="$RESUMO
   $ed: $nome ($tamanho)
        SHA-256 $soma"
 done
+
+# Envio só depois de todas geradas.
+if [ "$ENVIAR" = 1 ]; then
+	host=${DESTINO%%:*}
+	pasta=${DESTINO#*:}
+	for iso in $GERADAS; do
+		nome=$(basename "$iso")
+		echo
+		echo ">> Enviando $nome para $DESTINO ($(date +%H:%M))"
+		rsync -t --partial --progress --chmod=F644 -e "$SSH" "$iso" "$iso.sha256" "$DESTINO/"
+		$SSH "$host" "cd '$pasta' && chown www:www '$nome' '$nome.sha256' && sha256sum -c '$nome.sha256'"
+	done
+fi
 
 echo
 echo ">> Tudo pronto. Pacote $(basename "$DEB").$RESUMO"
