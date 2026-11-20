@@ -1118,7 +1118,7 @@ export component SoundPage inherits Rectangle {
                         width: root.control;
                         options: Device.sound-output-names;
                         selected: Device.sound-output-index;
-                        chosen(i) => { Device.set-sound-default(Device.sound-outputs[i].id); }
+                        chosen(i) => { Device.select-sound(Device.sound-outputs[i]); }
                     }
                 }
                 Row {
@@ -1185,7 +1185,7 @@ export component SoundPage inherits Rectangle {
                         width: root.control;
                         options: Device.sound-input-names;
                         selected: Device.sound-input-index;
-                        chosen(i) => { Device.set-sound-default(Device.sound-inputs[i].id); }
+                        chosen(i) => { Device.select-sound(Device.sound-inputs[i]); }
                     }
                 }
                 if Device.mic-available: Row {

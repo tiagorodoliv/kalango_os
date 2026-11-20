@@ -1791,3 +1791,6 @@ msgstr "Fotos"
 
 msgid "Videos"
 msgstr "Vídeos"
+
+msgid "Microphone"
+msgstr "Microfone"

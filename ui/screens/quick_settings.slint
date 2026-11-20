@@ -226,7 +226,7 @@ component ConnRow inherits Rectangle {
     }
     Text {
         x: 40px;
-        width: parent.width - 40px - 90px;
+        width: parent.width - 40px - 130px;
         text: root.name;
         color: Theme.text;
         font-size: 13.5px;
@@ -480,7 +480,7 @@ export component QuickSettings inherits Rectangle {
             if Device.sound-available: SliderRow {
                 icon: Device.muted || Device.volume <= 0.001 ? Icons.volume-x : Icons.volume;
                 icon-clickable: true;
-                has-details: Device.sound-outputs.length > 1;
+                has-details: Device.sound-outputs.length > 1 || Device.sound-inputs.length > 1;
                 details-open: root.open-list == "sound";
                 details => { root.open-list = root.open-list == "sound" ? "" : "sound"; }
                 value: Device.volume;
@@ -497,7 +497,17 @@ export component QuickSettings inherits Rectangle {
                     Device.set-volume(v);
                 }
             }
-            // --- Saídas de som (setinha do volume), como no Ubuntu ---
+            // Onde o som está saindo agora ("Caixas ou fone · atrás"), para não
+            // precisar abrir a lista.
+            if Device.sound-available && Device.sound-output != "": Text {
+                x: 46px;
+                width: parent.width - 46px;
+                text: Device.sound-output;
+                color: Theme.text-muted;
+                font-size: 11.5px;
+                overflow: elide;
+            }
+            // --- Saídas e entradas de som (setinha do volume), como no Ubuntu ---
             if root.open-list == "sound": VerticalLayout {
                 spacing: 8px;
                 Text {
@@ -515,11 +525,36 @@ export component QuickSettings inherits Rectangle {
                     sound-list := VerticalLayout {
                         padding: 4px;
                         for o in Device.sound-outputs: ConnRow {
-                            icon: o.hdmi ? Icons.monitor : Icons.volume;
+                            icon: o.hdmi ? Icons.monitor : o.kind == "headphones" ? Icons.headphones : Icons.volume;
                             name: o.name;
+                            detail: o.detail;
                             active: o.active;
                             active-text: @tr("In use");
-                            clicked => { if (!o.active) { Device.set-sound-default(o.id); } }
+                            clicked => { if (!o.active) { Device.select-sound(o); } }
+                        }
+                    }
+                }
+                if Device.sound-inputs.length > 0: Text {
+                    text: @tr("Microphone");
+                    color: Theme.text-muted;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+                if Device.sound-inputs.length > 0: Rectangle {
+                    height: mic-list.preferred-height;
+                    border-radius: 12px;
+                    background: Theme.tile;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    mic-list := VerticalLayout {
+                        padding: 4px;
+                        for o in Device.sound-inputs: ConnRow {
+                            icon: Icons.mic;
+                            name: o.name;
+                            detail: o.detail;
+                            active: o.active;
+                            active-text: @tr("In use");
+                            clicked => { if (!o.active) { Device.select-sound(o); } }
                         }
                     }
                 }

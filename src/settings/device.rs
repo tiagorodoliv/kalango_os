@@ -293,6 +293,83 @@ pub fn audio_node_label(inspect: &str) -> Option<String> {
     }
 }
 
+/// Um conector de uma placa de som (uma "rota" do PipeWire: fone da frente,
+/// saída de trás, microfone de trás, HDMI...).
+#[derive(Clone, Debug, PartialEq)]
+pub struct AudioRoute {
+    /// Índice da rota na placa (para trocar: `pw-cli s <placa> Route`).
+    pub index: i64,
+    /// Nome técnico (`analog-input-rear-mic`).
+    pub name: String,
+    /// Nome que a placa dá (`Rear Microphone`).
+    pub description: String,
+    /// Saída (true) ou entrada.
+    pub output: bool,
+    /// Algo plugado: `Some(true)`, nada: `Some(false)`, não sabe: `None`.
+    pub plugged: Option<bool>,
+    /// Dispositivos da placa que usam este conector (`card.profile.device`).
+    pub devices: Vec<i64>,
+}
+
+/// Lê os conectores de uma placa e os ativos agora, do JSON de `pw-dump <placa>`:
+/// (todos os conectores, [(dispositivo, rota ativa)]).
+pub fn parse_device_routes(json: &str) -> (Vec<AudioRoute>, Vec<(i64, i64)>) {
+    let Ok(v) = crate::common::json::parse(json) else { return (Vec::new(), Vec::new()) };
+    let params = v.index(0).get("info").get("params");
+    let routes = params
+        .get("EnumRoute")
+        .items()
+        .iter()
+        .filter_map(|r| {
+            Some(AudioRoute {
+                index: r.get("index").as_i64()?,
+                name: r.get("name").as_str()?.to_string(),
+                description: r.get("description").as_str().unwrap_or_default().to_string(),
+                output: r.get("direction").as_str()? == "Output",
+                plugged: match r.get("available").as_str() {
+                    Some("yes") => Some(true),
+                    Some("no") => Some(false),
+                    _ => None,
+                },
+                devices: r.get("devices").items().iter().filter_map(|d| d.as_i64()).collect(),
+            })
+        })
+        .collect();
+    let active = params
+        .get("Route")
+        .items()
+        .iter()
+        .filter_map(|r| Some((r.get("device").as_i64()?, r.get("index").as_i64()?)))
+        .collect();
+    (routes, active)
+}
+
+/// Nome claro de um conector, com onde ele fica quando dá para saber.
+///
+/// `desktop`: a placa tem microfones na frente e atrás (gabinete de PC de mesa):
+/// aí a saída de linha é a de trás e o fone é o da frente. Num notebook, o
+/// lugar ficaria errado, então só o tipo.
+pub fn route_label(name: &str, description: &str, desktop: bool) -> String {
+    let n = name.trim_start_matches("analog-output-").trim_start_matches("analog-input-");
+    let texto = match n {
+        "lineout" if desktop => tr("Speakers or headphones · back", "Caixas ou fone · atrás"),
+        "lineout" => tr("Line out", "Saída de linha"),
+        "headphones" if desktop => tr("Headphones · front", "Fone · frente"),
+        "headphones" => tr("Headphones", "Fone de ouvido"),
+        "speaker" => tr("Built-in speakers", "Alto-falantes internos"),
+        "front-mic" => tr("Microphone · front", "Microfone · frente"),
+        "rear-mic" => tr("Microphone · back", "Microfone · atrás"),
+        "linein" if desktop => tr("Line in · back", "Entrada de linha · atrás"),
+        "linein" => tr("Line in", "Entrada de linha"),
+        "internal-mic" => tr("Built-in microphone", "Microfone interno"),
+        "headset-mic" => tr("Headset microphone", "Microfone do fone"),
+        "mic" => tr("Microphone", "Microfone"),
+        _ if name.starts_with("iec958") => tr("Digital output (S/PDIF)", "Saída digital (S/PDIF)"),
+        _ => return description.to_string(),
+    };
+    texto.to_string()
+}
+
 /// Valor de uma chave de `/etc/os-release` (sem aspas).
 /// Codinome da série da versão (planta do sertão), da tabela `distro/codinomes`
 /// embutida no binário: "0.1.1" → "Mandacaru".
@@ -590,8 +667,8 @@ struct Snapshot {
     connections: Option<(Vec<crate::settings::netconfig::SavedConnection>, Vec<crate::settings::netconfig::SavedConnection>)>,
     sound: Option<(f32, bool, String)>,
     /// Saídas e entradas de som (`wpctl status`), com o nome para a tela.
-    sinks: Vec<AudioNode>,
-    sources: Vec<AudioNode>,
+    sinks: Vec<SoundEntry>,
+    sources: Vec<SoundEntry>,
     /// Volume e mudo da entrada padrão (microfone).
     mic: Option<(f32, bool)>,
     battery: Option<(u32, bool)>,
@@ -644,8 +721,10 @@ fn read_snapshot(scan: Scan) -> Snapshot {
         s.sound = Some((vol, muted, name));
         if let Some(text) = output("wpctl", &["status"]) {
             let (sinks, sources) = parse_wpctl_status(&text);
-            s.sinks = sinks.into_iter().map(|n| AudioNode { name: node_label(n.id, &n.name), ..n }).collect();
-            s.sources = sources.into_iter().map(|n| AudioNode { name: node_label(n.id, &n.name), ..n }).collect();
+            // Conectores de cada placa, lidos uma vez por leitura (~30 ms cada).
+            let mut cards: std::collections::HashMap<i64, (Vec<AudioRoute>, Vec<(i64, i64)>)> = Default::default();
+            s.sinks = sound_entries(&sinks, true, &mut cards);
+            s.sources = sound_entries(&sources, false, &mut cards);
         }
         s.mic = output("wpctl", &["get-volume", "@DEFAULT_AUDIO_SOURCE@"]).and_then(|t| parse_wpctl_volume(&t));
     }
@@ -658,34 +737,178 @@ fn read_snapshot(scan: Scan) -> Snapshot {
     s
 }
 
-/// Nome para a tela de um nó de som, guardado por id (o `wpctl inspect` só
-/// roda na primeira vez que o nó aparece, não a cada leitura).
-fn node_label(id: u32, fallback: &str) -> String {
-    use std::collections::HashMap;
-    use std::sync::{Mutex, OnceLock};
-    static CACHE: OnceLock<Mutex<HashMap<u32, String>>> = OnceLock::new();
-    let cache = CACHE.get_or_init(Default::default);
-    if let Some(name) = cache.lock().unwrap().get(&id) {
-        return name.clone();
-    }
-    let name = output("wpctl", &["inspect", &id.to_string()])
-        .and_then(|t| audio_node_label(&t))
-        .unwrap_or_else(|| fallback.to_string());
-    cache.lock().unwrap().insert(id, name.clone());
-    name
+/// O que o `wpctl inspect` diz de um nó de som.
+#[derive(Clone, Default)]
+struct NodeInfo {
+    /// Nome para a tela (HDMI com o monitor: ver [`audio_node_label`]).
+    label: String,
+    /// Placa (`device.id`) e o dispositivo dela que o nó usa (`card.profile.device`).
+    card: Option<i64>,
+    card_device: Option<i64>,
 }
 
-/// Lista de saídas/entradas para a UI: os itens e o índice da padrão (-1).
-fn sound_model(nodes: Vec<AudioNode>) -> (ModelRc<SoundDevice>, ModelRc<SharedString>, i32) {
-    let index = nodes.iter().position(|n| n.default).map_or(-1, |i| i as i32);
-    let names: Vec<SharedString> = nodes.iter().map(|n| n.name.as_str().into()).collect();
-    let items: Vec<SoundDevice> = nodes
+/// Informações de um nó, guardadas por id **e** nome: o PipeWire reaproveita
+/// ids (trocar o perfil da placa recria os nós), e só o id daria o nome errado.
+fn node_info(id: u32, name: &str) -> NodeInfo {
+    use std::collections::HashMap;
+    use std::sync::{Mutex, OnceLock};
+    static CACHE: OnceLock<Mutex<HashMap<(u32, String), NodeInfo>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(Default::default);
+    let key = (id, name.to_string());
+    if let Some(info) = cache.lock().unwrap().get(&key) {
+        return info.clone();
+    }
+    let text = output("wpctl", &["inspect", &id.to_string()]).unwrap_or_default();
+    let prop = |k: &str| {
+        text.lines().find_map(|l| {
+            let l = l.trim().trim_start_matches('*').trim();
+            l.strip_prefix(k)?.strip_prefix(" = ").map(|v| v.trim_matches('"').to_string())
+        })
+    };
+    let info = NodeInfo {
+        label: audio_node_label(&text).unwrap_or_else(|| name.to_string()),
+        card: prop("device.id").and_then(|v| v.parse().ok()),
+        card_device: prop("card.profile.device").and_then(|v| v.parse().ok()),
+    };
+    cache.lock().unwrap().insert(key, info.clone());
+    info
+}
+
+/// Uma linha das listas de som: um conector de uma saída ou entrada.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SoundEntry {
+    /// Nó do PipeWire (saída ou entrada) que fica padrão ao escolher.
+    pub node: u32,
+    /// Placa e conector a ativar (`route` = -1: o nó não tem conectores).
+    pub card: i64,
+    pub route: i64,
+    pub card_device: i64,
+    pub name: String,
+    /// "conectado", "nada conectado" ou vazio (a placa não sabe).
+    pub detail: String,
+    pub active: bool,
+    pub hdmi: bool,
+    /// "hdmi", "headphones", "speaker" ou "mic" (o ícone da lista).
+    pub kind: String,
+}
+
+/// Tipo do conector para o ícone: pelo nome técnico, senão pela direção.
+fn route_kind(name: &str, output: bool, hdmi: bool) -> String {
+    if hdmi || name.starts_with("hdmi") {
+        "hdmi"
+    } else if !output {
+        "mic"
+    } else if name.contains("headphones") || name.contains("headset") {
+        "headphones"
+    } else {
+        "speaker"
+    }
+    .to_string()
+}
+
+/// Linhas de uma lista de nós (saídas ou entradas): um nó com vários
+/// conectores vira uma linha por conector ("Fone · frente", "Caixas ou fone ·
+/// atrás"); com um só, a linha é o próprio nó ("HDMI · 25UM58G").
+fn sound_entries(
+    nodes: &[AudioNode],
+    output_dir: bool,
+    cards: &mut std::collections::HashMap<i64, (Vec<AudioRoute>, Vec<(i64, i64)>)>,
+) -> Vec<SoundEntry> {
+    let mut out = Vec::new();
+    for n in nodes {
+        let info = node_info(n.id, &n.name);
+        let (Some(card), Some(dev)) = (info.card, info.card_device) else {
+            let mut e = single_entry(n, &info, -1, -1, -1, None);
+            e.kind = route_kind("", output_dir, e.hdmi);
+            out.push(e);
+            continue;
+        };
+        let (routes, active) = cards
+            .entry(card)
+            .or_insert_with(|| {
+                output("pw-dump", &[&card.to_string()]).map(|j| parse_device_routes(&j)).unwrap_or_default()
+            })
+            .clone();
+        let mine: Vec<&AudioRoute> =
+            routes.iter().filter(|r| r.output == output_dir && r.devices.contains(&dev)).collect();
+        let active_route = active.iter().find(|(d, _)| *d == dev).map(|(_, r)| *r);
+        let desktop = ["analog-input-front-mic", "analog-input-rear-mic"]
+            .iter()
+            .all(|want| routes.iter().any(|r| r.name == *want));
+        if mine.len() <= 1 {
+            let r = mine.first();
+            let mut e = single_entry(n, &info, card, r.map_or(-1, |r| r.index), dev, r.and_then(|r| r.plugged));
+            e.kind = route_kind(r.map_or("", |r| r.name.as_str()), output_dir, e.hdmi);
+            // Conector conhecido (fone, microfone...): o nome dele é mais claro
+            // que o da placa; HDMI continua com o nome do monitor.
+            if let Some(r) = r.filter(|r| !r.name.starts_with("hdmi") && !info.label.contains("HDMI")) {
+                let label = route_label(&r.name, "", desktop);
+                if !label.is_empty() {
+                    e.name = label;
+                }
+            }
+            out.push(e);
+            continue;
+        }
+        for r in mine {
+            out.push(SoundEntry {
+                node: n.id,
+                card,
+                route: r.index,
+                card_device: dev,
+                name: if r.name.starts_with("hdmi") { info.label.clone() } else { route_label(&r.name, &r.description, desktop) },
+                detail: plugged_text(r.plugged),
+                active: n.default && active_route == Some(r.index),
+                hdmi: r.name.starts_with("hdmi"),
+                kind: route_kind(&r.name, output_dir, false),
+            });
+        }
+    }
+    out
+}
+
+fn single_entry(n: &AudioNode, info: &NodeInfo, card: i64, route: i64, dev: i64, plugged: Option<bool>) -> SoundEntry {
+    SoundEntry {
+        node: n.id,
+        card,
+        route,
+        card_device: dev,
+        hdmi: info.label.contains("HDMI") || info.label.contains("DisplayPort"),
+        name: info.label.clone(),
+        detail: plugged_text(plugged),
+        active: n.default,
+        kind: String::new(),
+    }
+}
+
+fn plugged_text(plugged: Option<bool>) -> String {
+    match plugged {
+        Some(true) => tr("plugged in", "conectado").into(),
+        Some(false) => tr("nothing plugged in", "nada conectado").into(),
+        None => String::new(),
+    }
+}
+
+/// Lista de saídas/entradas para a UI: os itens, os nomes da lista suspensa
+/// ("Microfone · atrás — nada conectado") e o índice do que está em uso (-1).
+fn sound_model(entries: Vec<SoundEntry>) -> (ModelRc<SoundDevice>, ModelRc<SharedString>, i32) {
+    let index = entries.iter().position(|e| e.active).map_or(-1, |i| i as i32);
+    let names: Vec<SharedString> = entries
+        .iter()
+        .map(|e| if e.detail.is_empty() { e.name.clone() } else { format!("{} — {}", e.name, e.detail) }.into())
+        .collect();
+    let items: Vec<SoundDevice> = entries
         .into_iter()
-        .map(|n| SoundDevice {
-            id: n.id as i32,
-            hdmi: n.name.contains("HDMI") || n.name.contains("DisplayPort"),
-            name: n.name.into(),
-            active: n.default,
+        .map(|e| SoundDevice {
+            id: e.node as i32,
+            card: e.card as i32,
+            route: e.route as i32,
+            card_device: e.card_device as i32,
+            hdmi: e.hdmi,
+            name: e.name.into(),
+            detail: e.detail.into(),
+            kind: e.kind.into(),
+            active: e.active,
         })
         .collect();
     (ModelRc::from(Rc::new(VecModel::from(items))), ModelRc::from(Rc::new(VecModel::from(names))), index)
@@ -811,6 +1034,12 @@ fn apply(ui: &AppWindow, s: Snapshot, hold_volume: bool, rescan: bool) {
             if !hold_volume {
                 d.set_volume(vol);
                 d.set_muted(muted);
+            }
+            if let Some(e) = s.sinks.iter().find(|e| e.active) {
+                d.set_sound_output(e.name.as_str().into());
+            }
+            if let Some(e) = s.sources.iter().find(|e| e.active) {
+                d.set_sound_input(e.name.as_str().into());
             }
             let (items, names, index) = sound_model(s.sinks);
             d.set_sound_outputs(items);
@@ -1029,11 +1258,18 @@ pub fn install(ui: &AppWindow, mode: Mode) -> Option<Timer> {
         // está tocando.
         let weak = ui.as_weak();
         let shared = shared.clone();
-        d.on_set_sound_default(move |id| {
+        d.on_select_sound(move |dev| {
             let weak = weak.clone();
             let shared = shared.clone();
             std::thread::spawn(move || {
-                let _ = output("wpctl", &["set-default", &id.to_string()]);
+                // O conector primeiro (fone da frente, microfone de trás...),
+                // guardado pelo WirePlumber (`save`); depois a saída padrão. Só
+                // números entram no texto do pw-cli.
+                if dev.route >= 0 && dev.card >= 0 {
+                    let route = format!("{{ index: {}, device: {}, save: true }}", dev.route, dev.card_device);
+                    let _ = output("pw-cli", &["set-param", &dev.card.to_string(), "Route", &route]);
+                }
+                let _ = output("wpctl", &["set-default", &dev.id.to_string()]);
                 refresh_from_thread(weak, shared);
             });
         });
@@ -1217,6 +1453,47 @@ Video\n ├─ Devices:\n ├─ Sinks:\n │      90. Câmera\n";
         assert_eq!(sinks[1].name, "Ellesmere HDMI Audio [Radeon RX 470/480 / 570/580/590] Digital Stereo (HDMI 4)");
         assert!(!sinks[1].default);
         assert_eq!(sources, vec![AudioNode { id: 46, name: "Built-in Audio Analog Stereo".into(), default: false }]);
+    }
+
+    #[test]
+    fn conectores_da_placa_pelo_pw_dump() {
+        // Trecho do `pw-dump 49` da placa Realtek ALC892 (desktop do Tiago).
+        let json = r#"[{"id": 49, "type": "PipeWire:Interface:Device", "info": {"params": {
+            "EnumRoute": [
+              {"index": 0, "direction": "Input", "name": "analog-input-front-mic", "description": "Front Microphone", "available": "no", "devices": [0]},
+              {"index": 1, "direction": "Input", "name": "analog-input-rear-mic", "description": "Rear Microphone", "available": "no", "devices": [0]},
+              {"index": 2, "direction": "Input", "name": "analog-input-linein", "description": "Line In", "available": "no", "devices": [0]},
+              {"index": 3, "direction": "Output", "name": "analog-output-lineout", "description": "Line Out", "available": "yes", "devices": [6, 7]},
+              {"index": 4, "direction": "Output", "name": "analog-output-headphones", "description": "Headphones", "available": "no", "devices": [6]},
+              {"index": 5, "direction": "Output", "name": "iec958-stereo-output", "description": "Digital Output (S/PDIF)", "available": "unknown", "devices": [12]}
+            ],
+            "Route": [{"index": 1, "device": 0, "name": "analog-input-rear-mic"}, {"index": 3, "device": 6, "name": "analog-output-lineout"}]
+        }}}]"#;
+        let (routes, active) = parse_device_routes(json);
+        assert_eq!(routes.len(), 6);
+        assert_eq!(routes[1].name, "analog-input-rear-mic");
+        assert!(!routes[1].output && routes[1].plugged == Some(false));
+        assert!(routes[3].output && routes[3].plugged == Some(true) && routes[3].devices == [6, 7]);
+        assert_eq!(routes[5].plugged, None);
+        assert_eq!(active, [(0, 1), (6, 3)]);
+        // JSON quebrado: nada (a lista cai para o nome da placa).
+        assert_eq!(parse_device_routes("[{"), (Vec::new(), Vec::new()));
+    }
+
+    #[test]
+    fn nomes_claros_dos_conectores() {
+        let pt = |a: &str, b: &str| crate::common::i18n::tr(a, b).to_string();
+        // PC de mesa (microfone na frente e atrás): diz onde fica.
+        assert_eq!(route_label("analog-output-lineout", "Line Out", true), pt("Speakers or headphones · back", "Caixas ou fone · atrás"));
+        assert_eq!(route_label("analog-output-headphones", "Headphones", true), pt("Headphones · front", "Fone · frente"));
+        assert_eq!(route_label("analog-input-rear-mic", "Rear Microphone", true), pt("Microphone · back", "Microfone · atrás"));
+        // Notebook: sem lugar inventado.
+        assert_eq!(route_label("analog-output-headphones", "Headphones", false), pt("Headphones", "Fone de ouvido"));
+        assert_eq!(route_label("iec958-stereo-output", "Digital Output (S/PDIF)", true), pt("Digital output (S/PDIF)", "Saída digital (S/PDIF)"));
+        // Desconhecido: o nome da placa.
+        assert_eq!(route_label("analog-output-xyz", "Algo", true), "Algo");
+        assert_eq!(route_kind("analog-output-headphones", true, false), "headphones");
+        assert_eq!(route_kind("analog-input-rear-mic", false, false), "mic");
     }
 
     #[test]

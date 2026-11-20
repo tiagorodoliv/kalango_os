@@ -123,15 +123,24 @@ export struct BtDevice {
     connected: bool,
 }
 
-/// Uma saída ou entrada de som do PipeWire.
+/// Um conector de som: uma saída ou entrada do PipeWire e, quando a placa tem
+/// vários, qual conector dela ("Fone · frente", "Microfone · atrás").
 export struct SoundDevice {
-    /// Id do nó no PipeWire.
+    /// Id do nó no PipeWire (vira o padrão ao escolher).
     id: int,
-    /// "HDMI · 25UM58G", "Áudio interno"...
+    /// Placa, conector ("rota") e dispositivo da placa; `route` = -1 sem conector.
+    card: int,
+    route: int,
+    card-device: int,
+    /// "HDMI · 25UM58G", "Caixas ou fone · atrás", "Microfone · frente"...
     name: string,
+    /// "conectado", "nada conectado" ou vazio (a placa não sabe).
+    detail: string,
+    /// "hdmi", "headphones", "speaker", "mic" (ícone da lista).
+    kind: string,
     /// Saída pelo monitor/TV (HDMI ou DisplayPort).
     hdmi: bool,
-    /// É a padrão agora.
+    /// Em uso agora (padrão e com este conector ativo).
     active: bool,
 }
 
@@ -304,8 +313,10 @@ export global Device {
     in property <[SoundDevice]> sound-inputs: [];
     in property <[string]> sound-input-names: [];
     in property <int> sound-input-index: -1;
-    /// Torna padrão a saída ou entrada com esse id do PipeWire.
-    callback set-sound-default(int /* id */);
+    /// Nome do conector de entrada em uso ("Microfone · atrás").
+    in property <string> sound-input: "";
+    /// Usa este conector: troca a rota da placa e torna a saída/entrada padrão.
+    callback select-sound(SoundDevice);
     /// Teste de alto-falantes na saída padrão: "left", "right" ou "both".
     callback sound-test(string);
 
