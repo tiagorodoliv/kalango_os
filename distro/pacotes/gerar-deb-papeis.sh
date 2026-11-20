@@ -16,9 +16,9 @@
 set -eu
 
 # Suba a cada mudança nas fotos (formato data.revisão).
-VERSAO=2026.11.19-1
+VERSAO=2026.11.20-1
 # Data fixa dos arquivos e do pacote (reprodutível): meia-noite do dia da versão.
-EPOCH=1795060800
+EPOCH=1795143600
 
 SAIDA=${1:?pasta de saída}
 DISTRO=$(cd "$(dirname "$0")/.." && pwd)
