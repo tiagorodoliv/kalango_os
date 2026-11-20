@@ -27,7 +27,7 @@ Atualizações as mostra antes de instalar. **Troque o texto a cada versão.**
 ## O caminho de uma atualização
 
 ```mermaid
-flowchart LR
+flowchart TB
     A[commit no git] --> B["cargo build --release --locked<br/>(numa cópia limpa)"]
     B --> C[gerar-deb.sh<br/>.deb]
     C --> D["publicar.sh<br/>confere o servidor,<br/>assina com a chave"]
